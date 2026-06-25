@@ -1,0 +1,510 @@
+<?php
+namespace App\Models;
+
+use PDO;
+
+class Branch {
+    private $db;
+    public function __construct($db) { 
+        $this->db = $db;
+         }
+
+    public function insertBranch($data) {
+        $sql = "INSERT INTO branches (id, organization_id, parent_id, name, alt_name, phone_number, postal_code, level, logo_url, registered_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            $data['id'], 
+            $data['org_id'], 
+            $data['parent_id'], 
+            $data['name'], 
+            $data['alt_name'], 
+            $data['phone_number'],
+            $data['postal_code'],
+            $data['level'], 
+            $data['logo_url'], 
+            $data['registered_by']
+            
+        ]);
+    }
+/**
+ * የራሴን ቅርንጫፍ ቀጥተኛ ንዑስ ቅርንጫፎች (Immediate Sub-branches) ብቻ ያመጣል
+ */
+public function getImmediateSubBranches($myBranchId) {
+    // parent_id የእኔን ID የመሰሉትን ብቻ ይፈልጋል
+    $sql = "SELECT * FROM branches 
+            WHERE parent_id = ?  AND status = 'active'
+            ORDER BY name ASC";
+            
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$myBranchId]);
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Get immediate sub-branches error: " . $e->getMessage());
+        return [];
+    }
+}
+public function getMainOfficeId($orgId) {
+    $sql = "SELECT id FROM branches WHERE organization_id = ? AND level = 1 LIMIT 1";
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$orgId]);
+        $result = $stmt->fetch();
+        
+        // ID-ውን ብቻ ወይም ካልተገኘ false ይመልሳል
+        return $result ? $result['id'] : false;
+    } catch (\PDOException $e) {
+        error_log("Get Main Office ID Error: " . $e->getMessage());
+        return false;
+    }
+}
+public function getBranchById($branchId) {
+    $sql = "SELECT name, alt_name, phone_number, postal_code, level, logo_url FROM branches WHERE id = ? LIMIT 1";
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$branchId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Get Branch by ID Error: " . $e->getMessage());
+        return false;
+    }
+}
+public function isSubBranchOf($branchId, $parentBranchId) {
+    $stmt = $this->db->prepare(
+        "SELECT id FROM branches WHERE id = :branch_id AND parent_id = :parent_id AND status = 'active'"
+    );
+    $stmt->execute([
+        ':branch_id' => $branchId,
+        ':parent_id' => $parentBranchId
+    ]);
+    return $stmt->fetchColumn() !== false;
+}
+public function updateBranch($id, $name, $alt_name, $logo_url, $phone_number, $postal_code) {
+        $sql = "UPDATE branches SET name = ?, logo_url = ?, alt_name = ?, phone_number = ?, postal_code = ? WHERE id = ? AND status = 'active'";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                $name,
+                $logo_url,
+                $alt_name,
+                $phone_number,
+                $postal_code,
+                $id
+            ]);
+        } catch (\PDOException $e) {
+            throw $e;
+        }
+    }
+public function softDelete(string $id, string $userId, string $reason, string $source): array
+    {
+        try {
+            $this->db->beginTransaction();
+
+            // Snapshot before delete
+            $oldRecord = $this->getBranchById($id);
+            if (!$oldRecord) {
+                $this->db->rollBack();
+                return ['status' => 'error', 'message' => ' ቅርንጫፍ አልተገኘም።'];
+            }
+
+            // Count affected branches
+            $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM branches 
+                WHERE parent_id = ? AND status = 'active' AND is_deleted = 0
+            ");
+            $stmt->execute([$id]);
+            $branchCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+            // Count affected users
+        $stmt = $this->db->prepare(" SELECT COUNT(*) as total FROM users 
+            WHERE branch_id = ? AND is_deleted = 0
+        ");
+        $stmt->execute([$id]);
+        $userCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            // Soft delete organization
+            $stmt = $this->db->prepare("UPDATE branches 
+                SET deleted_at = NOW(), status = 'inactive', deletion_source = ?,
+                    deleted_by = ?, deletion_reason = ?,
+                    is_deleted = 1
+                WHERE id = ? AND status = 'active' AND is_deleted = 0
+            ");
+            $stmt->execute([$source, $userId, $reason, $id]);
+
+            // Cascade soft delete branches
+            $stmt = $this->db->prepare("UPDATE branches 
+                SET deleted_at = NOW(),
+                    status = 'inactive',
+                    deletion_source = 'CASCADE',
+                    is_deleted = 1,
+                    deleted_by = ?, deletion_reason = ?
+                WHERE parent_id = ? AND status = 'active' AND is_deleted = 0
+            ");
+            $stmt->execute([$userId, $reason, $id]);
+
+            // ✅ Inactivate all users under this organization
+        $stmt = $this->db->prepare("UPDATE users 
+            SET status = 'inactive',
+                deleted_at = NOW(),
+                deletion_source = 'CASCADE',
+                deleted_by = ?, deletion_reason = ?,
+                is_deleted = 1
+            WHERE branch_id = ? AND status = 'active'
+        ");
+        $stmt->execute([$userId, $reason, $id]);
+            $this->db->commit();
+
+            return [
+                'status'      => 'success',
+                'message'     => 'ቅርንጫፉ ተሰርዟል።',
+                'oldRecord'   => $oldRecord,    // ← controller passes to audit log
+                'branchCount' => $branchCount,   // ← controller passes to audit log metadata
+                'userCount'   => $userCount     // ← controller passes to audit log metadata
+            ];
+
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            error_log('BranchModel::softDelete - ' . $e->getMessage());
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+public function findAllDeleted(string $branchId): array
+{
+    // $branchId እዚህ ጋር የሚያገለግለው በዛ ቅርንጫፍ ስር ሆነው የጠፉትን (Sub-branches) ለማየት ነው
+    $stmt = $this->db->prepare("
+        SELECT 
+            b.id,
+            b.name,
+            b.deleted_at,
+            b.status,
+            -- ማን እንዳጠፋው ከ audit_logs ማምጣት
+            (SELECT CONCAT(u.first_name, ' ', u.father_name) 
+             FROM users u 
+             WHERE u.id = a.user_id LIMIT 1) as deleted_by_name,
+            -- በስሩ የጠፉ ንዑስ ቅርንጫፎች ብዛት
+            (SELECT COUNT(*) FROM branches sub 
+             WHERE sub.parent_id = b.id 
+             AND sub.deletion_source = 'CASCADE') as branch_count,
+            -- በስሩ የጠፉ ተጠቃሚዎች ብዛት
+            (SELECT COUNT(*) FROM users u 
+             WHERE u.branch_id = b.id 
+             AND u.deletion_source = 'CASCADE') as user_count,
+            -- ለቋሚ ስረዛ (Purge) የቀሩት ቀናት
+            DATEDIFF(DATE_ADD(b.deleted_at, INTERVAL 90 DAY), NOW()) as days_until_purge
+        FROM branches b
+        LEFT JOIN audit_logs a ON a.entity_id = b.id 
+            AND a.action = 'branch_deleted'
+        WHERE b.parent_id = :branchId 
+          AND b.status = 'inactive' 
+          AND b.is_deleted =1
+        ORDER BY b.deleted_at DESC
+    ");
+
+    $stmt->execute(['branchId' => $branchId]);
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+}
+
+public function restore(string $id, string $userId): array
+{
+    try {
+        $this->db->beginTransaction();
+
+        $stmt = $this->db->prepare("SELECT * FROM branches 
+            WHERE id = ? AND is_deleted = 1 AND status = 'inactive'
+        ");
+        $stmt->execute([$id]);
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$record) {
+            $this->db->rollBack();
+            return ['status' => 'error', 'message' => 'ቅርንጫፉ አልተገኘም ወይም አልተሰረዘም።'];
+        }
+
+        // Count branches to restore
+        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM branches 
+            WHERE parent_id = ? AND deletion_source = 'CASCADE' AND is_deleted = 1
+        ");
+        $stmt->execute([$id]);
+        $branchCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+        // Count users to restore
+        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM users 
+            WHERE branch_id = ? AND deletion_source = 'CASCADE' AND is_deleted = 1
+        ");
+        $stmt->execute([$id]);
+        $userCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+        // Restore branch
+        $stmt = $this->db->prepare("UPDATE branches 
+            SET deleted_at = NULL, status = 'active',
+            is_deleted = 0,
+            deleted_by = NULL,
+            deletion_source = NULL,
+            deletion_reason = NULL
+            WHERE id = ?
+        ");
+        $stmt->execute([$id]);
+
+        // Restore cascade-deleted branches only
+        $stmt = $this->db->prepare("UPDATE branches 
+            SET deleted_at = NULL,
+                status = 'active',
+                deletion_source = NULL,
+                deleted_by = NULL,
+                deletion_reason = NULL,
+                is_deleted = 0
+            WHERE parent_id = ? AND deletion_source = 'CASCADE' AND is_deleted = 1
+        ");
+        $stmt->execute([$id]);
+
+        // ✅ Restore cascade-inactivated users only
+        $stmt = $this->db->prepare(" UPDATE users 
+            SET deleted_at = NULL,
+               is_deleted = 0,
+               deletion_reason = NULL,
+               status = 'active',
+               deleted_by = NULL,
+                deletion_source = NULL
+            WHERE branch_id = ? AND deletion_source = 'CASCADE' AND is_deleted = 1
+        ");
+        $stmt->execute([$id]);
+
+        $this->db->commit();
+
+        return [
+            'status'           => 'success',
+            'message'          => 'ቅርንጫፉ ተመልሷል።',
+            'oldRecord'        => $record,
+            'restoredBranches' => $branchCount,
+            'restoredUsers'    => $userCount    // ← for audit log
+        ];
+
+    } catch (\Exception $e) {
+        $this->db->rollBack();
+        error_log('BranchModel::restore - ' . $e->getMessage());
+        return ['status' => 'error', 'message' => 'መልስ አልተቻለም።'];
+    }
+} 
+// ============================================================
+// PURGE (hard delete)
+// ============================================================
+public function purge(string $id, string $archiveId, string $entityType = 'branch'): array
+{
+    try {
+        $this->db->beginTransaction();
+
+        $stmt = $this->db->prepare("SELECT * FROM branches WHERE id = ?");
+        $stmt->execute([$id]);
+        $oldRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$oldRecord) {
+            $this->db->rollBack();
+            return ['status' => 'error', 'message' => 'ቅርንጫፉ አልተገኘም።'];
+        }
+
+        $stmt = $this->db->prepare("
+            SELECT * FROM branches 
+            WHERE parent_id = ? AND deletion_source = 'BRANCH_CASCADE'
+        ");
+        $stmt->execute([$id]);
+        $branchData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $this->db->prepare("
+            SELECT * FROM users 
+            WHERE branch_id = ? AND deletion_source = 'BRANCH_CASCADE'
+        ");
+        $stmt->execute([$id]);
+        $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // ✅ Single archive table — not separate per entity
+        $stmt = $this->db->prepare("
+            INSERT INTO data_archive
+                (id, entity_type, original_id, snapshot, archived_at, archived_by, reason)
+            VALUES (?, ?, ?, ?, NOW(), ?, 'PURGE')
+        ");
+        $stmt->execute([
+            $archiveId,
+            $entityType,
+            $id,
+            json_encode([
+                'branch' => $oldRecord,
+                'branches'     => $branchData,
+                'users'        => $userData
+            ]),
+            $_SESSION['user']['id']
+        ]);
+
+
+        $this->db->prepare("DELETE FROM users WHERE branch_id = ? AND deletion_source = 'BRANCH_CASCADE'")->execute([$id]);
+        $this->db->prepare("DELETE FROM branches WHERE parent_id = ? AND deletion_source = 'BRANCH_CASCADE'")->execute([$id]);
+        $this->db->prepare("DELETE FROM branches WHERE id = ?")->execute([$id]);
+
+        $this->db->commit();
+
+        return [
+            'status'      => 'success',
+            'message'     => 'ቅርንጫፉ ተመዝግቦ ተሰርዟል።',
+            'oldRecord'   => $oldRecord,
+            'archiveId'   => $archiveId,
+            'branchCount' => count($branchData),
+            'userCount'   => count($userData)
+        ];
+
+    } catch (\Exception $e) {
+        $this->db->rollBack();
+        error_log('BranchModel::purge - ' . $e->getMessage());
+        return ['status' => 'error', 'message' => 'መሰረዝ አልተቻለም።'];
+    }
+}
+public function findAllArchived(): array
+{
+    $stmt = $this->db->prepare("
+        SELECT 
+            a.id            as archive_id,
+            a.original_id,
+            a.archived_at,
+            a.restored_at,
+            a.reason,
+            a.archived_by,
+            CONCAT(u.first_name, ' ', u.father_name) as archived_by_name,
+            JSON_UNQUOTE(JSON_EXTRACT(a.snapshot, '$.branch.name')) as branch_name,
+            JSON_LENGTH(JSON_EXTRACT(a.snapshot, '$.branches'))           as branch_count,
+            JSON_LENGTH(JSON_EXTRACT(a.snapshot, '$.users'))              as user_count
+        FROM data_archive a
+        LEFT JOIN users u ON u.id = a.archived_by
+        WHERE a.entity_type = 'branch'
+        ORDER BY a.archived_at DESC
+    ");
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ============================================================
+// RESTORE FROM ARCHIVE
+// ============================================================
+public function restoreFromArchive(string $originalId, string $restoredBy): array
+{
+    try {
+        $this->db->beginTransaction();
+
+        // 1. Snapshot ማምጣት
+        $stmt = $this->db->prepare("
+            SELECT * FROM data_archive 
+            WHERE original_id = ? AND entity_type = 'branch'
+            ORDER BY archived_at DESC 
+            LIMIT 1
+        ");
+        $stmt->execute([$originalId]);
+        $archive = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$archive) {
+            $this->db->rollBack();
+            return ['status' => 'error', 'message' => 'Archive አልተገኘም።'];
+        }
+
+        $snapshot = json_decode($archive['snapshot'], true);
+        $mainBranch = $snapshot['branch']; // ስሙን ቀይረነዋል
+        $subBranches = $snapshot['branches'] ?? [];
+        $users       = $snapshot['users'] ?? [];
+
+        // 2. ረዳት ፈንክሽን (ለ INSERT ስራ ድግግሞሽን ለመቀነስ)
+        $branchQuery = "
+            INSERT INTO branches (id, organization_id, parent_id, name, level, status, registered_by, created_at, updated_at, deleted_at, deletion_source) 
+            VALUES (?, ?, ?, ?, ?, 'active', ?, ?, NOW(), NULL, NULL)
+            ON DUPLICATE KEY UPDATE status = 'active', deleted_at = NULL, deletion_source = NULL, updated_at = NOW()
+        ";
+
+        // 3. መጀመሪያ ዋናውን ቅርንጫፍ (Main Parent) መመለስ
+        $stmt = $this->db->prepare($branchQuery);
+        $stmt->execute([
+            $mainBranch['id'], $mainBranch['organization_id'], $mainBranch['parent_id'], 
+            $mainBranch['name'], $mainBranch['level'], $mainBranch['registered_by'], $mainBranch['created_at']
+        ]);
+
+        // 4. ንዑስ ቅርንጫፎችን መመለስ
+        foreach ($subBranches as $sub) {
+            $stmt = $this->db->prepare($branchQuery);
+            $stmt->execute([
+                $sub['id'], $sub['organization_id'], $sub['parent_id'], 
+                $sub['name'], $sub['level'], $sub['registered_by'], $sub['created_at']
+            ]);
+        }
+
+        // 5. ተጠቃሚዎችን መመለስ
+        foreach ($users as $user) {
+            $stmt = $this->db->prepare("
+                INSERT INTO users (id, organization_id, branch_id, first_name, father_name, grand_father_name, phone, email, password, role, status, registered_by, created_at, updated_at, deleted_at, deletion_source) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, NOW(), NULL, NULL)
+                ON DUPLICATE KEY UPDATE status = 'active', deleted_at = NULL, deletion_source = NULL, updated_at = NOW()
+            ");
+            $stmt->execute([
+                $user['id'], $user['organization_id'], $user['branch_id'], 
+                $user['first_name'], $user['father_name'], $user['grand_father_name'], 
+                $user['phone'], $user['email'], $user['password'], $user['role'], 
+                $user['registered_by'], $user['created_at']
+            ]);
+        }
+
+        // 6. Archive መዝገቡን 'restored' ብሎ ምልክት ማድረግ
+        $stmt = $this->db->prepare("UPDATE data_archive SET restored_at = NOW(), restored_by = ? WHERE id = ?");
+        $stmt->execute([$restoredBy, $archive['id']]);
+
+        $this->db->commit();
+
+        return [
+            'status'       => 'success',
+            'message'      => 'ቅርንጫፉ ከ archive ተመልሷል።',
+            'branchCount'  => count($subBranches),
+            'userCount'    => count($users)
+        ];
+
+    } catch (\Exception $e) {
+        if ($this->db->inTransaction()) $this->db->rollBack();
+        error_log('restoreFromArchive Error: ' . $e->getMessage());
+        return ['status' => 'error', 'message' => 'መልስ አልተቻለም፡ ' . $e->getMessage()];
+    }
+}
+
+public function getTotalBranchesCount($branch_id = null) {
+    try {
+        // Strict condition assignment: handles tenant isolation flawlessly
+        $branchCondition = !empty($branch_id) ? "parent_id = :branch_id" : "1=1";
+        
+        $query = "SELECT COUNT(*) as total 
+                  FROM branches 
+                  WHERE {$branchCondition} AND is_deleted = 0";
+        
+        $stmt = $this->db->prepare($query);
+        
+        // Bind the named parameter only if a strict branch context is active
+        if (!empty($branch_id)) {
+            // Swapped to PARAM_STR to match your standard employee methods execution pattern
+            $stmt->bindValue(':branch_id', $branch_id, \PDO::PARAM_STR);
+        }
+        
+        $stmt->execute();
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return $row ? (int)$row['total'] : 0;
+        
+    } catch (\PDOException $e) {
+        error_log("Database Error in Branches::getTotalBranchesCount: " . $e->getMessage());
+        return 0;
+    }
+}
+public function getActiveBranches(): array
+{
+    $sql = "SELECT id, name FROM branches
+            WHERE is_deleted = 0 AND status = 'active'
+            ORDER BY name ASC";
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Branch::getActiveBranches - " . $e->getMessage());
+        return [];
+    }
+}
+}

@@ -1,0 +1,7 @@
+# Treat all .php files as PHP even if they have lots of HTML
+*.php linguist-detectable=true
+*.php linguist-language=PHP
+
+# Ignore library folders from language stats
+vendor/* linguist-vendored
+assets/* linguist-documentation

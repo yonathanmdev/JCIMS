@@ -1,0 +1,13 @@
+/public/dist
+/public/plugins
+# Ignore everything inside the folder named 'myfolder'
+material/
+vendor/
+storage/
+# Ignore main .htaccess at project root
+/.htaccess
+
+# Ignore public folder .htaccess
+/public/.htaccess
+.env
+*.sql
