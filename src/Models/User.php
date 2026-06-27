@@ -75,15 +75,15 @@ private function generateBaseUsername(?string $phone, ?string $email): string
     /**
      * በኢሜይል አድራሻ ተጠቃሚን መፈለጊያ
      */
-    public function findByEmail($email) {
+    public function findByEmail($username) {
         $sql = "SELECT * FROM users WHERE username = ? AND status = 'active' LIMIT 1";
         
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$email]);
+            $stmt->execute([$username]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log("Email lookup error: " . $e->getMessage());
+            error_log("username lookup error: " . $e->getMessage());
             return false;
         }
     }
@@ -111,17 +111,16 @@ private function generateBaseUsername(?string $phone, ?string $email): string
             JOIN organizations o ON u.organization_id = o.id
             WHERE u.id != :id
               AND u.status = 'active'
-              AND (
-                    u.branch_id = :my_branch
-                    OR (b.parent_id = :my_branch2 AND u.role = 'org_admin')
+              AND u.is_deleted = 0
+              AND b.path LIKE CONCAT(
+                    (SELECT path FROM branches WHERE id = :my_branch), '%'
                   )";
 
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
-            ':id'         => $id,
-            ':my_branch'  => $myBranchId,
-            ':my_branch2' => $myBranchId,
+            ':id'        => $id,
+            ':my_branch' => $myBranchId,
         ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -96,26 +96,29 @@
         <div class="dropdown-menu dropdown-menu-right">
           <a href="#" class="dropdown-item dropdown-header">
             <i class="fas fa-user mr-2"></i>
-            <?php
-            $display_role = '';
-if ($_SESSION['user']['role'] === 'system_admin') {
+          <?php
+$userRole  = $_SESSION['user']['role']  ?? null;
+$userLevel = $_SESSION['user']['level'] ?? null;
+
+$display_role = '';
+if ($userRole === 'system_admin') {
     $display_role = 'System Admin';
-} elseif ($_SESSION['user']['role'] === 'team_leader') {
-    $display_role = 'HR Director';
-} elseif ($_SESSION['user']['role'] === 'officer') {
-    $display_role = 'HR Officer';
-} elseif ($_SESSION['user']['role'] === 'org_admin') {
+} elseif ($userRole === 'org_admin') {
     $display_role = 'Admin';
+} elseif ($userRole === 'team_leader') {
+    $display_role = ($userLevel === 1) ? 'ዳይሬክተር' : 'ቡድን መሪ';
+} elseif ($userRole === 'officer') {
+    $display_role = 'ባለሙያ';
 } else {
     header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/login');
     exit;
 }
 
-$full_name = ($_SESSION['user']['first_name'] ?? '') . ' ' . ($_SESSION['user']['father_name'] ?? '');
+$full_name    = ($_SESSION['user']['first_name'] ?? '') . ' ' . ($_SESSION['user']['father_name'] ?? '');
 $display_name = trim($full_name) ?: 'Guest';
 
 echo mb_convert_case($display_name, MB_CASE_TITLE, "UTF-8") . ' (' . $display_role . ')';
-            ?>
+?>
           </a>
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" 

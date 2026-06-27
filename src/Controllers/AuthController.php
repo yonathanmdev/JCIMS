@@ -57,14 +57,20 @@ class AuthController extends BaseController {
         $_SESSION['user']['phone_number'] = !empty($branchData['phone_number']) ? $branchData['phone_number'] : null;
         $_SESSION['user']['postal_code'] = !empty($branchData['postal_code']) ? $branchData['postal_code'] : null;
         $_SESSION['user']['logo_url'] = !empty($branchData['logo_url']) ? $branchData['logo_url'] : null;
-    } else {
+        $_SESSION['user']['level']        = $branchData['level'] ?? null;   // ← add this
+        $_SESSION['user']['ketema_astedader']        = $branchData['ketema_astedader'] ?? null;   // ← add this
+        
+         } else {
         // Fallback defaults for system-wide/global administrators
         $_SESSION['user']['branch_name']     = 'ዋናው መስሪያ ቤት (Headquarters)';
         $_SESSION['user']['alt_name'] = null;
         $_SESSION['user']['phone_number'] = null;
         $_SESSION['user']['postal_code'] = null;
         $_SESSION['user']['logo_url'] = null; // Dashboard code falls back to icon cleanly
-    }     
+        $_SESSION['user']['level']        = 0;   // ← system_admin / no-branch users, treat as top-level
+        $_SESSION['user']['ketema_astedader'] = null;   // ← add this
+     
+        }     
 // Log successful login
                 \App\Helpers\AuditHelper::logAs($user['id'], 'login_success', 'auth', $user['id']);
 

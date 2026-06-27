@@ -47,425 +47,121 @@ $initials       = $first_initial . $father_initial ?: 'GU';
         </div>
       </div>
 
-      <!-- Sidebar Menu -->
-      <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <!-- Add icons to the links using the .nav-icon class
-               with font-awesome or any other icon font library -->
-          <li class="nav-item menu-open small">
-            <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/dashboard" class="nav-link active">
-              <i class="nav-icon fas fa-tachometer-alt"></i>
-              <p>
-                Dashboard
-                <i class="right fas fa-angle-left"></i>
-              </p>
+<?php
+use App\Config\MenuConfig;
+
+$userRole  = $_SESSION['user']['role'] ?? '';
+$userLevel = (int)($_SESSION['user']['level'] ?? 0);
+
+$menuItems = MenuConfig::getMenuForRoleAndLevel($userRole, $userLevel);
+
+$currentUrl = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+?>
+
+<!-- Sidebar Menu -->
+<nav class="mt-2">
+    <ul class="nav nav-pills nav-sidebar flex-column"
+        data-widget="treeview"
+        role="menu"
+        data-accordion="false">
+
+<?php foreach ($menuItems as $item): ?>
+
+    <?php $hasChildren = !empty($item['children']); ?>
+
+    <li class="nav-item <?= $hasChildren ? '' : 'small' ?>">
+
+        <?php if ($hasChildren): ?>
+
+            <a href="javascript:void(0)"
+               class="nav-link <?= $item['class'] ?? '' ?>">
+
+                <i class="nav-icon <?= $item['icon'] ?? 'far fa-circle' ?>"
+                   style="font-size:13px;"></i>
+
+                <p style="font-size:13px;">
+                    <?= htmlspecialchars($item['label']) ?>
+                    <i class="right fas fa-angle-left"></i>
+                </p>
             </a>
 
-          </li>
-          
-         
-         <?php 
-        $userRole = $_SESSION['user']['role'] ?? null; 
+            <ul class="nav nav-treeview">
 
-        // 1. Only show the "Registration" menu if the user has one of these three roles
-          if (in_array($userRole, ['system_admin', 'org_admin', 'team_leader', 'officer'])): 
-          ?>
-           <?php if ($userRole === 'system_admin' || $userRole === 'org_admin'): ?>
-     <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-        መመዝገብ
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
-      
-      <?php if ($userRole === 'system_admin'): ?>
-        <li class="nav-item">
-            <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/register-developer" class="nav-link">
-              <i class="nav-icon fas fa-th"></i>
-              <p>
-                register-developer
-                <span class="right badge badge-danger">New</span>
-              </p>
+                <?php foreach ($item['children'] as $child): ?>
+
+                    <li class="nav-item">
+
+                        <?php if (isset($child['modal'])): ?>
+
+                            <a href="javascript:void(0)"
+                               class="nav-link"
+                               data-toggle="modal"
+                               data-target="<?= $child['modal']['target'] ?>"
+                               <?= isset($child['modal']['source'])
+                                   ? 'data-source="' . htmlspecialchars($child['modal']['source']) . '"'
+                                   : '' ?>>
+
+                                <i class="<?= $child['icon'] ?? 'far fa-circle nav-icon' ?>"
+                                   style="font-size:11px;"></i>
+
+                                <p style="font-size:12px;">
+                                    <?= htmlspecialchars($child['label']) ?>
+                                </p>
+
+                            </a>
+
+                        <?php else: ?>
+
+                            <a href="<?= rtrim($_ENV['BASE_URL'], '/') . $child['url'] ?>"
+                               class="nav-link">
+
+                                <i class="<?= $child['icon'] ?? 'far fa-circle nav-icon' ?>"
+                                   style="font-size:11px;"></i>
+
+                                <p style="font-size:12px;">
+
+                                    <?= htmlspecialchars($child['label']) ?>
+
+                                    <?php if (!empty($child['badge'])): ?>
+                                        <span class="right badge badge-danger">
+                                            <?= htmlspecialchars($child['badge']) ?>
+                                        </span>
+                                    <?php endif; ?>
+
+                                </p>
+
+                            </a>
+
+                        <?php endif; ?>
+
+                    </li>
+
+                <?php endforeach; ?>
+
+            </ul>
+
+        <?php else: ?>
+
+            <a href="<?= rtrim($_ENV['BASE_URL'], '/') . $item['url'] ?>"
+               class="nav-link <?= $item['class'] ?? '' ?>">
+
+                <i class="nav-icon <?= $item['icon'] ?? 'far fa-circle' ?>"
+                   style="font-size:13px;"></i>
+
+                <p style="font-size:13px;">
+                    <?= htmlspecialchars($item['label']) ?>
+                </p>
+
             </a>
-          </li>
-          
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/register-organization" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ድርጅት</p>
-          </a>
-        </li>
-        
-      <?php elseif ($userRole === 'org_admin'): ?>
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/register-branch" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ቅርንጫፍ</p>
-          </a>
-        </li>
-      <?php endif; ?>
-         <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/register-user" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ተቆጣጣሪ</p>
-          </a>
-        </li>
-         
 
-    </ul>
-  </li>
-  <?php endif; ?>
-  <?php if ($userRole === 'system_admin'): ?>
-  <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-        BSC / Efficiency Settings
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
-       <?php if ($userRole === 'system_admin'): ?>
-<li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/evaluation-settings" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>BSC / Efficiency Settings</p>
-          </a>
-        </li>
-<?php endif; ?>
-    </ul>
-  </li>
-  <?php endif; ?>
- <?php if ($userRole === 'team_leader' || $userRole === 'officer'): ?>
-
-  <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-        ቡድን መሪ እና መደብ
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
-              <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/register-director" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ዲይሬክተር</p>
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/register-position" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>መደብ</p>
-          </a>
-        </li>
-    </ul>
-  </li>
-<li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-       ሰራተኛ
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
-
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-registration" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>መመዝገብ</p>
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-active" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ዝርዝር</p>
-          </a>
-        </li>
-
-    </ul>
-  </li>
-
-  <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-        <i class="nav-icon fas fa-edit"></i>
-        <p>
-            ስራ ልምድ
-            <i class="fas fa-angle-left right"></i>
-        </p>
-    </a>
-    <ul class="nav nav-treeview">
-        <li class="nav-item">
-            <!-- This link triggers the modal by ID -->
-            <a href="javascript:void(0)" class="nav-link" data-toggle="modal" data-target="#employeeSearchModal">
-                <i class="far fa-circle nav-icon"></i>
-                <p>መመዝገብ/መረጃ</p>
-            </a>
-        </li>
-    </ul>
-</li>
-<li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-        <i class="nav-icon fas fa-edit"></i>
-        <p>
-            BSC እቅድ እና አፈጻጸም
-            <i class="fas fa-angle-left right"></i>
-        </p>
-    </a>
-    <ul class="nav nav-treeview">
-
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/bsc-plan-management" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>እቅድ ማያያዝ</p>
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/efficiency-management" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>አፈጻጻም</p>
-          </a>
-        </li> 
-
-    </ul>
-</li>
-
-  <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-        የትምህርት እድል
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-     <ul class="nav nav-treeview">
-               <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-scholarship-onleave" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>መመዝገቢያ</p>
-          </a>
-        </li>
-    </ul>
-    <ul class="nav nav-treeview">
-               <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-scholarship" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>በት/ት ላይ ያሉ</p>
-          </a>
-        </li>
-    
-
-    </ul>
-
-   <ul class="nav nav-treeview">
-    <li class="nav-item">
-        <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-scholarship-returnee" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>የተጠናቀቁ የትምህርት እድሎች</p>
-        </a>
-    </li>
-</ul>
-
-  </li>
-
-  <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-        <i class="nav-icon fas fa-edit"></i>
-        <p>
-            ደረጃ እድገት
-            <i class="fas fa-angle-left right"></i>
-        </p>
-    </a>
-    <ul class="nav nav-treeview">
-        <li class="nav-item">
-            <!-- This link triggers the modal by ID -->
-            <a href="javascript:void(0)" class="nav-link" data-toggle="modal" data-target="#employeeSearchModal" data-source="promotion">
-                <i class="far fa-circle nav-icon"></i>
-                <p>መመዝገብ</p>
-            </a>
-        </li>
-    </ul>
- </li>
-
-<li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-        ዋስትና
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-     <ul class="nav nav-treeview">
-               <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-warranty" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>መመዝገቢያ</p>
-          </a>
-        </li>
-    </ul>
-    <ul class="nav nav-treeview">
-               <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-has-warranty" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ዋስትና ያለባቸው</p>
-          </a>
-        </li>
-    
-
-    </ul>
-  </li>
-
-
-<li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-        እዳ እገዳ
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
-            <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-debt-suspension-pending" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>መመዝገቢያ</p>
-          </a>
-        </li>
-    </ul>
-    <ul class="nav nav-treeview">
-            <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-debt-suspension" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ያለባቸው</p>
-          </a>
-  </li>
-   </ul>
-  </li>
-
-<li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-        <i class="nav-icon fas fa-edit"></i>
-        <p>
-            እረፍት
-            <i class="fas fa-angle-left right"></i>
-        </p>
-    </a>
-    <ul class="nav nav-treeview">
-        <li class="nav-item">
-            <!-- This link triggers the modal by ID -->
-            <a href="javascript:void(0)" class="nav-link" data-toggle="modal" data-target="#employeeSearchModal" data-source="onleave">
-                <i class="far fa-circle nav-icon"></i>
-                <p>መመዝገብ</p>
-            </a>
-        </li>
-    </ul>
- </li>
-
-  <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link">
-      <i class="nav-icon fas fa-edit"></i>
-      <p>
-        ሪፖርት
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
-            <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/report" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>ማየት</p>
-          </a>
-        </li>
-    </ul>
-    
-  </li>
-  <?php endif; ?>
-<?php endif; ?>
-     
-<li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link text-warning">
-      <i class="nav-icon fas fa-trash-restore"></i>
-      <p>
-        የተሰረዙ
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
-       <?php if ($userRole === 'system_admin'): ?>
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/organization-deleted-lists" class="nav-link">
-            <i class="far fa-building nav-icon text-warning"></i>
-            <p>ድርጅቶች</p>
-          </a>
-        </li>
         <?php endif; ?>
-      <?php if ($userRole === 'org_admin'): ?>
-         <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/deleted-branches" class="nav-link">
-            <i class="fas fa-code-branch nav-icon text-warning"></i>
-            <p>ቅርንጫፎች</p>
-          </a>
-        </li>
-      <?php endif; ?>
-       <?php if ($userRole === 'org_admin' || $userRole === 'system_admin'): ?>
-         <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/deleted-users" class="nav-link">
-            <i class="fas fa-users nav-icon text-warning"></i>
-            <p>ተቆጣጣሪዎች</p>
-          </a>
-        </li>
-        <?php elseif ($userRole === 'team_leader' || $userRole === 'officer'): ?>
-         <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/deleted-directors" class="nav-link">
-            <i class="fas fa-building nav-icon text-warning"></i>
-            <p>ቡድን መሪ</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/deleted-positions" class="nav-link">
-            <i class="fas fa-building nav-icon text-warning"></i>
-            <p>መደብ</p>
-          </a>
-        </li>
-       <?php endif; ?>
-    </ul>
-</li>
 
-<?php if ($userRole === 'system_admin'): ?>
-    <li class="nav-item small">
-    <a href="javascript:void(0)" class="nav-link text-info">
-      <i class="nav-icon fas fa-archive"></i>
-      <p>
-        Archived
-        <i class="fas fa-angle-left right"></i>
-      </p>
-    </a>
-    <ul class="nav nav-treeview">
+    </li>
 
-        <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/archived-organizations" class="nav-link">
-            <i class="far fa-building nav-icon text-info"></i>
-            <p>Organizations</p>
-          </a>
-        </li>
-    <li class="nav-item">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/archived-branches" class="nav-link">
-             <i class="fas fa-code-branch nav-icon text-info"></i>
-            <p>Branches</p>
-          </a>
-        </li>
-        
+<?php endforeach; ?>
+
     </ul>
-</li>   
-     <?php endif; ?>    
-      </nav>
+</nav>
       <!-- /.sidebar-menu -->
     </div>
     <!-- /.sidebar -->
