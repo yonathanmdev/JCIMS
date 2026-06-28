@@ -59,7 +59,7 @@ class AuthController extends BaseController {
         $_SESSION['user']['logo_url'] = !empty($branchData['logo_url']) ? $branchData['logo_url'] : null;
         $_SESSION['user']['level']        = $branchData['level'] ?? null;   // ← add this
         $_SESSION['user']['ketema_astedader']        = $branchData['ketema_astedader'] ?? null;   // ← add this
-        
+    
          } else {
         // Fallback defaults for system-wide/global administrators
         $_SESSION['user']['branch_name']     = 'ዋናው መስሪያ ቤት (Headquarters)';
