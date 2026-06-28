@@ -53,6 +53,7 @@ class AuthController extends BaseController {
         $branchModel = new Branch($this->db);
         $branchData  = $branchModel->getBranchById($user['branch_id']);
         
+      
         $_SESSION['user']['branch_name']     = !empty($branchData['name']) ? $branchData['name'] : 'Unknown Branch';
         $_SESSION['user']['alt_name'] = !empty($branchData['alt_name']) ? $branchData['alt_name'] : null;
         $_SESSION['user']['phone_number'] = !empty($branchData['phone_number']) ? $branchData['phone_number'] : null;
