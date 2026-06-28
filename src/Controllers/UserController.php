@@ -65,15 +65,18 @@ class UserController extends BaseController {
             $role = 'org_admin';
 
             // system_admin: organization comes from POST (selected org)
-            $organization_id = isset($_POST['organization_id']) ? trim($_POST['organization_id']) : '';
+            
+            $orgId = isset($_POST['organization_id']) ? trim($_POST['organization_id']) : '';
 
-            if (empty($organization_id)) {
+            if (empty($orgId)) {
                 $_SESSION['error'] = "እባክዎ ድርጅት ይምረጡ!";
                 header("Location: " . $_ENV['BASE_URL'] . "/register-user");
                 exit();
             }
 
             // branch is the main office of the selected org
+             $organization = (new Organization($this->db))->findById($orgId);
+             $organization_id = $organization['org_id'];
             $mainBranchId = $branchModel->getMainOfficeId($organization_id);
             if (!$mainBranchId) {
                 $_SESSION['error'] = "የዚህ ድርጅት ዋና መሥሪያ ቤት አልተገኘም!";
@@ -83,8 +86,15 @@ class UserController extends BaseController {
 
         } else {
             // org_admin: organization is ALWAYS from session
+            $branchModel =  new Branch($this->db);
+        $branchLevel = $branchModel->getBranchById($_SESSION['user']['branch_id']);
+        if (!$branchLevel ||  !isset($branchLevel['organization_id'])) {
+            $_SESSION['error'] = "የቅርንጫፍ መረጃ አልተገኘም!";
+            header("Location: " . $_ENV['BASE_URL'] . "/register-branch");
+            exit();
+        }
             $role            = $_POST['role'] ?? '';
-            $organization_id = $_SESSION['user']['organization_id'];
+            $organization_id = $branchLevel['organization_id'];
 
             $allowedRoles = ['org_admin', 'team_leader', 'officer'];
             if (!in_array($role, $allowedRoles)) {
@@ -101,17 +111,17 @@ class UserController extends BaseController {
                     exit();
                 }
 
-                $isValidSubBranch = $branchModel->isSubBranchOf(
-                    $postedBranchId,
-                    $_SESSION['user']['branch_id']
-                );
-                if (!$isValidSubBranch) {
+              $subBranch = $branchModel->isSubBranchOf(
+    $postedBranchId,
+    $_SESSION['user']['branch_id']
+);
+                if ($subBranch === false) {
                     $_SESSION['error'] = "የተመረጠው ቅርንጫፍ የእርስዎ ንዑስ ቅርንጫፍ አይደለም!";
                     header("Location: " . $_ENV['BASE_URL'] . "/register-user");
                     exit();
                 }
 
-                $mainBranchId = $postedBranchId;
+                $mainBranchId = $subBranch['internal_id'];
 
             } else {
                 // team_leader / officer: branch is always session branch — ignore POST
@@ -144,7 +154,6 @@ class UserController extends BaseController {
         try {
             $result = $userModel->create(
                 $uuid,
-                $organization_id,
                 $mainBranchId,
                 $firstName,
                 $fatherName,
@@ -159,7 +168,6 @@ class UserController extends BaseController {
 
             if ($result) {
                 \App\Helpers\AuditHelper::log('user_created', 'user', $uuid, null, [
-                    'organization_id' => $organization_id,
                     'branch_id'       => $mainBranchId,
                     'first_name'      => $firstName,
                     'father_name'     => $fatherName,

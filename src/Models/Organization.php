@@ -33,12 +33,12 @@ class Organization {
             $orgName,
             $orgDescription
         ]);
-
+  $orgId = (int) $this->db->lastInsertId();
         // 2. የ Branch ሞዴልን መጥራት
         $branchModel = new \App\Models\Branch($this->db);
         $branchModel->insertBranch([
-            'id' => \Ramsey\Uuid\Uuid::uuid4()->toString(),
-            'org_id' => $id,
+            'id' => \Ramsey\Uuid\Uuid::uuid7()->toString(),
+            'org_id' => $orgId,
             'parent_id' => null,
             'name' => $orgName,
             'alt_name' => $orgAlternateName,
@@ -75,7 +75,7 @@ class Organization {
                 b.postal_code,
                 b.logo_url
             FROM organizations o
-            LEFT JOIN branches b ON b.organization_id = o.id
+            LEFT JOIN branches b ON b.organization_id = o.org_id
             WHERE o.status = 'active'
             AND b.level = 1
             ORDER BY o.name ASC";

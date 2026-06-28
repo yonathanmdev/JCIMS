@@ -122,11 +122,12 @@ if (!$imageName) {
         } catch (\Exception $e) {
             // 5. ስህተቶችን መያዝ
             if ($e instanceof \PDOException && $e->getCode() == 23000) {
-                $_SESSION['error'] = "ይህ ድርጅት ቀደም ብሎ ተመዝግቧል!";
-            } else {
-                error_log("Registration Error: " . $e->getMessage());
-                $_SESSION['error'] = "የቴክኒክ ስህተት አጋጥሟል፤ እባክዎ ቆይተው ይሞክሩ።";
-            }
+    error_log("Duplicate/constraint error detail: " . print_r($e->errorInfo, true));
+    $_SESSION['error'] = "ይህ ድርጅት ቀደም ብሎ ተመዝግቧል!";
+} else {
+    error_log("Registration Error: " . $e->getMessage());
+    $_SESSION['error'] = "የቴክኒክ ስህተት አጋጥሟል፤ እባክዎ ቆይተው ይሞክሩ።";
+}
             header("Location: " . $_ENV['BASE_URL'] . "/register-organization");
             exit();
         }
@@ -235,7 +236,7 @@ public function handleBranchRegistration() {
         }
         $level = $branchLevel['level'] + 1; // የተጠቃሚው ቅርንጫፍ የሚገኘው በእርሱ በላይ ነው
         $parentId =$_SESSION['user']['branch_id'] ?? null; // የተጠቃሚው ቅርንጫፍ ID
-        $orgId = $_SESSION['user']['organization_id'] ?? null;
+        $orgId = $branchLevel['organization_id'] ?? null;
         // 2. Validation
         if (empty($branchName)) {
             $_SESSION['error'] = "እባክዎ የቅርንጫፉን ስም በትክክል ያስገቡ!";

@@ -38,14 +38,15 @@ class AuthController extends BaseController {
                 session_regenerate_id(true);
 
                 $_SESSION['user'] = [
-                    'id'                 => $user['id'],
+                    'id'                 => $user['user_id'],
                     'first_name'         => $user['first_name'],
                     'father_name'        => $user['father_name'],
                     'grand_father_name'  => $user['grand_father_name'],
                     'branch_id'          => $user['branch_id'] ?? null,
                     'organization_id'    => $user['organization_id'] ?? null,
                     'email'              => $user['email'],
-                    'role'               => $user['role']
+                    'role'               => $user['role'],
+                    'user_uuid'      => $user['id'],
                 ];
 // 2. Safely resolve Branch details if a branch assignment exists
     if (!empty($user['branch_id'])) {

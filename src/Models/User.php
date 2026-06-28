@@ -14,15 +14,15 @@ class User {
      * አዲስ ተጠቃሚ መመዝገቢያ
      * ዳታው አስቀድሞ በ Controller ተዘጋጅቶ መምጣት አለበት
      */
-   public function create($id, $organization_id, $branch_id, $firstName, $fatherName, $grandFatherName, $phone, $email, $password, $txtpassword, $role, $registeredBy) {
+   public function create($id, $branch_id, $firstName, $fatherName, $grandFatherName, $phone, $email, $password, $txtpassword, $role, $registeredBy) {
 
     $username = $this->generateBaseUsername($phone, $email);
     $suffix = 0;
 
     $sql = "INSERT INTO users (
-                id, organization_id, branch_id, first_name, father_name, grand_father_name,
+                id, branch_id, first_name, father_name, grand_father_name,
                 phone, email, username, password, txtp, role, registered_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     while (true) {
         try {
@@ -30,7 +30,6 @@ class User {
 
             return $stmt->execute([
                 $id,
-                $organization_id,
                 $branch_id,
                 $firstName,
                 $fatherName,
@@ -90,8 +89,8 @@ private function generateBaseUsername(?string $phone, ?string $email): string
     public function getAllOrgAdmins() {
     $sql = "SELECT u.*, o.name as organization_name, b.name as branch_name 
             FROM users u
-            JOIN branches b ON u.branch_id = b.id
-            JOIN organizations o ON u.organization_id = o.id
+            JOIN branches b ON u.branch_id = b.internal_id
+            JOIN organizations o ON b.organization_id = o.org_id
             WHERE b.level = 1 
               AND u.role = 'org_admin'
             ORDER BY o.name ASC";
@@ -107,13 +106,13 @@ private function generateBaseUsername(?string $phone, ?string $email): string
  public function getUsersForMyBranchHierarchy($myBranchId, $id) {
     $sql = "SELECT u.*, o.name AS organization_name, b.name AS branch_name
             FROM users u
-            JOIN branches b ON u.branch_id = b.id
-            JOIN organizations o ON u.organization_id = o.id
-            WHERE u.id != :id
+            JOIN branches b ON u.branch_id = b.internal_id
+            JOIN organizations o ON b.organization_id = o.org_id
+            WHERE u.user_id != :id
               AND u.status = 'active'
               AND u.is_deleted = 0
               AND b.path LIKE CONCAT(
-                    (SELECT path FROM branches WHERE id = :my_branch), '%'
+                    (SELECT path FROM branches WHERE internal_id = :my_branch), '%'
                   )";
 
     try {
@@ -167,7 +166,7 @@ public function updateUser($id, $data)
 // User Model ውስጥ
 public function verifyPassword(string $userId, string $password): bool 
 {
-    $stmt = $this->db->prepare("SELECT password FROM users WHERE id = ?");
+    $stmt = $this->db->prepare("SELECT password FROM users WHERE user_id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 

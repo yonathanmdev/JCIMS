@@ -10,8 +10,14 @@ class Branch {
          }
 
    public function insertBranch($data) {
-    $this->db->beginTransaction();
-    
+    // Only open a transaction if nobody else already has one running.
+    // This lets insertBranch() work standalone AND as part of a caller's
+    // larger transaction (like Organization::create()).
+    $ownTransaction = !$this->db->inTransaction();
+    if ($ownTransaction) {
+        $this->db->beginTransaction();
+    }
+
     try {
         $sql = "INSERT INTO branches (id, organization_id, parent_id, name, alt_name, phone_number, postal_code, level, logo_url, registered_by) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -35,7 +41,7 @@ class Branch {
         // get parent's path (root branches have no parent)
         $parentPath = '/';
         if (!empty($data['parent_id'])) {
-            $parentStmt = $this->db->prepare("SELECT path FROM branches WHERE id = ?");
+            $parentStmt = $this->db->prepare("SELECT path FROM branches WHERE internal_id = ?");
             $parentStmt->execute([$data['parent_id']]);
             $parentPath = $parentStmt->fetchColumn() ?: '/';
         }
@@ -45,11 +51,15 @@ class Branch {
         $updateStmt = $this->db->prepare("UPDATE branches SET path = ? WHERE id = ?");
         $updateStmt->execute([$path, $data['id']]);
 
-        $this->db->commit();
+        if ($ownTransaction) {
+            $this->db->commit();
+        }
         return true;
 
     } catch (\Exception $e) {
-        $this->db->rollBack();
+        if ($ownTransaction) {
+            $this->db->rollBack();
+        }
         throw $e;
     }
 }
@@ -96,7 +106,7 @@ public function getDescendantBranches($myBranchId) {
 }
 
 public function getMainOfficeId($orgId) {
-    $sql = "SELECT id FROM branches WHERE organization_id = ? AND level = 1 LIMIT 1";
+    $sql = "SELECT internal_id AS id FROM branches WHERE organization_id = ? AND level = 1 LIMIT 1";
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$orgId]);
@@ -110,8 +120,9 @@ public function getMainOfficeId($orgId) {
     }
 }
 
+
 public function getBranchById($branchId) {
-    $sql = "SELECT name, alt_name, phone_number, postal_code, level, logo_url, ketema_astedader FROM branches WHERE id = ? LIMIT 1";
+    $sql = "SELECT organization_id, name, alt_name, phone_number, postal_code, level, logo_url, ketema_astedader FROM branches WHERE internal_id = ? LIMIT 1";
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$branchId]);
@@ -127,13 +138,15 @@ public function getBranchById($branchId) {
  */
 public function isSubBranchOf($branchId, $parentBranchId) {
     $stmt = $this->db->prepare(
-        "SELECT id FROM branches WHERE id = :branch_id AND parent_id = :parent_id AND status = 'active'"
+        "SELECT id, internal_id FROM branches WHERE id = :branch_id AND parent_id = :parent_id AND status = 'active'"
     );
     $stmt->execute([
         ':branch_id' => $branchId,
         ':parent_id' => $parentBranchId
     ]);
-    return $stmt->fetchColumn() !== false;
+
+    // የተገኘውን row (id + internal_id) ይመልሳል፣ ካልተገኘ false
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 /**
