@@ -120,7 +120,6 @@ class UserController extends BaseController {
                     header("Location: " . $_ENV['BASE_URL'] . "/register-user");
                     exit();
                 }
-
                 $mainBranchId = $subBranch['internal_id'];
 
             } else {
