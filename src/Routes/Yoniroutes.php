@@ -32,7 +32,12 @@ return [
     'purge-branch'    => ['OrgController', 'purge', true],
     'archived-branches' => ['OrgController', 'branchArchiveList', true],
     'restore-from-archive-branch' => ['OrgController', 'restoreFromArchive', true],
-
+    //sector Management
+    'sector-registration'               => ['SectorController', 'showRegisterForm', true],
+    'sector-registration-process'       => ['SectorController', 'handleSectorRegistration', true],
+    
+    'sub-sector-registration'               => ['SectorController', 'showSubRegisterForm', true],    
+    'sub-sector-registration-process'       => ['SectorController', 'handleSubsectorRegistration', true],
     // job seeker Management
     'jobseeker-registration'                 => ['JobseekerController', 'showRegisterForm', true],
     'jobseeker-registration-process'         => ['JobseekerController', 'handleRegistration', true],

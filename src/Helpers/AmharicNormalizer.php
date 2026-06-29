@@ -33,4 +33,12 @@ class AmharicNormalizer {
 
         return $text;
     }
+  public static function normalizeOnly($text) {
+        if (empty($text)) return '';
+
+        // ፊደላቱን መቀየር
+        $text = str_replace(array_keys(self::$map), array_values(self::$map), $text);
+
+        return $text;
+    }
 }
