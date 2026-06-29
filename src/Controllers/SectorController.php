@@ -119,7 +119,7 @@ $sectors  = $sectorModel->getsubSectors();
     $sector = $sectorModel->getSectorById($sectorUuid);
 
     if (!$sector) {
-        $_SESSION['error'] = 'ዘርፉ አልተገኘም።';
+        $_SESSION['error'] = 'Sector id not found'.$sector['sectorid'].''. $sectorUuid;
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/sub-sector-registration");
         exit();
     }

@@ -67,11 +67,11 @@ public function getSectors(int $limit = 50, int $offset = 0): array {
 public function getSectorById(string $id): ?array
 {
     $sql = "SELECT
-                s.id,
-                s.sectorid,
-                s.sector
-            FROM sector_table s
-            WHERE s.id = :id
+                id,
+                sectorid,
+                sector
+            FROM sector_table
+            WHERE id = :id
             LIMIT 1";
 
     try {

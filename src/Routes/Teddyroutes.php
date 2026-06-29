@@ -7,6 +7,9 @@ return [
     'Registertest'               => ['TeddyController', 'showtest', true],
     'register-developer'         => ['TeddyController', 'showdeveloper', true],
     'register-dev-process'       => ['TeddybackendContoller', 'handleDeveloperRegistration', true],
-    'employee-leave'             => ['EmployeeOnleaveController', 'showOnLeavePage', true],
-    'employee-rest-store' => ['EmployeeOnleaveController', 'anualRestRegstration', true],
+    
+    //
+
+    'awareness-registration'             => ['AwarenessController', 'showRegisterForm', true],
+    'awareness-registration-other-process' =>['AwarenessController', 'awarenessRegistration', true],
 ];
