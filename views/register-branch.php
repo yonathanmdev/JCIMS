@@ -7,11 +7,11 @@
     <div class="card card-default">
       <div class="card-header">
 
-        <h3 class="card-title">ቅርንጫፍ</h3>
+        <h3 class="card-title">መስሪያ ቤት</h3>
 
         <div class="card-tools">
            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#branchModal">
-            <i class="fas fa-plus mr-1"></i>ቅርንጫፍ መዝግብ
+            <i class="fas fa-plus mr-1"></i>መስሪያ ቤት መዝግብ
           </button>
           
         </div>
@@ -20,11 +20,11 @@
 
       <div class="card-body">
         <!-- Example Table (optional) -->
-      <table id="example1" data-empty-msg="ምንም ቅርንጫፍ የለም።" class="table table-bordered table-hover dataTable dtr-inline small" style="color: #000;" aria-describedby="example2_info">
+      <table id="example1" data-empty-msg="ምንም መስሪያ ቤት የለም።" class="table table-bordered table-hover dataTable dtr-inline small" style="color: #000;" aria-describedby="example2_info">
     <thead class="thead-light">
       <tr>
         <th>#</th>
-        <th>የቅርንጫፍ ስም </th>
+        <th>የመስሪያ ቤት ስም </th>
         <th>አማራጭ ስም</th>
         <th>Action</th>
       </tr>
