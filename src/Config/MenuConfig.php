@@ -36,6 +36,19 @@ class MenuConfig
                     ],
 
                     [
+                        'label' => 'ዘርፍ',
+                        'url'   => '/sector-registration',
+                        'roles' => ['system_admin']
+                    ],
+
+                     [
+                        'label' => 'ንዑስ ዘርፍ',
+                        'url'   => '/sub-sector-registration',
+                        'roles' => ['system_admin']
+                    ],
+
+
+                    [
                         'label' => 'ቅርንጫፍ',
                         'url'   => '/register-branch',
                         'roles' => ['org_admin']

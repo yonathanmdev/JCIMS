@@ -100,21 +100,6 @@ function myAsset($path) {
     <script src="<?= myAsset('js/archived-branches.js') ?>"></script>
 <?php endif; ?>
 
-<?php if (isset($is_director_page) && $is_director_page === true): ?>
-    
-    <script src="<?= myAsset('js/directors-logic.js') ?>"></script>
-    <?php endif; ?>
-    <?php if (isset($is_director_deleted_page) && $is_director_deleted_page === true): ?>
-        <script src="<?= myAsset('js/deleted-directors.js') ?>"></script>
-    <?php endif; ?>
-  <?php if (isset($is_position_page) && $is_position_page === true): ?>
-      <script src="<?= myAsset('js/positions-logic.js') ?>"></script>
-      <?php endif; ?>
-        <?php if (isset($is_position_deleted_page) && $is_position_deleted_page === true): ?>
-          <script src="<?= myAsset('js/deleted-positions.js') ?>"></script>
-        <?php endif; ?>
-
-    
    <?php if (isset($is_register_user_page) && $is_register_user_page === true): ?>
     <script>const BASE_URL = "<?= '/JCIMS' ?>"; // or use $_ENV['BASE_URL'] if you have .env</script>
     <script src="<?= myAsset('js/edit-user.js') ?>"></script>
@@ -130,23 +115,16 @@ function myAsset($path) {
       <?php if (isset($is_user_deleted_page) && $is_user_deleted_page === true): ?>
         <script src="<?= myAsset('js/deleted-users.js') ?>"></script>
     <?php endif; ?>
-
-   <?php if (isset($is_employee_registration_page) && $is_employee_registration_page === true): ?>
-    <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
-    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
-    <script src="<?= myAsset('js/employee-registration.js') ?>"></script>
-     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
+<?php if (isset($is_sector_registration_page) && $is_sector_registration_page === true): ?>
     
- 
+    <script src="<?= myAsset('js/sector-validation.js') ?>"></script>
+    <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
     <?php endif; ?>
- 
-      <?php if (isset($is_employee_active_page) && $is_employee_active_page === true): ?>
-    <script src="<?= myAsset('js/employee.js') ?>"></script>
+    <?php if (isset($is_sub_sector_registration_page) && $is_sub_sector_registration_page === true): ?>
+        <script src="<?= myAsset('js/sector-validation.js') ?>"></script>
+          <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
     <?php endif; ?>
 
-    <?php if (isset($is_employee_deletion_page) && $is_employee_deletion_page === true): ?>
-    <script src="<?= myAsset('js/employee.js') ?>"></script>
-    <?php endif; ?>
     
    <?php if (isset($is_employee_edit_page) && $is_employee_edit_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
