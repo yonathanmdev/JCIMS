@@ -11,3 +11,5 @@ storage/
 /public/.htaccess
 .env
 *.sql
+composer.json
+composer.lock

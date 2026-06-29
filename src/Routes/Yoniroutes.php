@@ -43,6 +43,7 @@ return [
     'jobseeker-registration-process'         => ['JobseekerController', 'handleRegistration', true],
     'jobseekers-list'                        => ['JobseekerController', 'listofJobseekers', true],
     
+    
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs

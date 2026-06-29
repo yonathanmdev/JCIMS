@@ -82,7 +82,24 @@ class MenuConfig
                 ]
             ],
 
-            
+           [
+                'label' => 'ግንዛቤ',
+                'icon'  => 'fas fa-users',
+                'roles' => ['team_leader', 'officer'],
+                'children' => [
+                    [
+                        'label' => 'ግንዛቤ ፈጠራ',
+                        'url'   => '/awareness-registration',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                    [
+                        'label' => 'ግንዛቤ የተፈጠረላቸው',
+                        'url'   => '/awareness-list',
+                        'roles' => ['team_leader', 'officer']
+                    ]
+                ]
+            ],  
             
            
             [

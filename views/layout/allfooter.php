@@ -126,12 +126,10 @@ function myAsset($path) {
     <?php endif; ?>
 
     
-   <?php if (isset($is_employee_edit_page) && $is_employee_edit_page === true): ?>
+   <?php if (isset($is_awaerness_registration_page) && $is_awaerness_registration_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
-    <script src="<?= myAsset('js/employee-edit.js') ?>"></script>
-     <script src="<?= myAsset('js/employee-reg-position-id.js') ?>"></script>
-    <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
+    <script src="<?= myAsset('js/awaerness-validation.js') ?>"></script>
     
     <?php endif; ?>
 
