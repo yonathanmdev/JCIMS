@@ -77,4 +77,40 @@ class AwarenessController extends BaseController {
         
  exit();
  }
+ public function awarenessList(){
+    AuthHelper::checkRole(
+        ['team_leader','officer']
+    );
+    $data = [
+        'title' => 'JCIMS - የግንዛቤ ፈጠራ ዝርዝር',
+    ];
+    $this->render('awareness-list', $data);
+ }
+ public function showAwarenessList($branch_id) {
+    // 1. ሚናን ማረጋገጥ
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    
+    // 2. የደህንነት ቁጥጥር (የሌላ ቅርንጫፍ መረጃ እንዳያዩ መከልከል)
+    if (isset($_SESSION['branch_id']) && $_SESSION['branch_id'] != $branch_id) {
+        // ወደ ኋላ መመለስ ወይም ስህተት ማሳየት
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/dashboard");
+        exit();
+    }
+
+    $awarenessModel = new AwarenessModel($this->db);
+    // ዳታውን ከዳታቤዝ መሳብ
+    $awarenessList = $awarenessModel->getallawarenessbybranch($_SESSION['branch_id']);
+    
+    // መረጃውን ይዞ ወደ ገጹ መሄድ
+    $this->render('awareness-list', ['awarenessList' => $awarenessList]);
+}
+  public function getawarnessbyid($id){
+    AuthHelper::checkRole(
+        ['team_leader','officer']
+    );
+    $awarenessModel = new AwarenessModel($this->db);
+    $result = $awarenessModel->getawarnessbyid($id);
+    header('Content-Type: application/json');
+    echo json_encode($result);
+ }
 }

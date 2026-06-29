@@ -43,5 +43,19 @@ public function createAwareness(array $data): bool {
             return false;
         }
     } 
+public function getallawarenessbybranch($branch_id) {
+        $sql = "SELECT * FROM awareness_creation_other WHERE branch_id = :branch_id ORDER BY id DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':branch_id', $branch_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     }
+public function getawarnessbyid($id) {
+        $sql = "SELECT * FROM awareness_creation_other WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+}
