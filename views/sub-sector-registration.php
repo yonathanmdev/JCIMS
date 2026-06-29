@@ -137,6 +137,7 @@ $is_sub_sector_registration_page = true;
                   data-restrict="letters"
                   required
                 >
+                
                 <div class="invalid-feedback">
                   እባክዎ የንዑስ ዘርፍ ስም ያስገቡ (ቢያንስ 2 ፊደላት)
                 </div>
