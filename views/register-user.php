@@ -33,7 +33,7 @@
         <th>#</th>
         <th>ስም </th>
           <th>Username</th>
-          <th>ቅርንጫፍ</th>
+          <th>መ/ቤት</th>
         <th>Role</th>
         <th>Action</th>
       </tr>
