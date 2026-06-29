@@ -8,7 +8,7 @@ $is_awaerness_registration_page = true;
       <div class="ml-md-auto">
        <div class="form-group mb-0">
     <label for="registrationType" class="mb-1">
-        <small class="font-weight-bold">ምዝገባ ይምረጡ</small>
+        <small class="font-weight-bold">መመዝገብ የምትፈልጉትን ይምረጡ</small>
     </label>
 
     <label>ግንዛቤ የተፈጠረላቸው</label>
