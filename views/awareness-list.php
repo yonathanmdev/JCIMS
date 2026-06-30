@@ -25,7 +25,7 @@
                     <td><?= htmlspecialchars($awareness['sex'] ?? '') ?></td> 
                     <td><?= htmlspecialchars($awareness['branch_id'] ?? '') ?></td>
                     <td class="text-center">
-                      <a href="<?= htmlspecialchars(rtrim($_ENV['BASE_URL'], '/')) ?>/awareness-details/<?= (int)$awareness['id'] ?>" class="btn btn-sm btn-primary">
+                      <a href="<?= htmlspecialchars(rtrim($_ENV['BASE_URL'], '/')) ?>/awareness-details/<?= (int)$awareness['tbleid'] ?>" class="btn btn-sm btn-primary">
                         <i class="fas fa-eye me-1"></i> View
                       </a>
                     </td>   

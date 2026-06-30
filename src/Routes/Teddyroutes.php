@@ -12,5 +12,5 @@ return [
 
     'awareness-registration'             => ['AwarenessController', 'showRegisterForm', true],
     'awareness-registration-other-process' =>['AwarenessController', 'awarenessRegistration', true],
-    'awareness-list'                     => ['AwarenessController', 'awarenessList', true],
+    'awareness-list'                     => ['AwarenessController', 'showAwarenessList', true],
 ];
