@@ -279,6 +279,7 @@ $(function () {
       "responsive": true, "lengthChange": false, "autoWidth": false,
       "deferRender": true,
       "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"],
+      "paging": false,
       "language": {
             "emptyTable": dynamicMsg, // Dynamic Amharic message,
             "zeroRecords": "ምንም የሚዛመድ መረጃ አልተገኘም",
@@ -288,7 +289,8 @@ $(function () {
                 "previous": "ቀዳሚ"
             }
         }
-    }).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
+    }
+  ).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
     $('#example2').DataTable({
       "deferRender": true,
       "paging": true,
@@ -300,6 +302,7 @@ $(function () {
       "responsive": true,
     });
   });
+  
 </script>
 <!-- 1. First: flash data -->
 <script nonce="<?php echo $GLOBALS['nonce']; ?>">
