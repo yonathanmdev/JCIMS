@@ -83,10 +83,12 @@ public function showSubRegisterForm() {
         // Currently 'system_admin' here vs 'officer' there — pick one.
         AuthHelper::checkRole(['system_admin']);
 $sectorModel = new SectorModel($this->db);
-$sectors  = $sectorModel->getsubSectors();
+$subSectors  = $sectorModel->getsubSectors();
+$sectors  = $sectorModel->getSectors();
         $data = [
             'title' => 'JCIMS - የዘርፍ መመዝገቢያ',
             'sectors' => $sectors,
+            'subSectors' => $subSectors
         ];
 
         $this->render('sub-sector-registration', $data);
@@ -119,7 +121,7 @@ $sectors  = $sectorModel->getsubSectors();
     $sector = $sectorModel->getSectorById($sectorUuid);
 
     if (!$sector) {
-        $_SESSION['error'] = 'Sector id not found'.$sector['sectorid'].''. $sectorUuid;
+        $_SESSION['error'] = 'ዘርፍ አልተገኘም።';
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/sub-sector-registration");
         exit();
     }

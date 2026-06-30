@@ -38,18 +38,18 @@ $is_sub_sector_registration_page = true;
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($sectors)): ?>
-                            <?php foreach ($sectors as $index => $sector): ?>
+                        <?php if (!empty($subSectors) ): ?>
+                            <?php foreach ($subSectors as $index => $subSector): ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
                                     <td>
-                                        <?= htmlspecialchars($sector['sector']) ?>
+                                        <?= htmlspecialchars($subSector['sector']) ?>
                                     </td>
                                     <td>
-                                        <?= htmlspecialchars($sector['subsector']) ?>
+                                        <?= htmlspecialchars($subSector['subsector']) ?>
                                     </td>
                                     <td>
-                                        <?= htmlspecialchars($sector['created_at'] ?? '') ?>
+                                        <?= htmlspecialchars($subSector['created_at'] ?? '') ?>
                                     </td>
                                     <td class="text-center">
                                         <button

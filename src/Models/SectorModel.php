@@ -91,7 +91,7 @@ public function getSectorById(string $id): ?array
 
 public function createsubSector(array $data): bool {
         try {
-            $sectorName = $data['sector_name'];
+            $sectorName = $data['sub_sector'];
             $normalizedSectorName = AmharicNormalizer::normalizeOnly($sectorName);
             // Start transaction
             $this->db->beginTransaction();
@@ -106,7 +106,7 @@ public function createsubSector(array $data): bool {
                 $data['uuid'],
                 $data['sectorid'],
                 $normalizedSectorName,
-                $data['reg_by']
+                $data['registered_by']
             ]);
 
             if (!$result1) {
