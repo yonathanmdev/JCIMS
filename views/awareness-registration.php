@@ -191,7 +191,7 @@ $is_awaerness_registration_page = true;
 <div class="modal fade" id="job_seekers_modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form action="<?= htmlspecialchars(rtrim($_ENV['BASE_URL'], '/')) ?>/update-jobseeker-awareness" method="POST">
+            <form action="<?= htmlspecialchars(rtrim($_ENV['BASE_URL'], '/')) ?>/createupdate-jobseeker-awareness" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 
                 <div class="modal-header bg-primary text-white">
@@ -214,7 +214,7 @@ $is_awaerness_registration_page = true;
                                        autocomplete="off"
                                        required>
                                        
-                                <input type="hidden" id="selected_job_seeker_id" name="job_seeker_id" required>
+                                <input type="text" id="selected_job_seeker_id" name="job_seeker_id" required>
 
                                 <div id="seeker_suggestions_list" class="list-group position-absolute w-100 mt-1" style="z-index: 1050; display: none; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #ced4da;"></div>
                             </div>
@@ -271,12 +271,13 @@ window.addEventListener('DOMContentLoaded', function() {
         var query = $(this).val().trim();
         
         if (query.length >= 2) {
-            $.ajax({
-                url: '<?= htmlspecialchars(rtrim($_ENV['BASE_URL'], '/')) ?>/search-job-seekers-ajax', 
-                method: 'GET',
-                data: { seeker_q: query },
-                dataType: 'json',
-                success: function(data) {
+      $.ajax({
+    // 💡 ለአካባቢያዊ ሰርቨር (Localhost) ይበልጥ አስተማማኝ እና ቀጥተኛ መንገድ
+    url: window.location.origin + '/JCIMS/search-job-seekers-ajax', 
+    method: 'GET',
+    data: { seeker_q: query },
+    dataType: 'json',
+    success: function(data) {
                     suggestionsList.empty(); 
                     
                     if (data && data.length > 0) {

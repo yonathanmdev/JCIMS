@@ -16,5 +16,7 @@ return [
     'awareness-update-other-process' => ['AwarenessController', 'updateAwareness', true],
    // 🔗 ለስራ ፈላጊዎች ፖপ-አፕ ፍለጋ የተለየ አድራሻ መፍቀድ
     'search-job-seekers-ajax' => ['AwarenessController', 'searchJobSeekersAjax'],
+    'update-jobseeker-awareness' => ['AwarenessController', 'updateJobSeekerAwareness'],
+    'create-jobseeker-awareness' => ['AwarenessController', 'updateJobSeekerAwareness'],
    
 ];

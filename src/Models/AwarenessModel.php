@@ -198,40 +198,43 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
  * 🔍 ስራ ፈላጊዎችን በቅርንጫፍ፣ በስም፣ በስልክ፣ በLabor ID ወይም በG8ID መፈለጊያ
  *//**
  * 🔍 ስራ ፈላጊዎችን በስም፣ በስልክ፣ በLabor ID ወይም በ Job Seeker ID መፈለጊያ
+ *//**
+ * 🔍 ስራ ፈላጊዎችን በስም፣ በስልክ፣ በLabor ID ወይም በ Job Seeker ID መፈለጊያ
+ *//**
+ * 🔍 ስራ ፈላጊዎችን በስም፣ በስልክ፣ በLabor ID ወይም በ Job Seeker ID መፈለጊያ
+ * 💡 ማሳሰቢያ፦ SQLSTATE[HY093] ስህተትን ለማስቀረት ለእያንዳንዱ መስመር የተለየ ፓራሜትር ተሰጥቷል
  */
-public function searchJobSeekersForAwareness($branch_id, $searchName) {
+public function searchJobSeekersForAwareness($branch_id, $search) {
     try {
-        $searchName = trim($searchName);
+        $search = trim($search);
         
-        // 💡 የጻፍከው ቃል ንጹህ ቁጥር መሆኑን ማረጋገጥ (ለምሳሌ፡ 123456)
-        $isNumeric = is_numeric($searchName);
-        $idExact = $isNumeric ? (int)$searchName : 0;
-
-        // 🚀 ቁጥር ከሆነ በቀጥታ በ '=' እንዲፈልግ፣ ጽሑፍ ከሆነ በ 'LIKE' እንዲያነጻጽር የተዋቀረ SQL
+        // 🚀 ለእያንዳንዱ ማወዳደሪያ የተለየ የፓራሜትር ስም መስጠት (Invalid parameter ስህተትን ይከላከላል)
         $sql = "SELECT `job_seeker_id`, `first_name`, `father_name`, `last_name`, `Labor_ID`, `phone_number`
                 FROM `job_seekers` 
                 WHERE (
-                       (:is_numeric = 1 AND `job_seeker_id` = :id_exact)
-                    OR `job_seeker_id` LIKE :search
-                    OR `first_name` LIKE :search 
-                    OR `father_name` LIKE :search 
-                    OR `last_name` LIKE :search 
-                    OR `phone_number` LIKE :search 
-                    OR `Labor_ID` LIKE :search 
-                    OR `g8id` LIKE :search
+                       `job_seeker_id` LIKE :search1
+                    OR `first_name` LIKE :search2 
+                    OR `father_name` LIKE :search3 
+                    OR `last_name` LIKE :search4 
+                    OR `phone_number` LIKE :search5 
+                    OR `Labor_ID` LIKE :search6 
+                    OR `g8id` LIKE :search7
                 )
                 LIMIT 10";
                 
         $stmt = $this->db->prepare($sql);
         
-        // ፍለጋውን በ % መክበብ
-        $searchTerm = "%" . $searchName . "%";
+        // ፍለጋውን በ % መክበብ (ለ LIKE እንዲሆን)
+        $searchTerm = "%" . $search . "%";
         
-        // ማሰሪያዎችን (Bindings) ማደራጀት
-        $isNumericFlag = $isNumeric ? 1 : 0;
-        $stmt->bindParam(':is_numeric', $isNumericFlag, PDO::PARAM_INT);
-        $stmt->bindParam(':id_exact', $idExact, PDO::PARAM_INT);
-        $stmt->bindParam(':search', $searchTerm, PDO::PARAM_STR);
+        // 🔒 እያንዳንዱን ፓራሜትር ለየብቻው በጥንቃቄ ማሰር (Bind)
+        $stmt->bindParam(':search1', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':search2', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':search3', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':search4', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':search5', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':search6', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':search7', $searchTerm, PDO::PARAM_STR);
         
         $stmt->execute();
         

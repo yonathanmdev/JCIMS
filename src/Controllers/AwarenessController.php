@@ -203,7 +203,6 @@ $data = [
 
 
 
-
 public function searchJobSeekersAjax() {
     // 🔒 የደህንነት ፍቃድ ማረጋገጫ
     AuthHelper::checkRole(['team_leader', 'officer']);
@@ -211,17 +210,12 @@ public function searchJobSeekersAjax() {
     $user = $_SESSION['user'] ?? [];
     $branchId = $user['branch_id'] ?? null;
 
-    // ቅርንጫፍ ከሌለ ባዶ መረጃ መመለስ
-    if (!$branchId) {
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([]);
-        exit();
-    }
-
-    // ተጠቃሚው መፃፍ የጀመረውን ቃል መያዝ
+    // ተጠቃሚው መፃፍ የጀመረውን ቃል መያዝ (seeker_q)
     $search = isset($_GET['seeker_q']) ? trim($_GET['seeker_q']) : '';
 
     $awarenessModel = new AwarenessModel($this->db);
+    
+    // 🚀 በግልጽ $search የተባለውን ተለዋዋጭ ወደ ሞዴሉ መላክ
     $seekers = $awarenessModel->searchJobSeekersForAwareness($branchId, $search);
     
     // በስተጀርባ የሚላከው ላይ ሌላ ጽሑፍ እንዳይቀላቀል ማጽዳት (Clean Buffer)
