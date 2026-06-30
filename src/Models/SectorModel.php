@@ -67,11 +67,11 @@ public function getSectors(int $limit = 50, int $offset = 0): array {
 public function getSectorById(string $id): ?array
 {
     $sql = "SELECT
-                s.id,
-                s.sectorid,
-                s.sector
-            FROM sector_table s
-            WHERE s.id = :id
+                id,
+                sectorid,
+                sector
+            FROM sector_table
+            WHERE id = :id
             LIMIT 1";
 
     try {
@@ -91,7 +91,7 @@ public function getSectorById(string $id): ?array
 
 public function createsubSector(array $data): bool {
         try {
-            $sectorName = $data['sector_name'];
+            $sectorName = $data['sub_sector'];
             $normalizedSectorName = AmharicNormalizer::normalizeOnly($sectorName);
             // Start transaction
             $this->db->beginTransaction();
@@ -106,7 +106,7 @@ public function createsubSector(array $data): bool {
                 $data['uuid'],
                 $data['sectorid'],
                 $normalizedSectorName,
-                $data['reg_by']
+                $data['registered_by']
             ]);
 
             if (!$result1) {
