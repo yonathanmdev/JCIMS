@@ -214,7 +214,7 @@ $is_awaerness_registration_page = true;
                                        autocomplete="off"
                                        required>
                                        
-                                <input type="text" id="selected_job_seeker_id" name="job_seeker_id" required>
+                                <input type="hidden" id="selected_job_seeker_id" name="job_seeker_id" required>
 
                                 <div id="seeker_suggestions_list" class="list-group position-absolute w-100 mt-1" style="z-index: 1050; display: none; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #ced4da;"></div>
                             </div>
