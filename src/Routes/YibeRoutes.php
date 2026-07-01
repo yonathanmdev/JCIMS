@@ -1,8 +1,10 @@
 <?php
-// src/Routes/Yoniroutes.php
+// src/Routes/YibeRoutes.php
 
 return [
-    // User Management
-    // 🆕 ሁለቱንም የካርድ ማሳያ እና የሪፖርት ገጽ መክፈቻ ጥያቄዎችን የሚይዘው ዋና ቁልፍ
-    'report' => ['ReportController', 'handleReport', true],
+    // የሪፖርት ፎርሙን ማሳያ ገጽ ራውት
+    'report-registration' => ['ReportgenerationController', 'showReportForm', true],
+    
+    // በ AJAX የሪፖርት ሰንጠረዦችን (እንደ ሠ1) ዳታ መሳቢያ ራውት
+    'report1'     => ['ReportgenerationController', 'report1', true],
 ];
