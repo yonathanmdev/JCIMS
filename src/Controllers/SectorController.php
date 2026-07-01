@@ -172,6 +172,32 @@ $sectors  = $sectorModel->getSectors();
     header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/sub-sector-registration");
     exit();
 }
+ public function subsectorsBySector(): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+
+    $sectorUuid = $_GET['sector_id'] ?? '';
+
+    if ($sectorUuid === '' || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $sectorUuid)) {
+        echo json_encode([]);
+        return;
+    }
+
+    $sectorModel = new SectorModel($this->db);
+    $sector = $sectorModel->getSectorById($sectorUuid);
+
+    if (!$sector) {
+        error_log('No sector found for UUID: ' . $sectorUuid); // TEMP DEBUG
+        echo json_encode([]);
+        return;
+    }
+
+    $subsectors = $sectorModel->getsubsectorBySectorId($sector['sectorid']);
+    error_log('Subsectors found: ' . count($subsectors)); // TEMP DEBUG
+
+    echo json_encode($subsectors);
+}
+
     private function validateSectorData(array $data): array {
         $errors = [];
 

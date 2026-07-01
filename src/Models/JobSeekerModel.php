@@ -20,16 +20,15 @@ public function createJobseeker(array $data): bool {
         // Insert employee
         $sql = "INSERT INTO job_seekers (id, branch_id, first_name, father_name, last_name, gender, 
         age, educational_level, educated_dpt, education_trmnet_finsh_year, g8id, CGPA, school_type, 
-        physical_condition, physical_condition_desc, kebele, mender, kebele_id_no, phone_number, 
+        physical_condition, physical_condition_desc, mender, kebele_id_no, phone_number, 
         choice_sector1, sub_choose1, choice_sector2, sub_choose2, choice_sector3, sub_choose3, 
         meteleya_huneta, residence_status, srafelagi_huneta, graguation_catagory, maritalstatus, 
-        noofmonth, haveexp, workplace, experience, profession, nameofcountry, language,
-         wageorself, typeofemployment, regstration_level, orgstatus, mothername, Labor_ID, 
-         FAN, kebele_id_photo, jsphoto, fiscal_year,
-         agri_business_experience_status, agri_business_experience, has_dependents, 
+       haveexp, workplace, experience, profession, nameofcountry, language,
+         wageorself, regstration_level, mothername, Labor_ID, 
+         FAN, kebele_id_photo, jsphoto, fiscal_year, agri_business_experience, has_dependents, 
          number_of_dependents, children_under_five, full_name_normalized, registered_by) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->db->prepare($sql);
         $result1 = $stmt->execute([
@@ -48,7 +47,6 @@ public function createJobseeker(array $data): bool {
             $data['school_type'],
             $data['physical_condition'],
             $data['physical_condition_desc'],
-            $data['kebele'],
             $data['mender'],
             $data['kebele_id_no'],
             $data['phone_number'],
@@ -63,7 +61,6 @@ public function createJobseeker(array $data): bool {
             $data['srafelagi_huneta'],
             $data['graguation_catagory'],
             $data['maritalstatus'],
-            $data['noofmonth'],
             $data['haveexp'],
             $data['workplace'],
             $data['experience'],
@@ -71,16 +68,13 @@ public function createJobseeker(array $data): bool {
             $data['nameofcountry'],
             $data['language'],
             $data['wageorself'],
-            $data['typeofemployment'],
             $data['regstration_level'],
-            $data['orgstatus'],
             $data['mothername'],
             $data['Labor_ID'],
             $data['FAN'],
             $data['kebele_id_photo'],
             $data['jsphoto'],
             $data['fiscal_year'],
-            $data['agri_business_experience_status'],
             $data['agri_business_experience'],
             $data['has_dependents'],
             $data['number_of_dependents'],
