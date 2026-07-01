@@ -152,5 +152,24 @@ public function getSubSectors(int $limit = 50, int $offset = 0): array
         return [];
     }
 }
-    }
+public function getSubsectorBySectorId(string $sectorId): array
+{
+    $stmt = $this->db->prepare(
+        "SELECT id, subsector FROM sub_sector WHERE sectorid = :sector_id ORDER BY subsector ASC"
+    );
+    $stmt->execute([':sector_id' => $sectorId]);
 
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+}
+// In SectorModel
+public function getSubsectorBigIntIds(string $subsectorUuid): ?array
+{
+    $stmt = $this->db->prepare(
+        "SELECT sub_sectorid, sectorid FROM sub_sector WHERE id = :subsector_uuid"
+    );
+    $stmt->execute([':subsector_uuid' => $subsectorUuid]);
+    $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    return $result ?: null;
+}
+    }

@@ -133,13 +133,12 @@ function myAsset($path) {
     
     <?php endif; ?>
 
-     <?php if (isset($is_employee_archive_page) && $is_employee_archive_page === true): ?>
+     <?php if (isset($is_jobseeker_registration_page) && $is_jobseeker_registration_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
-    <script src="<?= myAsset('js/file-attachment.js') ?>"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-    <script src="<?= myAsset('js/delete-attached-files.js') ?>"></script>
-    
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
+    <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
     <?php endif; ?>
    
  <?php if (isset($is_exprience_registration_page) && $is_exprience_registration_page === true): ?>
@@ -279,6 +278,7 @@ $(function () {
       "responsive": true, "lengthChange": false, "autoWidth": false,
       "deferRender": true,
       "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"],
+      "paging": false,
       "language": {
             "emptyTable": dynamicMsg, // Dynamic Amharic message,
             "zeroRecords": "ምንም የሚዛመድ መረጃ አልተገኘም",
@@ -288,7 +288,8 @@ $(function () {
                 "previous": "ቀዳሚ"
             }
         }
-    }).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
+    }
+  ).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
     $('#example2').DataTable({
       "deferRender": true,
       "paging": true,
@@ -300,6 +301,7 @@ $(function () {
       "responsive": true,
     });
   });
+  
 </script>
 <!-- 1. First: flash data -->
 <script nonce="<?php echo $GLOBALS['nonce']; ?>">

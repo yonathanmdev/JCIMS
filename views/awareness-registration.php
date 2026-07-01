@@ -188,16 +188,60 @@ $is_awaerness_registration_page = true;
     </div>
 </div>
 
-
-<div class="modal fade" id="job_seekers_modal">
-    <div class="modal-dialog">
+<div class="modal fade" id="job_seekers_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5>ለስራ ፈላጊዎች</h5>
-            </div>
-            <div class="modal-body">
-                ...
-            </div>
+            <form action="<?= htmlspecialchars(rtrim($_ENV['BASE_URL'], '/')) ?>/createupdate-jobseeker-awareness" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-users mr-2"></i> ለስራ ፈላጊዎች ግንዛቤ መመዝገቢያ</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group position-relative">
+                                <label for="search_job_seeker" class="font-weight-bold">ስራ ፈላጊውን ይፈልጉ (በስም፣ ስልክ፣ Labor ID ወይም 8ኛ ክፍል ኮድ)</label>
+                                
+                                <input type="text" 
+                                       id="search_job_seeker" 
+                                       class="form-control" 
+                                       placeholder="መፃፍ ይጀምሩ (ለምሳሌ፡ ስም፣ ስልክ...)" 
+                                       autocomplete="off"
+                                       required>
+                                       
+                                <input type="hidden" id="selected_job_seeker_id" name="job_seeker_id" required>
+
+                                <div id="seeker_suggestions_list" class="list-group position-absolute w-100 mt-1" style="z-index: 1050; display: none; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #ced4da;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="font-weight-bold">የተመረጠው ስራ ፈላጊ ሙሉ ስም፦</label>
+                                <input type="text" id="selected_seeker_name" class="form-control" readonly placeholder="የተመረጠው ሰው ስም እዚህ ይገረፋል...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-header bg-light">
+                    <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> ይህንን መዝገብ ሲያስቀምጡ የስራ ፈላጊው ግንዛቤ ሁኔታ በሲስተሙ ላይ ወደ "ተፈጥሮለታል" ይቀየራል።</small>
+                </div>
+
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">ዝጋ</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-save mr-1"></i> ግንዛቤ ተፈጥሮአል መዝግብ
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -212,5 +256,67 @@ $is_awaerness_registration_page = true;
 
     // reset select after opening
     this.selectedIndex = 0;
+});
+</script>
+<script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+// 💡 የ jQuery መጫንን ሳይጠብቅ የጃቫስክሪፕት ስራን መጀመሪያ የሚያስጀምር አስተማማኝ መንገድ
+window.addEventListener('DOMContentLoaded', function() {
+    // አሁን $ በትክክል መስራቱን ለማረጋገጥ ዝግጁ ነው
+    var searchInput = $('#search_job_seeker');
+    var suggestionsList = $('#seeker_suggestions_list');
+    var hiddenIdInput = $('#selected_job_seeker_id');
+    var nameDisplayInput = $('#selected_seeker_name');
+
+    searchInput.on('keyup input', function() {
+        var query = $(this).val().trim();
+        
+        if (query.length >= 2) {
+      $.ajax({
+    // 💡 ለአካባቢያዊ ሰርቨር (Localhost) ይበልጥ አስተማማኝ እና ቀጥተኛ መንገድ
+    url: window.location.origin + '/JCIMS/search-job-seekers-ajax', 
+    method: 'GET',
+    data: { seeker_q: query },
+    dataType: 'json',
+    success: function(data) {
+                    suggestionsList.empty(); 
+                    
+                    if (data && data.length > 0) {
+                        $.each(data, function(index, item) {
+                            var fullName = item.first_name + ' ' + item.father_name + ' ' + item.last_name;
+                            var details = fullName + ' (Labor ID: ' + (item.Labor_ID ? item.Labor_ID : 'የለም') + ' | ስልክ: ' + (item.phone_number ? item.phone_number : 'የለም') + ')';
+                            
+                            var option = $('<a href="javascript:void(0);" class="list-group-item list-group-item-action py-2 small"></a>');
+                            option.text(details);
+                            
+                            option.on('click', function() {
+                                searchInput.val(fullName); 
+                                hiddenIdInput.val(item.job_seeker_id); 
+                                nameDisplayInput.val(fullName); 
+                                suggestionsList.hide(); 
+                            });
+                            
+                            suggestionsList.append(option);
+                        });
+                        suggestionsList.show(); 
+                    } else {
+                        suggestionsList.html('<div class="list-group-item text-muted small">ምንም አይነት ስራ ፈላጊ አልተገኘም!</div>').show();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("የ AJAX ስህተት ተከስቷል፦ ", error);
+                }
+            });
+        } else {
+            suggestionsList.hide();
+            hiddenIdInput.val('');
+            nameDisplayInput.val('');
+        }
+    });
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#search_job_seeker, #seeker_suggestions_list').length) {
+            suggestionsList.hide();
+        }
+    });
 });
 </script>
