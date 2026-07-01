@@ -10,11 +10,16 @@ class JobseekerController extends BaseController {
          AuthHelper::checkRole(['team_leader', 'officer']);
         $user = $_SESSION['user'] ?? [];
         $branchId = $user['branch_id'] ?? null;
+        $userId = $user['id'] ?? null;
 $sectorModel = new SectorModel($this->db);
 $sectors  = $sectorModel->getSectors();
+        
+        $jobSeekerModel = new JobSeekerModel($this->db);
+$jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
         $data = [
             'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
-            'sectors' => $sectors
+            'sectors' => $sectors,
+            'jobSeekers' => $jobSeekers
         ];
 
         $this->render('jobseeker-registration', $data);
@@ -169,6 +174,25 @@ try {
             'father_name' => 'የአባት ስም',
             'g_father_name' => 'የአያት ስም',
             'age' => 'እድሜ',
+            'gender' => 'ጾታ',
+            'educational_level' => 'የት/ት ደረጃ',
+            'physical_condition' => 'የጉዳት ሁኔታ',
+            'kebele_id_no' => 'የቀበሌ መ/ቁጥር',
+            'choice_sector1' => '1ኛ የዘርፍ ምርጭ',
+            'sub_choose1' => '1ኛ ንዑስ ዘርፍ ምርጭ',
+            'choice_sector2' => '2ኛ የዘርፍ ምርጭ',
+            'sub_choose2' => '2ኛ ንዑስ ዘርፍ ምርጭ',
+            'choice_sector3' => '3ኛ የዘርፍ ምርጭ',
+            'sub_choose3' => '3ኛ ንዑስ ዘርፍ ምርጭ',
+            'meteleya_huneta' => 'መኖሪያ ቤት ሁኔታ',
+            'residence_status' => 'የሚኖሩበት አካባቢ',
+            'srafelagi_huneta' => 'የስራ ፈላጊ ሁኔታ',
+            'maritalstatus' => 'የጋብቻ ሁኔታ',
+            'mothername' => 'የእናት ሙሉ ስም',
+            'noofmonth' => 'ስራ አጥ ሆነው የቆዩበት ወር',
+            
+
+
         ];
 
         foreach ($requiredFields as $field => $label) {
@@ -198,11 +222,246 @@ try {
             }
         }
     // ── father_name: required, no numbers or special characters ───────────
+if (!preg_match('/^[\p{L}\s]+$/u', $$data['father_name'])) {
+    $errors[] = "የአባት ስም ቁጥር ወይም ልዩ ምልክት መያዝ የለበትም።"; // Father's name must not contain numbers or special characters.
+}
+ if (!empty($data['sex']) && !in_array($data['sex'], ['ወንድ', 'ሴት'])) {
+            $errors[] = "ጾታ ትክክለኛ መሆን አለበት።";
+}
+// ── FAN: numeric, exactly 16 digits, if provided ────────────────────────
+$fan = $data['FAN'] ?? '';
+if ($fan !== '') {
+    if (!preg_match('/^\d{16}$/', $fan)) {
+        $errors[] = "FAN በትክክል 16 ቁጥር ማካተት አለበት።"; // FAN must be exactly 16 digits.
+    }
+}
+// Validate educational level
+if (!in_array($data['educational_level'] ?? '', [
+    'መሰረተ ትምህርት',
+    'ማንበብና መፃፍ የማይችሉ',
+    'ከ1-7ኛ',
+    '8ኛ ያጠናቀቀ/ች',
+    'ከ9-10ኛ',
+    'ከ11-12ኛ',
+    'ደረጃ 2',
+    'ደረጃ 3',
+    'ደረጃ 4',
+    'ደረጃ 5',
+    'የመጀመሪያ ዲግሪ',
+    'ሁለተኛ ዲግሪ'
+], true)) {
+    $errors[] = "ትክክለኛ የት/ት መረጃ ያስገቡ።";
+}
 
+
+if (
+    in_array($data['educational_level'] ?? '', [
+        'ከ1-7ኛ',
+        '8ኛ ያጠናቀቀ/ች',
+        'ከ9-10ኛ',
+        'ከ11-12ኛ',
+        'ደረጃ 2',
+        'ደረጃ 3',
+        'ደረጃ 4',
+        'ደረጃ 5',
+        'የመጀመሪያ ዲግሪ',
+        'ሁለተኛ ዲግሪ'
+    ], true)
+    && empty(trim($data['education_trmnet_finsh_year'] ?? ''))
+) {
+    $errors[] = "ት/ት የጠናቀቁበትን ዓም ያስገቡ።";
+}
+// If the educational level requires a department, it must not be empty
+if (
+    in_array($data['educational_level'] ?? '', [
+        'ደረጃ 2',
+        'ደረጃ 3',
+        'ደረጃ 4',
+        'ደረጃ 5',
+        'የመጀመሪያ ዲግሪ',
+        'ሁለተኛ ዲግሪ'
+    ], true)
+    && empty(trim($data['school_type'] ?? ''))
+) {
+    $errors[] = "የተማሩበትን የተቋም ዓይነት ያስገቡ።";
+}
+// If the educational level requires a department, it must not be empty
+if (
+    in_array($data['educational_level'] ?? '', [
+        'ደረጃ 2',
+        'ደረጃ 3',
+        'ደረጃ 4',
+        'ደረጃ 5',
+        'የመጀመሪያ ዲግሪ',
+        'ሁለተኛ ዲግሪ'
+    ], true)
+    && empty($data['CGPA'] ?? '')
+) {
+    $errors[] = " CGPA ያስገቡ።";
+}
+
+// If the educational level requires a department, it must not be empty
+if (
+    in_array($data['educational_level'] ?? '', [
+        '8ኛ ያጠናቀቀ/ች',
+        'ከ9-10ኛ',
+        'ከ11-12ኛ',
+        'ደረጃ 2',
+        'ደረጃ 3',
+        'ደረጃ 4',
+        'ደረጃ 5',
+        'የመጀመሪያ ዲግሪ',
+        'ሁለተኛ ዲግሪ'
+    ], true)
+    && empty(trim($data['g8id'] ?? ''))
+) {
+    $errors[] = "የ8ኛ ክፍል መለያ ያስገቡ።";
+}
+// If the educational level requires a department, it must not be empty
+if (
+    in_array($data['educational_level'] ?? '', [
+        'ደረጃ 2',
+        'ደረጃ 3',
+        'ደረጃ 4',
+        'ደረጃ 5',
+        'የመጀመሪያ ዲግሪ',
+        'ሁለተኛ ዲግሪ'
+    ], true)
+    && empty(trim($data['educated_dpt'] ?? ''))
+) {
+    $errors[] = "ዲፓርትመንት ያስገቡ።";
+}
+// If the educational level requires a department, it must not be empty
+if (
+    in_array($data['educational_level'] ?? '', [
+        'ደረጃ 2',
+        'ደረጃ 3',
+        'ደረጃ 4',
+        'ደረጃ 5',
+        'የመጀመሪያ ዲግሪ',
+        'ሁለተኛ ዲግሪ'
+    ], true)
+    && empty($data['phone_number'] ?? '')
+) {
+    $errors[] = "ስልክ ቁጥር ያስገቡ።";
+}
+if (
+    in_array($data['educational_level'] ?? '', [
+        'ደረጃ 2',
+        'ደረጃ 3',
+        'ደረጃ 4',
+        'ደረጃ 5',
+        'የመጀመሪያ ዲግሪ',
+        'ሁለተኛ ዲግሪ'
+    ], true)
+    && empty($data['graguation_catagory'] ?? '')
+) {
+    $errors[] = "የተመረቁበት ሙያ ምድብ ይምረጡ";
+}
+
+
+// Phone number validation
+        if (!empty($data['phone_number'])) {
+            if (!preg_match('/^[0-9]{10}$/', $data['phone_number'])) {
+                $errors[] = "ስልክ ቁጥር ትክክለኛ 10 አሃዝ መሆን አለበት።";
+            }
+        }
+// ── CGPA validation ───────────────────────────────────────────────────
+if (isset($data['CGPA']) && trim($data['CGPA']) !== '') {
+    $cgpaRaw = trim($data['CGPA']);
+
+    // Must be numeric, and match up to 2 decimal places only
+    if (!preg_match('/^\d+(\.\d{1,2})?$/', $cgpaRaw)) {
+        $errors[] = 'CGPA ቁጥር መሆን አለበት እና ከ2 በላይ የአስርዮሽ ቦታ መያዝ የለበትም።';
+    } else {
+        $cgpaValue = (float) $cgpaRaw;
+        if ($cgpaValue < 2 || $cgpaValue > 4) {
+            $errors[] = 'CGPA ከ2 እስከ 4 መካከል መሆን አለበት።';
+        }
+    }
+}
+
+// ── Physical condition validation ─────────────────────────────────────
+
+if ($data['physical_condition'] === '' || !in_array($data['physical_condition'], ['0', '1'], true)) {
+    $errors[] = 'የአካል ሁኔታ ትክክለኛ መረጃ ያስገቡ።';
+} elseif ($$data['physical_condition'] === '1') {
+    $physicalConditionDesc = trim($data['physical_condition_desc'] ?? '');
+    if ($physicalConditionDesc === '') {
+        $errors[] = 'የጉዳት አይነት ያስገቡ።';
+    }
+}
+
+if (
+    !in_array($data['srafelagi_huneta'] ?? '', [
+        'ስራ ፈላጊ',
+        'ተፈናቃይ',
+        'ከስደት ተመላሽ',
+        'የቤት እመቤት',
+        'አካል ጉዳተኛ',
+        'ዓለም አቀፍ ፍልሰተኛ'
+    ], true)) {
+    $errors[] = "እባክዎ ትክክለኛ የስራ ፈላጊ ሁኔታ ይምረጡ።"; // "Please select a valid job seeker status."
+}
+if (
+    !in_array($data['residence_status'] ?? '', [
+        'ከተማ',
+        'ገጠር'
+    ], true)) {
+    $errors[] = "እባክዎ ትክክለኛ የመኖሪያ አካባቢ ይምረጡ።"; // "Please select a valid residence status."
+}
+
+// haveexp: must be 0 or 1
+if (!in_array($data['haveexp'] ?? '', ['0', '1'], true)) {
+    $errors[] = "እባክዎ የስራ ልምድ መኖር አለመኖሩን ይምረጡ።"; // Please indicate whether you have experience.
+}
+
+// experience: required and must be numeric if haveexp == 1
+if (($data['haveexp'] ?? '') === '1') {
+    if (!isset($data['experience']) || $data['experience'] === '') {
+        $errors[] = "እባክዎ የስራ ልምድ ዓመት ያስገቡ።"; // Please enter years of experience.
+    } elseif (!is_numeric($data['experience'])) {
+        $errors[] = "የስራ ልምድ ቁጥር መሆን አለበት።"; // Experience must be a number.
+    }
+}
+
+// workplace: must be one of the two allowed values
+if (!in_array($data['workplace'] ?? '', ['ከሀገር ውስጥ', 'ከውጭ አገር'], true)) {
+    $errors[] = "እባክዎ ትክክለኛ የስራ ቦታ ይምረጡ።"; // Please select a valid workplace.
+}
+
+// profession: must be one of the allowed occupation categories
+if (
+    !in_array($data['profession'] ?? '', [
+        'የሥራ ኃላፊዎች ከፍተኛ ባለስልጣኖች፣ ሥራ አስኪያጆች',
+        'ፕሮፌሽናሎች',
+        'ቴክኒሻያን ተባባሪ ፕሮፌሽናሎች',
+        'ክለርክ ሰራተኞች',
+        'የአገልግሎት ሰጭ ሠራተኞች፣ ሱቆች የገበያ ሽያጭ ሰራተኞች',
+        'የሰለጠነ የግብርና ዓሳ ምርት ሰራተኞች',
+        'የዕደ ጥበብ (ክራፍትስ እና የመሳሰሉት ሰራተኞች)',
+        'የፋብሪካ ማሽን ኦፕሬተርና ገጣጣሚዎች',
+        'ኢለመንታሪ (አነስተኛ የእጅ መሳሪያ) ሙያዎች'
+    ], true)
+) {
+    $errors[] = "እባክዎ ትክክለኛ ሙያ ይምረጡ።"; // Please select a valid profession.
+}
+
+// nameofcountry: required if workplace is ከውጭ አገር, must not contain numbers or special characters
+if (($data['workplace'] ?? '') === 'ከውጭ አገር') {
+    $countryName = trim($data['nameofcountry'] ?? '');
+    if ($countryName === '') {
+        $errors[] = "እባክዎ የአገር ስም ያስገቡ።"; // Please enter the country name.
+    } elseif (!preg_match('/^[\p{L}\s]+$/u', $countryName)) {
+        $errors[] = "የአገር ስም ቁጥር ወይም ልዩ ምልክት መያዝ የለበትም።"; // Country name must not contain numbers or special characters.
+    }
+}
 
         return $errors;
     }
-public function listofJobseekers() {
+
+
+    public function listofJobseekers() {
          AuthHelper::checkRole(['team_leader', 'officer']);
         $user = $_SESSION['user'] ?? [];
         $branchId = $user['branch_id'] ?? null;

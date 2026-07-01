@@ -98,6 +98,35 @@ public function createJobseeker(array $data): bool {
         return false;
     }
 }
+public function getLast24HoursCount(string $myBranchId, string $userId, int $limit = 50, int $offset = 0): array {
+   $sql = "SELECT
+            js.id,
+            js.first_name,
+            js.father_name,
+            js.last_name,
+            js.gender,
+            COUNT(*) OVER() AS total_job_seekers
+        FROM job_seekers js
+        WHERE js.branch_id = :branch_id
+          AND js.registered_by = :user_id
+        ORDER BY js.created_at DESC
+        LIMIT :limit OFFSET :offset";
+
+try {
+    $stmt = $this->db->prepare($sql);
+    $stmt->bindValue(':branch_id', $myBranchId);
+    $stmt->bindValue(':user_id', $userId);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (\PDOException $e) {
+    error_log("Get job seekers by hierarchy error: " . $e->getMessage());
+    return [];
+}
+}
+
 public function getJobSeekersByHierarchy(string $myBranchId, string $organizationId, int $limit = 50, int $offset = 0): array {
     $sql = "SELECT js.id, js.first_name, js.father_name, js.last_name,js.gender, b.name AS branch_name, b.level AS branch_level
             FROM job_seekers js

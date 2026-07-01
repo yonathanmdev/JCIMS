@@ -2,7 +2,9 @@
 use App\Helpers\EthiopianDateHelper; 
 use App\Helpers\AuthHelper;
 $fiscal_year = AuthHelper::checkFiscalYear();
-$is_jobseeker_registration_page = true; ?>
+$is_jobseeker_registration_page = true; 
+$last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 0;
+?>
 <section class="content">
   <div class="container-fluid">
     <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center card-primary card-outline">
@@ -17,7 +19,48 @@ $is_jobseeker_registration_page = true; ?>
           ስራ ፈላጊ መዝግብ
         </button>
       </div>
+      
     </div>
+     <div class="card-body">
+      <small class="text-muted">
+                            ባለፉት 24 ሰዓት ውስጥ የመዘገቡት ስራ ፈላጊ፦
+                            <span class="badge badge-primary">
+                                <?= $last24HoursCount ?>
+                            </span>
+   </small>
+        <!-- Example Table (optional) -->
+      <table id="example1" data-empty-msg="ዛሬ ምንም ስራ ፈላጊ አልመዘገቡም።" class="table table-bordered table-hover dataTable dtr-inline small" style="color: #000;" aria-describedby="example2_info">
+    <thead class="thead-light">
+      <tr>
+        <th>#</th>
+        <th>ስም </th>
+        <th>ጾታ</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php if (!empty($jobSeekers)): ?>
+        <?php foreach ($jobSeekers as $index => $row): ?>
+         <tr id="row-<?= $row['id'] ?>">
+            <td><?= $index + 1 ?></td>
+            <td><?= htmlspecialchars($row['first_name']).' '.htmlspecialchars($row['father_name']).' '.htmlspecialchars($row['last_name']) ?></td>
+           <td><?= htmlspecialchars($row['gender']) ?></td>
+            <td class="text-center align-middle">
+  <div class="btn-group btn-group-sm shadow-sm" role="group">
+               <button class="btn btn-outline-secondary btn-sm edit-org" 
+                      data-id="<?= $row['id'] ?>"
+                      title="አስተካክል"  >
+                <i class="fas fa-edit"></i>
+              </button> 
+             
+  </div>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </tbody>
+  </table>
+  </div>
   </div>
 </section>
 
@@ -64,13 +107,13 @@ $is_jobseeker_registration_page = true; ?>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="g_father_name"><small class="font-weight-bold">የአያት ስም <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="g_father_name" name="g_father_name" data-validate="name-only"required>
+                  <input type="text" class="form-control form-control-sm" id="g_father_name" name="g_father_name" data-validate="name-only" required>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="gender"><small class="font-weight-bold">ጾታ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="gender" name="gender" required>
+                  <select class="form-control form-control-sm" id="gender" name="gender" data-validate="name-only" required>
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="ወንድ">ወንድ</option>
                     <option value="ሴት">ሴት</option>
@@ -88,7 +131,7 @@ $is_jobseeker_registration_page = true; ?>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="srafelagi_huneta"><small class="font-weight-bold">የስራ ፈላጊ ሁኔታ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="srafelagi_huneta" name="srafelagi_huneta" required>
+                  <select class="form-control form-control-sm" id="srafelagi_huneta" name="srafelagi_huneta"  data-validate="text-with-spaces" required>
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="ስራ ፈላጊ">ስራ ፈላጊ</option>
                     <option value="ተፈናቃይ">ተፈናቃይ</option>
@@ -108,7 +151,7 @@ $is_jobseeker_registration_page = true; ?>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="maritalstatus"><small class="font-weight-bold">የጋብቻ ሁኔታ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="maritalstatus" name="maritalstatus" required>
+                  <select class="form-control form-control-sm" id="maritalstatus" name="maritalstatus"  data-validate="general-safe" required>
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="ያላገባ/ች">ያላገባ/ች</option>
                     <option value="ያገባ/ች">ያገባ/ች</option>
@@ -122,7 +165,7 @@ $is_jobseeker_registration_page = true; ?>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="age"><small class="font-weight-bold">FAN <span class="text-danger">*</span></small></label>
-                  <input type="number" class="form-control form-control-sm" id="FAN" name="FAN"  required>
+                  <input type="text" class="form-control form-control-sm" id="FAN" name="FAN"  data-validate="numeric-only" data-length="16"  required>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
@@ -134,13 +177,13 @@ $is_jobseeker_registration_page = true; ?>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="kebele_id_no"><small class="font-weight-bold">የቀበሌ መታወቂያ ቁጥር <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="kebele_id_no" name="kebele_id_no" required>
+                  <input type="text" class="form-control form-control-sm" id="kebele_id_no" name="kebele_id_no" data-validate="general-safe" required>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="residence_status"><small class="font-weight-bold">የሚኖርበት አካባቢ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="residence_status" name="residence_status" required>
+                  <select class="form-control form-control-sm" id="residence_status" name="residence_status" data-validate="name-only" required>
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="ከተማ">ከተማ</option>
                     <option value="ገጠር">ገጠር</option>
@@ -152,205 +195,211 @@ $is_jobseeker_registration_page = true; ?>
           
 
           <!-- STEP 2: Education Info -->
-          <div class="form-step d-none" id="step-2">
-            <div class="row">
-              <div class="col-12 col-sm-6 col-md-3">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="educational_level"><small class="font-weight-bold">የትምህርት ደረጃ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="educational_level" name="educational_level" data-step-field="true" required>
-                    <option value="" selected disabled>ይምረጡ</option>
-                    <option value="ማንበብና መፃፍ የማይችሉ">ማንበብና መፃፍ የማይችሉ</option>
-                    <option value="መሰረተ ትምህርት">መሰረተ ትምህርት</option>
-                    <option value="ከ1-7ኛ">ከ1-7ኛ</option>
-                    <option value="8ኛ ያጠናቀቁ">8ኛ ያጠናቀቀ/ች</option>
-                    <option value="ከ9-10ኛ">ከ9-10ኛ</option>
-                    <option value="ከ11-12ኛ">ከ11-12ኛ</option>
-                    <option value="ደረጃ 2">10+1(ደረጃ 1 እና 2)</option>
-                    <option value="ደረጃ 3">10+2(ደረጃ 3)</option>
-                    <option value="ደረጃ 4">10+3(ደረጃ 4)</option>
-                    <option value="ደረጃ 5">ደረጃ 5</option>
-                    <option value="የመጀመሪያ ዲግሪ">የመጀመሪያ ዲግሪ</option>
-                    <option value="ሁለተኛ ዲግሪ">ሁለተኛ ዲግሪ</option>
-                  </select>
-                </div>
-              </div>
+<div class="form-step d-none" id="step-2">
+  <div class="row">
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="educational_level"><small class="font-weight-bold">የትምህርት ደረጃ <span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="educational_level" name="educational_level" data-step-field="true" required>
+          <option value="" selected disabled>ይምረጡ</option>
+          <option value="ማንበብና መፃፍ የማይችሉ">ማንበብና መፃፍ የማይችሉ</option>
+          <option value="መሰረተ ትምህርት">መሰረተ ትምህርት</option>
+          <option value="ከ1-7ኛ">ከ1-7ኛ</option>
+          <option value="8ኛ ያጠናቀቁ">8ኛ ያጠናቀቀ/ች</option>
+          <option value="ከ9-10ኛ">ከ9-10ኛ</option>
+          <option value="ከ11-12ኛ">ከ11-12ኛ</option>
+          <option value="ደረጃ 2">10+1(ደረጃ 1 እና 2)</option>
+          <option value="ደረጃ 3">10+2(ደረጃ 3)</option>
+          <option value="ደረጃ 4">10+3(ደረጃ 4)</option>
+          <option value="ደረጃ 5">ደረጃ 5</option>
+          <option value="የመጀመሪያ ዲግሪ">የመጀመሪያ ዲግሪ</option>
+          <option value="ሁለተኛ ዲግሪ">ሁለተኛ ዲግሪ</option>
+        </select>
+      </div>
+    </div>
 
-              <div class="col-12 col-sm-6 col-md-3 field-school">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="schoolname"><small class="font-weight-bold">የተማረበት ት/ቤት/ኮሌጂ/ዩንቨርስቲ <span class="text-danger">*</span></small></label>
-                  <input type="text" name="schoolname" id="schoolname" class="form-control form-control-sm" placeholder="የተማረበት ት/ቤት/ኮሌጂ/ዩንቨርስቲ ">
-                </div>
-              </div>
+    <div class="col-12 col-sm-6 col-md-3 field-school">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="schoolname"><small class="font-weight-bold">የተማረበት ት/ቤት/ኮሌጂ/ዩንቨርስቲ <span class="text-danger">*</span></small></label>
+        <input type="text" name="schoolname" id="schoolname" class="form-control form-control-sm" placeholder="የተማረበት ት/ቤት/ኮሌጂ/ዩንቨርስቲ " data-validate="text-with-spaces" required>
+      </div>
+    </div>
 
-              <div class="col-12 col-sm-6 col-md-3 field-dept">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="dpt"><small class="font-weight-bold">የተመረቀበት ዲፓርትመንት <span class="text-danger">*</span></small></label>
-                  <input type="text" name="dpt" id="dpt" class="form-control form-control-sm" placeholder="የተመረቀበት ዲፓርትመንት">
-                </div>
-              </div>
+    <div class="col-12 col-sm-6 col-md-3 field-dept">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="dpt"><small class="font-weight-bold">የተመረቀበት ዲፓርትመንት <span class="text-danger">*</span></small></label>
+        <input type="text" name="dpt" id="dpt" class="form-control form-control-sm" placeholder="የተመረቀበት ዲፓርትመንት" data-validate="text-with-spaces">
+      </div>
+    </div>
 
-              <div class="col-12 col-sm-6 col-md-3 field-year">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="education_completion_year"><small class="font-weight-bold">ትምህርት ያጠናቀቀበት (ያቋረጠበት) ዓመት <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="education_completion_year" name="education_completion_year" required>
-                    <option value="" selected disabled>ይምረጡ</option>
-                    <?php for ($year = $fiscal_year; $year >= 1960; $year--): ?>
-                      <option value="<?= $year ?>"><?= $year ?></option>
-                    <?php endfor; ?>
-                  </select>
-                </div>
-              </div>
-            </div>
+    <div class="col-12 col-sm-6 col-md-3 field-year">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="education_completion_year"><small class="font-weight-bold">ትምህርት ያጠናቀቀበት (ያቋረጠበት) ዓመት <span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="education_completion_year" name="education_completion_year" required>
+          <option value="" selected disabled>ይምረጡ</option>
+          <?php for ($year = $fiscal_year; $year >= 1960; $year--): ?>
+            <option value="<?= $year ?>"><?= $year ?></option>
+          <?php endfor; ?>
+        </select>
+      </div>
+    </div>
+  </div>
 
-            <div class="row">
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="school_type"><small class="font-weight-bold">የት/ቤቱ/የኮሌጁ ዓይነት <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="school_type" name="school_type" required>
-                    <option value="" selected disabled>ይምረጡ</option>
-                    <option value="የመንግስት">የመንግስት</option>
-                    <option value="የግል">የግል</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="gradeEight"><small class="font-weight-bold">የ8ኛ ክፍል መለያ ቁጥር <span class="text-danger">*</span></small></label>
-                  <input type="text" name="gradeEight" id="gradeEight" class="form-control form-control-sm" placeholder="የ8ኛ ክፍል መለያ ቁጥር">
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                 <label class="mb-1" for="phone_number"><small class="font-weight-bold">ስልክ ቁጥር <span class="text-danger">*</span></small></label>
-                  <input type="number" class="form-control form-control-sm" id="phone_number" name="phone_number" required>
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                 <label class="mb-1" for="graguation_catagory"><small class="font-weight-bold">ያጠናቀቁበት ሙያ የስራ ምድብ<span class="text-danger">*</span></small></label>
-                  <select class="form-control" name="graguation_catagory" id="graguation_catagory" >
-    <option value="" selected="selected">&larr; ይምረጡ &rarr;</option>
- <option  >Accounting and Finance Jobs</option>
-<option  >Admin, Secretarial and Clerical Jobs</option>
-<option  >Advertising and Media Jobs</option>
-<option  >Agriculture Jobs</option>
-<option  >Architecture and Construction Jobs</option>
-<option  >Automotive Jobs</option>
-<option  >Banking and Insurance Jobs</option>
-<option  >Business Development Jobs</option>
-<option  >Business and Administration Jobs</option>
-<option  >Communications, PR and Journalism Jobs</option>
-<option  >Community Service Jobs</option>
-<option  >Consultancy and Training Jobs</option>
-<option  >Creative Arts Jobs</option>
-<option  >Customer Service Jobs</option>
-<option  >Development and Project Management Jobs</option>
-<option  >Economics Jobs</option>
-<option  >Education Jobs</option>
-<option  >Engineering Jobs</option>
-<option  >Environment and Natural Resource Jobs</option>
-<option  >Event Management Jobs</option>
-<option  >Health Care Jobs</option>
-<option  >Hotel and Hospitality Jobs</option>
-<option  >Human Resource and Recruitment Jobs</option>
-<option  >Information Technology Jobs</option>
-<option  >Languages Jobs</option>
-<option  >Legal Jobs</option>
-<option  >Logistics, Transport and Supply Chain Jobs</option>
-<option  >Maintenance Jobs</option>
-<option  >Management Jobs</option>
-<option  >Manufacturing Jobs</option>
-<option  >Media and Journalism Jobs</option>
-<option  >Natural Sciences Jobs</option>
-<option  >Pharmaceutical Jobs</option>
-<option  >Purchasing and Procurement Jobs</option>
-<option  >Quality Assurance Jobs</option>
-<option  >Research and Development Jobs</option>
-<option  >Retail, Wholesale and Distribution Jobs</option>
-<option  >Sales and Marketing Jobs</option>
-<option  >Science and Technology Jobs</option>
-<option  >Security Jobs</option>
-<option  >Social Sciences and Community Jobs</option>
-<option  >Strategic Planning Jobs</option>
-<option  >Other</option>              
-                    </select> 
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                 <label class="mb-1" for="CGPA"><small class="font-weight-bold">CGPA <span class="text-danger">*</span></small></label>
-                  <input type="number" class="form-control form-control-sm" id="CGPA" name="CGPA">
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                 <label class="mb-1" for="meteleya_huneta"><small class="font-weight-bold">የመኖሪያ ቤት ሁኔታ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="meteleya_huneta" name="meteleya_huneta" required>
-                    <option value="" selected disabled>ይምረጡ</option>
-                    <option value="የመኖሪያ ቤት የሌላቸው">የመኖሪያ ቤት የሌላቸው</option>
-                    <option value="የመኖሪያ ቤት የሌላቸው">የመኖሪያ ቤት የሌላቸው</option>
-                    <option value="ከወላጅ ቤት የሚኖር">ከወላጅ ቤት የሚኖር</option>
-                    <option value="ጎዳና ተዳዳሪ">ጎዳና ተዳዳሪ</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                 <label class="mb-1" for="physical_condition"><small class="font-weight-bold">የአካል ጉዳት<span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="physical_condition" name="physical_condition" required>
-                    <option value="" selected disabled>ይምረጡ</option>
-                    <option value="ያለበት">ያለበት</option>
-                    <option value="የሌሌበት">የሌሌበት</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3 field-grade8">
-                <div class="form-group mb-2">
-                 <label class="mb-1" for="physical_condition_desc"><small class="font-weight-bold">የአካል ጉዳቱ አይነት<span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="physical_condition_desc" name="physical_condition_desc" required>
-                    <option value="" selected disabled>ይምረጡ</option>
-                    <option value="የአካል ብቃት ወይም የእንቅስቃሴ ጉዳት">የአካል ብቃት ወይም የእንቅስቃሴ ጉዳት</option>
-                    <option value="ማየት የተሳናቸው">ማየት የተሳናቸው</option>
-                    <option value="መስማት የተሳናቸው">መስማት የተሳናቸው</option>
-                    <option value="ማየት የተሳናቸው">ማየት የተሳናቸው</option>
-                    <option value="የአእምሮ እድገት ወይም የመማር ችግር">የአእምሮ እድገት ወይም የመማር ችግር</option>
-                    <option value="የስነ-አእምሮ ጤና እክል">የስነ-አእምሮ ጤና እክል</option>
-                    <option value="ከተጠቀሱት ውጭ">ከተጠቀሱት ውጭ</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+  <div class="row">
+    <div class="col-12 col-sm-6 col-md-3 field-schooltype">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="school_type"><small class="font-weight-bold">የት/ቤቱ/የኮሌጁ/የዩንቨርሲቲው ዓይነት <span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="school_type" name="school_type" required>
+          <option value="" selected disabled>ይምረጡ</option>
+          <option value="የመንግስት">የመንግስት</option>
+          <option value="የግል">የግል</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3 field-grade8">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="gradeEight"><small class="font-weight-bold">የ8ኛ ክፍል መለያ ቁጥር <span class="text-danger">*</span></small></label>
+        <input type="text" name="gradeEight" id="gradeEight" class="form-control form-control-sm" placeholder="የ8ኛ ክፍል መለያ ቁጥር" data-validate="numeric-only" data-length="7">
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3 field-phone">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="phone_number"><small class="font-weight-bold">ስልክ ቁጥር <span class="text-danger">*</span></small></label>
+        <input type="text" class="form-control form-control-sm" id="phone_number" name="phone_number" data-validate="numeric-only" data-length="10">
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3 field-dept">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="graguation_catagory"><small class="font-weight-bold">ያጠናቀቁበት ሙያ የስራ ምድብ<span class="text-danger">*</span></small></label>
+        <select class="form-control" name="graguation_catagory" id="graguation_catagory">
+          <option value="" selected="selected">&larr; ይምረጡ &rarr;</option>
+          <option>Accounting and Finance Jobs</option>
+          <option>Admin, Secretarial and Clerical Jobs</option>
+          <option>Advertising and Media Jobs</option>
+          <option>Agriculture Jobs</option>
+          <option>Architecture and Construction Jobs</option>
+          <option>Automotive Jobs</option>
+          <option>Banking and Insurance Jobs</option>
+          <option>Business Development Jobs</option>
+          <option>Business and Administration Jobs</option>
+          <option>Communications, PR and Journalism Jobs</option>
+          <option>Community Service Jobs</option>
+          <option>Consultancy and Training Jobs</option>
+          <option>Creative Arts Jobs</option>
+          <option>Customer Service Jobs</option>
+          <option>Development and Project Management Jobs</option>
+          <option>Economics Jobs</option>
+          <option>Education Jobs</option>
+          <option>Engineering Jobs</option>
+          <option>Environment and Natural Resource Jobs</option>
+          <option>Event Management Jobs</option>
+          <option>Health Care Jobs</option>
+          <option>Hotel and Hospitality Jobs</option>
+          <option>Human Resource and Recruitment Jobs</option>
+          <option>Information Technology Jobs</option>
+          <option>Languages Jobs</option>
+          <option>Legal Jobs</option>
+          <option>Logistics, Transport and Supply Chain Jobs</option>
+          <option>Maintenance Jobs</option>
+          <option>Management Jobs</option>
+          <option>Manufacturing Jobs</option>
+          <option>Media and Journalism Jobs</option>
+          <option>Natural Sciences Jobs</option>
+          <option>Pharmaceutical Jobs</option>
+          <option>Purchasing and Procurement Jobs</option>
+          <option>Quality Assurance Jobs</option>
+          <option>Research and Development Jobs</option>
+          <option>Retail, Wholesale and Distribution Jobs</option>
+          <option>Sales and Marketing Jobs</option>
+          <option>Science and Technology Jobs</option>
+          <option>Security Jobs</option>
+          <option>Social Sciences and Community Jobs</option>
+          <option>Strategic Planning Jobs</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3 field-cgpa">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="CGPA"><small class="font-weight-bold">CGPA <span class="text-danger">*</span></small></label>
+        <input type="text" class="form-control form-control-sm" id="CGPA" name="CGPA" data-validate="decimal" data-length="4" required>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="meteleya_huneta"><small class="font-weight-bold">የመኖሪያ ቤት ሁኔታ <span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="meteleya_huneta" name="meteleya_huneta" required>
+          <option value="" selected disabled>ይምረጡ</option>
+          <option value="የመኖሪያ ቤት የሌላቸው">የመኖሪያ ቤት የሌላቸው</option>
+          <option value="ከወላጅ ቤት የሚኖር">ከወላጅ ቤት የሚኖር</option>
+          <option value="ጎዳና ተዳዳሪ">ጎዳና ተዳዳሪ</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="physical_condition"><small class="font-weight-bold">የአካል ጉዳት<span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="physical_condition" name="physical_condition" required>
+          <option value="" selected disabled>ይምረጡ</option>
+          <option value="1">ያለበት</option>
+          <option value="0">የሌለበት</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3 field-physical-desc">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="physical_condition_desc"><small class="font-weight-bold">የአካል ጉዳቱ አይነት<span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="physical_condition_desc" name="physical_condition_desc" required>
+          <option value="" selected disabled>ይምረጡ</option>
+          <option value="የአካል ብቃት ወይም የእንቅስቃሴ ጉዳት">የአካል ብቃት ወይም የእንቅስቃሴ ጉዳት</option>
+          <option value="ማየት የተሳናቸው">ማየት የተሳናቸው</option>
+          <option value="መስማት የተሳናቸው">መስማት የተሳናቸው</option>
+          <option value="የአእምሮ እድገት ወይም የመማር ችግር">የአእምሮ እድገት ወይም የመማር ችግር</option>
+          <option value="የስነ-አእምሮ ጤና እክል">የስነ-አእምሮ ጤና እክል</option>
+          <option value="ከተጠቀሱት ውጭ">ከተጠቀሱት ውጭ</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
             <div class="row">
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="haveexp"><small class="font-weight-bold">ከዚህ ቀደም የስራ ልምድ አለዎት <span class="text-danger">*</span></small></label>
-                    <select class="form-control form-control-sm" id="haveexp" name="haveexp">
+                    <select class="form-control form-control-sm" id="haveexp" name="haveexp" data-validate="numeric-only" data-length="1" required>
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="1">አለ</option>
                     <option value="0">የለም</option>
                   </select>
                 </div>
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3 field-experience">
                 <div class="form-group mb-2">
-                  <label class="mb-1" for="noofmonth"><small class="font-weight-bold">የስራ ልምድ በወር </small></label>
-                  <input type="number" class="form-control form-control-sm" id="noofmonth" name="noofmonth">
+                  <label class="mb-1" for="experience"><small class="font-weight-bold">የስራ ልምድ በወር </small></label>
+                  <input type="number" step="any" class="form-control form-control-sm" id="experience" name="experience" data-validate="decimal" >
                 </div>
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3 field-workplace">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="workplace"><small class="font-weight-bold">የሰሩበት ሀገር<span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="workplace" name="workplace">
+                  <select class="form-control form-control-sm" id="workplace" name="workplace" data-validate="text-with-spaces">
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="ከሀገር ውስጥ">ከሀገር ውስጥ</option>
                     <option value="ከውጭ አገር">ከውጭ አገር</option>
                     </select>
                 </div>
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3 field-profession">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="profession"><small class="font-weight-bold">የሰሩበት የሙያ መደብ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="profession" name="profession" required>
+                  <select class="form-control form-control-sm" id="profession" name="profession" data-validate="general-safe" >
   <option value="" selected disabled>ይምረጡ</option>
   <option value="የሥራ ኃላፊዎች ከፍተኛ ባለስልጣኖች፣ ሥራ አስኪያጆች">የሥራ ኃላፊዎች ከፍተኛ ባለስልጣኖች፣ ሥራ አስኪያጆች</option>
   <option value="ፕሮፌሽናሎች">ፕሮፌሽናሎች</option>
@@ -358,30 +407,30 @@ $is_jobseeker_registration_page = true; ?>
   <option value="ክለርክ ሰራተኞች">ክለርክ ሰራተኞች</option>
   <option value="የአገልግሎት ሰጭ ሠራተኞች፣ ሱቆች የገበያ ሽያጭ ሰራተኞች">የአገልግሎት ሰጭ ሠራተኞች፣ ሱቆች የገበያ ሽያጭ ሰራተኞች</option>
   <option value="የሰለጠነ የግብርና ዓሳ ምርት ሰራተኞች">የሰለጠነ የግብርና ዓሳ ምርት ሰራተኞች</option>
-  <option value="የዕደ ጥበብ (ክራፍትስ እና የመሳሰሉት ሰራተኞች)">የዕደ ጥበብ (ክራፍትስ እና የመሳሰሉት ሰራተኞች)</option>
+  <option value="የዕደ ጥበብ /ክራፍትስ እና የመሳሰሉት ሰራተኞች/">የዕደ ጥበብ (ክራፍትስ እና የመሳሰሉት ሰራተኞች)</option>
   <option value="የፋብሪካ ማሽን ኦፕሬተርና ገጣጣሚዎች">የፋብሪካ ማሽን ኦፕሬተርና ገጣጣሚዎች</option>
-  <option value="ኢለመንታሪ (አነስተኛ የእጅ መሳሪያ) ሙያዎች">ኢለመንታሪ (አነስተኛ የእጅ መሳሪያ) ሙያዎች</option>
+  <option value="ኢለመንታሪ /አነስተኛ የእጅ መሳሪያ/ ሙያዎች">ኢለመንታሪ (አነስተኛ የእጅ መሳሪያ) ሙያዎች</option>
 </select>
                 </div>
               </div>
             </div>
             <div class="row">
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3 field-country">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="nameofcountry"><small class="font-weight-bold">የሀገሩ ስም<span class="text-danger">*</span></small></label>
-                   <input type="text" class="form-control form-control-sm" id="nameofcountry" name="nameofcountry">
+                   <input type="text" class="form-control form-control-sm" id="nameofcountry" name="nameofcountry" data-validate="text-with-spaces" required>
                 </div>
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3 field-language">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="language"><small class="font-weight-bold">የሚችሉት ቋንቋ </small></label>
-                  <input type="text" class="form-control form-control-sm" id="language" name="language">
+                  <input type="text" class="form-control form-control-sm" id="language" name="language" data-validate="text-with-spaces">
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="wageorself"><small class="font-weight-bold">አሁን መስራት የሚፈልጉት <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="wageorself" name="wageorself">
+                  <select class="form-control form-control-sm" id="wageorself" name="wageorself" data-validate="name-only" required>
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="በግል">በግል</option>
                     <option value="በቅጥር">በቅጥር</option>
@@ -391,7 +440,7 @@ $is_jobseeker_registration_page = true; ?>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="mothername"><small class="font-weight-bold">የእናት ሙሉ ስም <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="mothername" name="mothername">
+                  <input type="text" class="form-control form-control-sm" id="mothername" name="mothername" data-validate="text-with-spaces" required>
                   </select>
                 </div>
               </div>
@@ -509,7 +558,8 @@ $is_jobseeker_registration_page = true; ?>
     </div>
   </div>
 
-              <div class="col-12 col-sm-6 col-md-3">
+              
+              <!--<div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="kebele_id_photo"><small class="font-weight-bold">የቀበሌ መታወቂያ በፎቶ <span class="text-danger">*</span></small></label>
                   <input type="text" class="form-control form-control-sm" id="kebele_id_photo" name="kebele_id_photo" required>
@@ -521,32 +571,43 @@ $is_jobseeker_registration_page = true; ?>
                   <input type="text" class="form-control form-control-sm" id="jsphoto" name="jsphoto">
                 </div>        
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
+        -->
+              <div class="col-12 col-sm-6 col-md-3 field-agri-status">
                 <div class="form-group mb-2">
-                  <label class="mb-1" for="agri_business_experience"><small class="font-weight-bold">በግብርና ዘርፍ ያለው ልምድ <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="agri_business_experience" name="agri_business_experience">
+                  <label class="mb-1" for="agri_business_experience_status"><small class="font-weight-bold">በግብርና ዘርፍ ልምድ <span class="text-danger">*</span></small></label>
+                  <select class="form-control form-control-sm" id="agri_business_experience_status" name="agri_business_experience_status" data-validate="numeric-only" data-length="1" required>
+                    <option value="" selected disabled>ይምረጡ</option>
+                    <option value="1">አለ</option>
+                    <option value="0">የለም</option>
+                  </select>                
                 </div>        
               </div>
-                            <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3 field-agri-experience">
+                <div class="form-group mb-2">
+                  <label class="mb-1" for="agri_business_experience"><small class="font-weight-bold">በግብርና ዘርፍ ያለው ልምድ <span class="text-danger">*</span></small></label>
+                   <input type="number" step="any" class="form-control form-control-sm" id="agri_business_experience" name="agri_business_experience" data-validate="numeric-only" data-length="4">
+                </div>        
+              </div>
+               <div class="col-12 col-sm-6 col-md-3 field-has-dependents">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="has_dependents"><small class="font-weight-bold">በስር የሚተዳደር ቤተሰብ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="has_dependents" name="has_dependents">
+                  <select class="form-control form-control-sm" id="has_dependents" name="has_dependents" data-validate="numeric-only" data-length="1" required>
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="1">አለ</option>
                     <option value="0">የለም</option>
                   </select>
                 </div>        
               </div>
-                <div class="col-12 col-sm-6 col-md-3">
+                <div class="col-12 col-sm-6 col-md-3 field-number-of-dependents">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="number_of_dependents"><small class="font-weight-bold">የሚተዳደረው ቤተሰብ ብዛት <span class="text-danger">*</span></small></label>
-                  <input type="number" class="form-control form-control-sm" id="number_of_dependents" name="number_of_dependents">
+                  <input type="number" class="form-control form-control-sm" id="number_of_dependents" name="number_of_dependents" data-validate="numeric-only" data-length="2">
                 </div>        
               </div>
-                <div class="col-12 col-sm-6 col-md-3">
+                <div class="col-12 col-sm-6 col-md-3 field-children-under-five">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="children_under_five"><small class="font-weight-bold">ያሉት ከ5 ዓመት በታች ህፃናት ብዛት<span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="children_under_five" name="children_under_five">
+                  <input type="number" class="form-control form-control-sm" id="children_under_five" name="children_under_five" data-validate="numeric-only" data-length="2">
                 </div>        
               </div>
             </div>
