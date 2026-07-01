@@ -30,7 +30,14 @@ class ReportgenerationController extends BaseController
 
         if ($reportType === 'ሠ1') {
             // 2. የ branch_id እሴትን ለሞዴሉ እናሳልፋለን
-            $reportData = $this->reportModel->getSe1ReportData($year, $branchId);
+           // 1. ያንተ የቆየውና ሌሎቹን ቁጥሮች በትክክል የሚያመጣው የሞዴል ጥሪ
+$mainData = $this->reportModel->getSe1ReportData($year, $branchId);
+
+// 2. አዲሱ ለቁጥር 12 እና 13 ብቻ የፈጠርነው የሞዴል ጥሪ
+$otherData = $this->reportModel->getSe1OtherData($year, $branchId);
+
+// 3. ሁለቱን ዳታዎች ማዋሃድ (ይህ ወሳኝ ነው!)
+$reportData = array_merge($mainData ?: [], $otherData ?: []);
 
             $title = 'የስራ ፈላጊዎች ምዝገባና ግንዛቤ ፈጠራ ሪፖርት (ሠ1)';
             
