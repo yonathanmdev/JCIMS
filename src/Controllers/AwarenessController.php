@@ -205,11 +205,11 @@ $data = [
 
 public function searchJobSeekersAjax() {
     // 🔒 የደህንነት ፍቃድ ማረጋገጫ
-    AuthHelper::checkRole(['team_leader', 'officer']);
+    AuthHelper::checkRole(['officer']);
     
     $user = $_SESSION['user'] ?? [];
-    $branchId = $user['branch_id'] ?? null;
-
+   // $branchId = $user['branch_id'] ?? null;
+    $branchId = $_SESSION['user']['branch_id'] ?? null;
     // ተጠቃሚው መፃፍ የጀመረውን ቃል መያዝ (seeker_q)
     $search = isset($_GET['seeker_q']) ? trim($_GET['seeker_q']) : '';
 
@@ -224,5 +224,41 @@ public function searchJobSeekersAjax() {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($seekers, JSON_UNESCAPED_UNICODE);
     exit();
+}
+public function jobseekerawareness() {
+    AuthHelper::checkRole(['officer'],
+     [3, 4]
+     );
+
+    $data = [
+        'title' => 'JCIMS - የስራ ፈላጊ ግንዛቤ መመዝገቢያ',
+    ];
+
+    $jobSeekerId = $_POST['job_seeker_id'] ?? null;
+    $branchId = $_SESSION['user']['branch_id'] ?? null;
+
+    if (!$jobSeekerId) {
+        $_SESSION['error'] = 'የስራ ፈላጊውን መለያ አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/awareness-registration");
+        exit();
+    }
+
+    if (!$branchId) {
+        $_SESSION['error'] = 'መስሪያቤት ስም አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/awareness-registration");
+        exit();
+    }
+
+    $awarenessModel = new AwarenessModel($this->db);
+    $jobseekerawarnessresult = $awarenessModel->jobseekersawarenessupdatestatus($jobSeekerId);
+
+    if ($jobseekerawarnessresult) {
+        $_SESSION['success'] = 'የስራ ፈላጊው ግንዛቤ በትክክል ተመዝግቧል።';
+    } else {
+        $_SESSION['error'] = 'የስራ ፈላጊው ግንዛቤ ምዝገባ አልተሳካም።';
+    }
+
+    // Render the awareness registration page
+    $this->render('awareness-registration', $data);
 }
 }

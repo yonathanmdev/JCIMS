@@ -192,7 +192,7 @@ $sectors  = $sectorModel->getSectors();
         return;
     }
 
-    $subsectors = $sectorModel->getsubsectorBySectorId($sector['sectorid']);
+    $subsectors = $sectorModel->getSubsectorBySectorId($sector['sectorid']);
     error_log('Subsectors found: ' . count($subsectors)); // TEMP DEBUG
 
     echo json_encode($subsectors);

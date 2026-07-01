@@ -210,11 +210,11 @@ $is_awaerness_registration_page = true;
                                 <input type="text" 
                                        id="search_job_seeker" 
                                        class="form-control" 
-                                       placeholder="መፃፍ ይጀምሩ (ለምሳሌ፡ ስም፣ ስልክ...)" 
+                                       placeholder="መፃፍ ይጀምሩ (ለምሳሌ፡ Id,ስም፣ ስልክ...)" 
                                        autocomplete="off"
                                        required>
                                        
-                                <input type="hidden" id="selected_job_seeker_id" name="job_seeker_id" required>
+                                <input type="hidden" id="selected_job_seeker_id" name="job_seeker_id" required readonly>
 
                                 <div id="seeker_suggestions_list" class="list-group position-absolute w-100 mt-1" style="z-index: 1050; display: none; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #ced4da;"></div>
                             </div>
@@ -232,7 +232,7 @@ $is_awaerness_registration_page = true;
                 </div>
                 
                 <div class="modal-header bg-light">
-                    <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> ይህንን መዝገብ ሲያስቀምጡ የስራ ፈላጊው ግንዛቤ ሁኔታ በሲስተሙ ላይ ወደ "ተፈጥሮለታል" ይቀየራል።</small>
+                    <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> ከዚህ ላይ ስትመዘግቡ የስራ ፈላጊው ግንዛቤ እንደተፈጠረለት ሪፖርት እያደረጋችሁት እንደሆነ ግንዛቤ እንዲኖራችሁ።</small>
                 </div>
 
                 <div class="modal-footer justify-content-between">
@@ -257,42 +257,61 @@ $is_awaerness_registration_page = true;
     // reset select after opening
     this.selectedIndex = 0;
 });
-</script>
-<script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-// 💡 የ jQuery መጫንን ሳይጠብቅ የጃቫስክሪፕት ስራን መጀመሪያ የሚያስጀምር አስተማማኝ መንገድ
+</script><script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
 window.addEventListener('DOMContentLoaded', function() {
-    // አሁን $ በትክክል መስራቱን ለማረጋገጥ ዝግጁ ነው
     var searchInput = $('#search_job_seeker');
     var suggestionsList = $('#seeker_suggestions_list');
     var hiddenIdInput = $('#selected_job_seeker_id');
     var nameDisplayInput = $('#selected_seeker_name');
+    
+    // 💡 ቁልፉ መፍትሄ፦ ሰውየው ሲመረጥ የፍለጋ ክስተቱን ለጊዜው ማገጃ ባንዲራ (Flag)
+    var isSelecting = false;
 
     searchInput.on('keyup input', function() {
+        // 💡 ሰውየው ከተመረጠ የፍለጋ ስራውን አቁም
+        if (isSelecting) {
+            return; 
+        }
+
         var query = $(this).val().trim();
         
         if (query.length >= 2) {
-      $.ajax({
-    // 💡 ለአካባቢያዊ ሰርቨር (Localhost) ይበልጥ አስተማማኝ እና ቀጥተኛ መንገድ
-    url: window.location.origin + '/JCIMS/search-job-seekers-ajax', 
-    method: 'GET',
-    data: { seeker_q: query },
-    dataType: 'json',
-    success: function(data) {
+            $.ajax({
+                url: window.location.origin + '/JCIMS/search-job-seekers-ajax', 
+                method: 'GET',
+                data: { seeker_q: query },
+                dataType: 'json',
+                success: function(data) {
                     suggestionsList.empty(); 
                     
                     if (data && data.length > 0) {
                         $.each(data, function(index, item) {
                             var fullName = item.first_name + ' ' + item.father_name + ' ' + item.last_name;
-                            var details = fullName + ' (Labor ID: ' + (item.Labor_ID ? item.Labor_ID : 'የለም') + ' | ስልክ: ' + (item.phone_number ? item.phone_number : 'የለም') + ')';
+                            var awarenessStatus = (item.awareness == 1) ? ' [ግንዛቤ ከዚህ በፊት እንደወሰደ ሪፖርት ተደርጓል]' : '';
+                            var details = fullName + awarenessStatus + ' (Labor ID: ' + (item.Labor_ID ? item.Labor_ID : 'የለም') + ' | ስልክ: ' + (item.phone_number ? item.phone_number : 'የለም') + ')';
                             
-                            var option = $('<a href="javascript:void(0);" class="list-group-item list-group-item-action py-2 small"></a>');
+                            var option = $('<button type="button" class="list-group-item list-group-item-action py-2 small text-start"></button>');
+                            
+                            if (item.awareness == 1) {
+                                option.addClass('list-group-item-danger');
+                            }
                             option.text(details);
                             
-                            option.on('click', function() {
+                            option.on('click', function(e) {
+                                e.preventDefault(); 
+                                
+                                // 💡 1. ምርጫ መጀመሩን ለሲስተሙ ንገረው (ፍለጋው እንዲቆም)
+                                isSelecting = true; 
+                                
                                 searchInput.val(fullName); 
-                                hiddenIdInput.val(item.job_seeker_id); 
+                                hiddenIdInput.val(item.id); 
                                 nameDisplayInput.val(fullName); 
                                 suggestionsList.hide(); 
+                                
+                                // 💡 2. እሴቶቹ ተሞልተው ከተጠናቀቁ በኋላ ፍለጋው ለወደፊቱ ዝግጁ እንዲሆን ባንዲራውን አውርደው
+                                setTimeout(function() {
+                                    isSelecting = false;
+                                }, 200); 
                             });
                             
                             suggestionsList.append(option);
