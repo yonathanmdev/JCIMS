@@ -10,7 +10,7 @@
             
             <div class="form-group mb-0 mr-2">
               <label for="reportSelect" class="mb-1">
-                <small class="font-weight-bold">ማየት የምትፈልጉትን ሪፖርት ይምረጡ</small>
+                <small class="font-weight-bold">የምትፈልጉትን ሪፖርት ዓይነት ይምረጡ</small>
               </label>
               <select class="form-control primary" id="reportSelect" name="report_type" required>
                 <option value="" selected="selected" disabled="disabled">-- ይምረጡ --</option>   
