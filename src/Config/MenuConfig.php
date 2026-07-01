@@ -127,6 +127,20 @@ class MenuConfig
                     ]
                 ]
             ],
+            
+         [
+    'label' => 'ሪፖርት',
+    'icon'  => 'fas fa-users',
+    'roles' => ['team_leader', 'officer'],
+    'children' => [
+        [
+            'label' => 'ማየት',
+            'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
+            'roles' => ['officer'],
+            'levels' => [3, 4]
+        ],
+    ]
+],
            
             [
                 'label' => 'የተሰረዙ',
