@@ -18,5 +18,7 @@ return [
     'search-job-seekers-ajax' => ['AwarenessController', 'searchJobSeekersAjax', true],
     'update-jobseeker-awareness' => ['AwarenessController', 'updateJobSeekerAwareness', true],
     'createupdate-jobseeker-awareness' => ['AwarenessController', 'jobseekerawareness', true],
+    'awareness-list-jobseekers' => ['AwarenessController', 'showJobSeekerAwarenessList', true],
+    'remove-job-seeker-awareness-ajax' => ['AwarenessController', 'removeJobSeekerAwarenessAjax', true],
    
 ];

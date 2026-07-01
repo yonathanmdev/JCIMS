@@ -260,5 +260,61 @@ public function jobseekerawareness() {
 
     // Render the awareness registration page
     $this->render('awareness-registration', $data);
+}function showJobSeekerAwarenessList() {
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    $user = $_SESSION['user'] ?? [];
+    $branchId = $user['branch_id'] ?? null;
+
+    if (!$branchId) {
+        $_SESSION['error'] = 'የቅርንጫፍ መረጃ አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/dashboard");
+        exit();
+    }
+
+    $awarenessModel = new AwarenessModel($this->db);
+    
+    // 💡 መፍትሄ 1፦ መጀመሪያ የ $data ድርድርን በዕርገት መፍጠር
+
+    
+    // 💡 መፍትሄ 2፦ ከሞዴሉ የሚመጣውን ['data'] ብቻ ለይቶ ለቪው መስጠት
+    $result = $awarenessModel->getAllJobSeekersByBranch($branchId,1,1);
+   $job_seekers = $result['data'] ?? [];
+    
+    // ለገጽ ማውጫ (Pagination) ከተፈለገ እነዚህንም ማሳለፍ ይቻላል
+    $data['total_pages'] = $result['total_pages'] ?? 0;
+    $data['current_page'] = $result['current_page'] ?? 1;
+    $data = [
+        'title' => 'JCIMS - የስራ ፈላጊ ግንዛቤ ዝርዝር',
+        'job_seekers' => $job_seekers,
+    ];
+    $this->render('awareness-list-jobseekers', $data);
+}
+public function removeJobSeekerAwarenessAjax() {
+    // የኦፊሰር ወይም የሊደር መብት መኖሩን ማረጋገጥ
+    AuthHelper::checkRole(['officer'], [3, 4]);
+
+    header('Content-Type: application/json');
+    
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['success' => false, 'message' => 'የተከለከለ የጥሪ ዘዴ!']);
+        exit();
+    }
+    
+    $seekerId = $_POST['job_seeker_id'] ?? null;
+    
+    if (!$seekerId) {
+        echo json_encode(['success' => false, 'message' => 'የማንነት መለያ (ID) አልተገኘም።']);
+        exit();
+    }
+    
+    $awarenessModel = new AwarenessModel($this->db);
+    $updated = $awarenessModel->updateAwarenessToZero($seekerId);
+    
+    if ($updated) {
+        echo json_encode(['success' => true, 'message' => 'የግንዛቤ ሁኔታው በተሳካ ሁኔታ ወደ አልወሰደም ተቀይሯል።']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'መረጃውን ማደስ አልተቻለም ወይም አስቀድሞ ተስተካክሏል።']);
+    }
+    exit();
 }
 }
