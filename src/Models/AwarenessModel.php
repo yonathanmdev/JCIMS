@@ -205,14 +205,14 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
  * 💡 ማሳሰቢያ፦ SQLSTATE[HY093] ስህተትን ለማስቀረት ለእያንዳንዱ መስመር የተለየ ፓራሜትር ተሰጥቷል
  *//**
  * 🔍 ስራ ፈላጊዎችን በቅርንጫፍ እና ግንዛቤ ባልወሰዱበት (awareness = 0) ሁኔታ በPrepared Statement መፈለጊያ
- */public function searchJobSeekersForAwareness($branch_id, $search) {
+ */public function searchJobSeekersForAwareness($branch_id, $search, $awareness = '0') {
     try {
         $search = trim($search);
         
         // 💡 `awareness` አምድ በ SELECT ውስጥ ተጨምሯል፤ እንዲሁም ከታች ያለው `AND awareness = 0` ተነስቷል
         $sql = "SELECT `id`, `branch_id`, `job_seeker_id`, `first_name`, `father_name`, `last_name`, `Labor_ID`, `phone_number`, `awareness`
                 FROM `job_seekers` 
-                WHERE `branch_id` = :branch_id 
+                WHERE `branch_id` = :branch_id AND `awareness` = :awareness
                   AND (
                        `job_seeker_id` LIKE :search1
                     OR `first_name` LIKE :search2 
@@ -235,7 +235,7 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
         $stmt->bindParam(':search5', $searchTerm, PDO::PARAM_STR);
         $stmt->bindParam(':search6', $searchTerm, PDO::PARAM_STR);
         $stmt->bindParam(':search7', $searchTerm, PDO::PARAM_STR);
-        
+        $stmt->bindValue(':awareness', $awareness, PDO::PARAM_STR);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -268,6 +268,73 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
         error_log("Error in jobseekersawarenessupdatestatus: " . $e->getMessage());
         return false;
     }
-}
+}public function getAllJobSeekersByBranch($branch_id, $page = 1, $awareness = '1') {
+    try {
+        $limit = 20;
+        $page = (int)$page > 0 ? (int)$page : 1;
+        $offset = ($page - 1) * $limit;
 
+        $sql = "SELECT `id`, `branch_id`, `job_seeker_id`, `first_name`, `father_name`, `last_name`, `phone_number`, `awareness`, `gender`, `age`, `employment_status`, `Labor_ID`, `FAN`
+                FROM `job_seekers` 
+                WHERE `branch_id` = :branch_id AND `awareness` = :awareness
+                ORDER BY `job_seeker_id` DESC
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+        
+        // 🔒 በ bindValue እና በ PARAM_STR መተካት (ምክንያቱም enum ስለሆነ)
+        $stmt->bindValue(':branch_id', $branch_id, PDO::PARAM_INT);
+        $stmt->bindValue(':awareness', (string)$awareness, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
+        $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Get total count for pagination
+        $countSql = "SELECT COUNT(*) FROM `job_seekers` WHERE `branch_id` = :branch_id AND `awareness` = :awareness";
+        $countStmt = $this->db->prepare($countSql);
+        
+        $countStmt->bindValue(':branch_id', $branch_id, PDO::PARAM_INT);
+        $countStmt->bindValue(':awareness', (string)$awareness, PDO::PARAM_STR);
+        
+        $countStmt->execute();
+        $totalPages = ceil($countStmt->fetchColumn() / $limit);
+
+        return [
+            'data' => $records,
+            'total_pages' => $totalPages,
+            'current_page' => $page
+        ];
+
+    } catch (\PDOException $e) {
+        error_log("Error fetching job seeker awareness list: " . $e->getMessage());
+        return [
+            'data' => [],
+            'total_pages' => 0,
+            'current_page' => 1
+        ];
+    }
+}
+public function updateAwarenessToZero($job_seeker_id) {
+    try {
+        // 🔒 እሴቱን ወደ '0' የመቀየሪያ SQL ጥያቄ
+        $sql = "UPDATE `job_seekers` 
+                SET `awareness` = :awareness,
+                    `updated_at` = CURRENT_TIMESTAMP
+                WHERE `id` = :job_seeker_id";
+                
+        $stmt = $this->db->prepare($sql);
+        
+        // enum('0','1') ስለሆነ በ PARAM_STR ማሰር እጅግ አስተማማኝ ነው
+        $stmt->bindValue(':awareness', '0', PDO::PARAM_STR);
+        $stmt->bindValue(':job_seeker_id', $job_seeker_id, PDO::PARAM_STR); 
+        
+        return $stmt->execute();
+        
+    } catch (\PDOException $e) {
+        error_log("Error updating awareness to zero: " . $e->getMessage());
+        return false;
+    }
+}
 }

@@ -141,13 +141,13 @@ function myAsset($path) {
     <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
     <?php endif; ?>
    
- <?php if (isset($is_exprience_registration_page) && $is_exprience_registration_page === true): ?>
+ <?php if (isset($is_deleteawarness) && $is_deleteawarness === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
-      <script src="<?= myAsset('js/search-company-job-title.js') ?>"></script>
-    <script src="<?= myAsset('js/employee-exprience.js') ?>"></script>
+     
+    <script src="<?= myAsset('js/sweetalert2.min.js') ?>"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-    
+   
     <?php endif; ?>
 
      <?php if (isset($is_employee_scholarship_page) && $is_employee_scholarship_page === true): ?>
