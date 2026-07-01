@@ -203,15 +203,17 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
  *//**
  * 🔍 ስራ ፈላጊዎችን በስም፣ በስልክ፣ በLabor ID ወይም በ Job Seeker ID መፈለጊያ
  * 💡 ማሳሰቢያ፦ SQLSTATE[HY093] ስህተትን ለማስቀረት ለእያንዳንዱ መስመር የተለየ ፓራሜትር ተሰጥቷል
- */
-public function searchJobSeekersForAwareness($branch_id, $search) {
+ *//**
+ * 🔍 ስራ ፈላጊዎችን በቅርንጫፍ እና ግንዛቤ ባልወሰዱበት (awareness = 0) ሁኔታ በPrepared Statement መፈለጊያ
+ */public function searchJobSeekersForAwareness($branch_id, $search) {
     try {
         $search = trim($search);
         
-        // 🚀 ለእያንዳንዱ ማወዳደሪያ የተለየ የፓራሜትር ስም መስጠት (Invalid parameter ስህተትን ይከላከላል)
-        $sql = "SELECT `job_seeker_id`, `first_name`, `father_name`, `last_name`, `Labor_ID`, `phone_number`
+        // 💡 `awareness` አምድ በ SELECT ውስጥ ተጨምሯል፤ እንዲሁም ከታች ያለው `AND awareness = 0` ተነስቷል
+        $sql = "SELECT `id`, `branch_id`, `job_seeker_id`, `first_name`, `father_name`, `last_name`, `Labor_ID`, `phone_number`, `awareness`
                 FROM `job_seekers` 
-                WHERE (
+                WHERE `branch_id` = :branch_id 
+                  AND (
                        `job_seeker_id` LIKE :search1
                     OR `first_name` LIKE :search2 
                     OR `father_name` LIKE :search3 
@@ -219,15 +221,13 @@ public function searchJobSeekersForAwareness($branch_id, $search) {
                     OR `phone_number` LIKE :search5 
                     OR `Labor_ID` LIKE :search6 
                     OR `g8id` LIKE :search7
-                )
+                  )
                 LIMIT 10";
                 
         $stmt = $this->db->prepare($sql);
-        
-        // ፍለጋውን በ % መክበብ (ለ LIKE እንዲሆን)
         $searchTerm = "%" . $search . "%";
         
-        // 🔒 እያንዳንዱን ፓራሜትር ለየብቻው በጥንቃቄ ማሰር (Bind)
+        $stmt->bindParam(':branch_id', $branch_id, PDO::PARAM_INT);
         $stmt->bindParam(':search1', $searchTerm, PDO::PARAM_STR);
         $stmt->bindParam(':search2', $searchTerm, PDO::PARAM_STR);
         $stmt->bindParam(':search3', $searchTerm, PDO::PARAM_STR);
@@ -237,8 +237,8 @@ public function searchJobSeekersForAwareness($branch_id, $search) {
         $stmt->bindParam(':search7', $searchTerm, PDO::PARAM_STR);
         
         $stmt->execute();
-        
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
     } catch (\PDOException $e) {
         error_log("Error in searchJobSeekersForAwareness: " . $e->getMessage());
         return [];
@@ -247,20 +247,27 @@ public function searchJobSeekersForAwareness($branch_id, $search) {
 
 /**
  * 🔄 የተመረጠውን ሰው awareness ወደ 1 ማዘመሪያ (Update)
- */
-public function setAwarenessTrue($job_seeker_id) {
+ */ public function jobseekersawarenessupdatestatus($job_seeker_id,$awareness = 1) {
+     // የስራ ፈላጊውን awareness ወደ 1 ማዘመሪያ
     try {
         $sql = "UPDATE `job_seekers` 
-                SET `awareness` = 1 
-                WHERE `job_seeker_id` = :job_seeker_id";
-                
+                SET `awareness` = :awareness
+                WHERE `id` = :job_seeker_id";
+
         $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':job_seeker_id', $job_seeker_id, PDO::PARAM_INT);
-        
-        return $stmt->execute();
+        $stmt->bindParam(':awareness', $awareness, PDO::PARAM_STR);
+        $stmt->bindParam(':job_seeker_id', $job_seeker_id, PDO::PARAM_STR); // Keep as PDO::PARAM_STR for UUID
+
+        if ($stmt->execute()) {
+            return $stmt->rowCount() > 0;
+        }
+
+        return false;
+
     } catch (\PDOException $e) {
-        error_log("Error in setAwarenessTrue: " . $e->getMessage());
+        error_log("Error in jobseekersawarenessupdatestatus: " . $e->getMessage());
         return false;
     }
 }
+
 }
