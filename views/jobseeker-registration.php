@@ -51,19 +51,20 @@ $is_jobseeker_registration_page = true; ?>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="first_name"><small class="font-weight-bold">ስም <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="first_name" name="first_name" required>
+                  <input type="text" class="form-control form-control-sm" id="first_name" name="first_name" data-validate="name-only" required>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="father_name"><small class="font-weight-bold">የአባት ስም <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="father_name" name="father_name" required>
+                  <input type="text" class="form-control form-control-sm" id="father_name" name="father_name" data-validate="name-only" required>
                 </div>
               </div>
+             
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="g_father_name"><small class="font-weight-bold">የአያት ስም <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="g_father_name" name="g_father_name" required>
+                  <input type="text" class="form-control form-control-sm" id="g_father_name" name="g_father_name" data-validate="name-only"required>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
@@ -325,8 +326,8 @@ $is_jobseeker_registration_page = true; ?>
                   <label class="mb-1" for="haveexp"><small class="font-weight-bold">ከዚህ ቀደም የስራ ልምድ አለዎት <span class="text-danger">*</span></small></label>
                     <select class="form-control form-control-sm" id="haveexp" name="haveexp">
                     <option value="" selected disabled>ይምረጡ</option>
-                    <option value="አለ">አለ</option>
-                    <option value="የለም">የለም</option>
+                    <option value="1">አለ</option>
+                    <option value="0">የለም</option>
                   </select>
                 </div>
               </div>
@@ -401,44 +402,113 @@ $is_jobseeker_registration_page = true; ?>
           <!-- STEP 3: Review / Submit -->
           <div class="form-step d-none" id="step-3">
               <div class="row">
-              <div class="col-12 col-sm-6 col-md-3">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="choice_sector1"><small class="font-weight-bold">የዘርፍ ምርጫ 1 <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="choice_sector1" name="choice_sector1">
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="sub_choose1"><small class="font-weight-bold">የሙያ ምርጫ 1 <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="sub_choose1" name="sub_choose1">
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="choice_sector2"><small class="font-weight-bold">የዘርፍ ምርጫ 2 <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="choice_sector2" name="choice_sector2">
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="sub_choose2"><small class="font-weight-bold">የሙያ ምርጫ 2 <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="sub_choose2" name="sub_choose2">
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-12 col-sm-6 col-md-3">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="choice_sector3"><small class="font-weight-bold">የዘርፍ ምርጫ 3 <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="choice_sector3" name="choice_sector3">
-                </div>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="sub_choose3"><small class="font-weight-bold">የሙያ ምርጫ 3 <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="sub_choose3" name="sub_choose3">
-                </div>
-              </div>
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="choice_sector1"><small class="font-weight-bold">የዘርፍ ምርጫ 1 <span class="text-danger">*</span></small></label>
+      <select
+        class="form-control form-control-sm"
+        id="choice_sector1"
+        name="choice_sector1"
+        data-cascade-target="sub_choose1"
+        required
+      >
+        <option value="">-- ዘርፍ ይምረጡ --</option>
+        <?php foreach ($sectors as $sector): ?>
+            <option value="<?= htmlspecialchars($sector['id']) ?>">
+                <?= htmlspecialchars($sector['sector']) ?>
+            </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="sub_choose1"><small class="font-weight-bold">የሙያ ምርጫ 1 <span class="text-danger">*</span></small></label>
+      <select
+        class="form-control form-control-sm"
+        id="sub_choose1"
+        name="sub_choose1"
+        required
+        disabled
+      >
+        <option value="">-- መጀመሪያ ዘርፍ ይምረጡ --</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="choice_sector2"><small class="font-weight-bold">የዘርፍ ምርጫ 2 <span class="text-danger">*</span></small></label>
+      <select
+        class="form-control form-control-sm"
+        id="choice_sector2"
+        name="choice_sector2"
+        data-cascade-target="sub_choose2"
+        required
+      >
+        <option value="">-- ዘርፍ ይምረጡ --</option>
+        <?php foreach ($sectors as $sector): ?>
+            <option value="<?= htmlspecialchars($sector['id']) ?>">
+                <?= htmlspecialchars($sector['sector']) ?>
+            </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="sub_choose2"><small class="font-weight-bold">የሙያ ምርጫ 2 <span class="text-danger">*</span></small></label>
+      <select
+        class="form-control form-control-sm"
+        id="sub_choose2"
+        name="sub_choose2"
+        required
+        disabled
+      >
+        <option value="">-- መጀመሪያ ዘርፍ ይምረጡ --</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="choice_sector3"><small class="font-weight-bold">የዘርፍ ምርጫ 3 <span class="text-danger">*</span></small></label>
+      <select
+        class="form-control form-control-sm"
+        id="choice_sector3"
+        name="choice_sector3"
+        data-cascade-target="sub_choose3"
+        required
+      >
+        <option value="">-- ዘርፍ ይምረጡ --</option>
+        <?php foreach ($sectors as $sector): ?>
+            <option value="<?= htmlspecialchars($sector['id']) ?>">
+                <?= htmlspecialchars($sector['sector']) ?>
+            </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="sub_choose3"><small class="font-weight-bold">የሙያ ምርጫ 3 <span class="text-danger">*</span></small></label>
+      <select
+        class="form-control form-control-sm"
+        id="sub_choose3"
+        name="sub_choose3"
+        required
+        disabled
+      >
+        <option value="">-- መጀመሪያ ዘርፍ ይምረጡ --</option>
+      </select>
+    </div>
+  </div>
+
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="kebele_id_photo"><small class="font-weight-bold">የቀበሌ መታወቂያ በፎቶ <span class="text-danger">*</span></small></label>
@@ -462,8 +532,8 @@ $is_jobseeker_registration_page = true; ?>
                   <label class="mb-1" for="has_dependents"><small class="font-weight-bold">በስር የሚተዳደር ቤተሰብ <span class="text-danger">*</span></small></label>
                   <select class="form-control form-control-sm" id="has_dependents" name="has_dependents">
                     <option value="" selected disabled>ይምረጡ</option>
-                    <option value="አለ">አለ</option>
-                    <option value="የለም">የለም</option>
+                    <option value="1">አለ</option>
+                    <option value="0">የለም</option>
                   </select>
                 </div>        
               </div>
@@ -497,91 +567,3 @@ $is_jobseeker_registration_page = true; ?>
     </div>
   </div>
 </div>
-
-<script nonce="<?= $GLOBALS['nonce'] ?>">
-(function () {
-  let currentStep = 1;
-  const totalSteps = 3;
-  const stepLabels = {
-    1: 'ደረጃ 1 / 3 — መግቢያ',
-    2: 'ደረጃ 2 / 3 — የትምህርትና ሌሎች አስፈላጊ መረጃ',
-    3: 'ደረጃ 3 / 3 — ምርጫና ሌሎች ጉዳዮች'
-  };
-
-  function changeStep(direction) {
-    const currentStepEl = document.getElementById(`step-${currentStep}`);
-
-    if (direction === 1) {
-      const inputs = currentStepEl.querySelectorAll('[required]');
-      for (const input of inputs) {
-        if (!input.checkValidity()) {
-          input.reportValidity();
-          return;
-        }
-      }
-    }
-
-    currentStepEl.classList.add('d-none');
-    currentStep += direction;
-    document.getElementById(`step-${currentStep}`).classList.remove('d-none');
-
-    updateProgress();
-  }
-
-  function updateProgress() {
-    const percent = (currentStep / totalSteps) * 100;
-    document.getElementById('formProgressBar').style.width = `${percent}%`;
-    document.getElementById('stepLabel').textContent = stepLabels[currentStep];
-
-    document.getElementById('prevBtn').disabled = currentStep === 1;
-    document.getElementById('nextBtn').classList.toggle('d-none', currentStep === totalSteps);
-    document.getElementById('submitBtn').classList.toggle('d-none', currentStep !== totalSteps);
-  }
-
-  function resetWizard() {
-    currentStep = 1;
-    document.querySelectorAll('.form-step').forEach((el, i) => {
-      el.classList.toggle('d-none', i !== 0);
-    });
-    updateProgress();
-  }
-
-  // Conditional field visibility based on education level (illiterate/basic = hide school fields)
-  function applyEducationLevelLogic() {
-    const eduLevel = document.getElementById('educational_level').value;
-    const advancedFields = document.querySelectorAll(
-      '.field-school, .field-dept, .field-year, .field-grade8'
-    );
-    const hideFor = ['ማንበብና መፃፍ የማይችሉ', 'መሰረተ ትምህርት'];
-
-    if (hideFor.includes(eduLevel)) {
-      advancedFields.forEach(el => {
-        el.classList.add('d-none');
-        const input = el.querySelector('input, select');
-        if (input) {
-          input.removeAttribute('required');
-          input.value = '';
-        }
-      });
-    } else {
-      advancedFields.forEach(el => el.classList.remove('d-none'));
-      document.getElementById('schoolname')?.setAttribute('required', 'required');
-      document.getElementById('dpt')?.setAttribute('required', 'required');
-      document.getElementById('gradeEight')?.setAttribute('required', 'required');
-      document.getElementById('education_completion_year')?.setAttribute('required', 'required');
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    // Step navigation — bound via data-step-action, no inline onclick
-    document.getElementById('prevBtn').addEventListener('click', () => changeStep(-1));
-    document.getElementById('nextBtn').addEventListener('click', () => changeStep(1));
-
-    // Education level conditional logic — bound via addEventListener, no inline onchange
-    document.getElementById('educational_level').addEventListener('change', applyEducationLevelLogic);
-
-    // Reset wizard each time modal opens
-    $('#jobseekerRegistrationModal').on('show.bs.modal', resetWizard);
-  });
-})();
-</script>
