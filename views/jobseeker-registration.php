@@ -67,7 +67,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
 <div class="modal fade" id="jobseekerRegistrationModal" tabindex="-1" role="dialog" aria-labelledby="employeeRegistrationModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
-      <form action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/jobseeker-registration-process" method="POST" enctype="multipart/form-data" id="jobseekerForm">
+      <form  id="jobseekerForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/jobseeker-registration-process" method="POST" enctype="multipart/form-data" id="jobseekerForm">
         <!-- Modal Header -->
         <div class="modal-header">
           <h6 class="modal-title font-weight-bold">
@@ -218,10 +218,14 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
       </div>
     </div>
 
-    <div class="col-12 col-sm-6 col-md-3 field-school">
+     <div class="col-12 col-sm-6 col-md-3 field-schooltype">
       <div class="form-group mb-2">
-        <label class="mb-1" for="schoolname"><small class="font-weight-bold">የተማረበት ት/ቤት/ኮሌጂ/ዩንቨርስቲ <span class="text-danger">*</span></small></label>
-        <input type="text" name="schoolname" id="schoolname" class="form-control form-control-sm" placeholder="የተማረበት ት/ቤት/ኮሌጂ/ዩንቨርስቲ " data-validate="text-with-spaces" required>
+        <label class="mb-1" for="school_type"><small class="font-weight-bold">የት/ቤቱ/የኮሌጁ/የዩንቨርሲቲው ዓይነት <span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="school_type" name="school_type" required>
+          <option value="" selected disabled>ይምረጡ</option>
+          <option value="የመንግስት">የመንግስት</option>
+          <option value="የግል">የግል</option>
+        </select>
       </div>
     </div>
 
@@ -246,17 +250,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
   </div>
 
   <div class="row">
-    <div class="col-12 col-sm-6 col-md-3 field-schooltype">
-      <div class="form-group mb-2">
-        <label class="mb-1" for="school_type"><small class="font-weight-bold">የት/ቤቱ/የኮሌጁ/የዩንቨርሲቲው ዓይነት <span class="text-danger">*</span></small></label>
-        <select class="form-control form-control-sm" id="school_type" name="school_type" required>
-          <option value="" selected disabled>ይምረጡ</option>
-          <option value="የመንግስት">የመንግስት</option>
-          <option value="የግል">የግል</option>
-        </select>
-      </div>
-    </div>
-
+   
     <div class="col-12 col-sm-6 col-md-3 field-grade8">
       <div class="form-group mb-2">
         <label class="mb-1" for="gradeEight"><small class="font-weight-bold">የ8ኛ ክፍል መለያ ቁጥር <span class="text-danger">*</span></small></label>
@@ -264,12 +258,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
       </div>
     </div>
 
-    <div class="col-12 col-sm-6 col-md-3 field-phone">
-      <div class="form-group mb-2">
-        <label class="mb-1" for="phone_number"><small class="font-weight-bold">ስልክ ቁጥር <span class="text-danger">*</span></small></label>
-        <input type="text" class="form-control form-control-sm" id="phone_number" name="phone_number" data-validate="numeric-only" data-length="10">
-      </div>
-    </div>
+    
 
     <div class="col-12 col-sm-6 col-md-3 field-dept">
       <div class="form-group mb-2">
@@ -330,6 +319,13 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
       </div>
     </div>
 
+<div class="col-12 col-sm-6 col-md-3 field-phone">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="phone_number"><small class="font-weight-bold">ስልክ ቁጥር <span class="text-danger">*</span></small></label>
+        <input type="text" class="form-control form-control-sm" id="phone_number" name="phone_number" data-validate="numeric-only" data-length="10">
+      </div>
+    </div>
+    
     <div class="col-12 col-sm-6 col-md-3">
       <div class="form-group mb-2">
         <label class="mb-1" for="meteleya_huneta"><small class="font-weight-bold">የመኖሪያ ቤት ሁኔታ <span class="text-danger">*</span></small></label>
@@ -367,10 +363,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
         </select>
       </div>
     </div>
-  </div>
-
-            <div class="row">
-              <div class="col-12 col-sm-6 col-md-3">
+                  <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="haveexp"><small class="font-weight-bold">ከዚህ ቀደም የስራ ልምድ አለዎት <span class="text-danger">*</span></small></label>
                     <select class="form-control form-control-sm" id="haveexp" name="haveexp" data-validate="numeric-only" data-length="1" required>
@@ -380,6 +373,10 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
                   </select>
                 </div>
               </div>
+  </div>
+
+            <div class="row">
+
               <div class="col-12 col-sm-6 col-md-3 field-experience">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="experience"><small class="font-weight-bold">የስራ ልምድ በወር </small></label>
@@ -413,14 +410,17 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
 </select>
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <div class="col-12 col-sm-6 col-md-3 field-country">
+
+      <div class="col-12 col-sm-6 col-md-3 field-country">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="nameofcountry"><small class="font-weight-bold">የሀገሩ ስም<span class="text-danger">*</span></small></label>
-                   <input type="text" class="form-control form-control-sm" id="nameofcountry" name="nameofcountry" data-validate="text-with-spaces" required>
+                   <input type="text" class="form-control form-control-sm" id="nameofcountry" name="nameofcountry" data-validate="text-with-spaces">
                 </div>
               </div>
+
+            </div>
+            <div class="row">
+              
               <div class="col-12 col-sm-6 col-md-3 field-language">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="language"><small class="font-weight-bold">የሚችሉት ቋንቋ </small></label>
@@ -575,7 +575,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
               <div class="col-12 col-sm-6 col-md-3 field-agri-status">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="agri_business_experience_status"><small class="font-weight-bold">በግብርና ዘርፍ ልምድ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="agri_business_experience_status" name="agri_business_experience_status" data-validate="numeric-only" data-length="1" required>
+                  <select class="form-control form-control-sm" id="agri_business_experience_status" name="agri_business_experience_status" data-validate="numeric-only" data-length="1">
                     <option value="" selected disabled>ይምረጡ</option>
                     <option value="1">አለ</option>
                     <option value="0">የለም</option>
@@ -588,26 +588,26 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
                    <input type="number" step="any" class="form-control form-control-sm" id="agri_business_experience" name="agri_business_experience" data-validate="numeric-only" data-length="4">
                 </div>        
               </div>
-               <div class="col-12 col-sm-6 col-md-3 field-has-dependents">
-                <div class="form-group mb-2">
-                  <label class="mb-1" for="has_dependents"><small class="font-weight-bold">በስር የሚተዳደር ቤተሰብ <span class="text-danger">*</span></small></label>
-                  <select class="form-control form-control-sm" id="has_dependents" name="has_dependents" data-validate="numeric-only" data-length="1" required>
-                    <option value="" selected disabled>ይምረጡ</option>
-                    <option value="1">አለ</option>
-                    <option value="0">የለም</option>
-                  </select>
-                </div>        
-              </div>
+               <div class="col-12 col-sm-6 col-md-3 field-has-dependents d-none">
+  <div class="form-group mb-2">
+    <label class="mb-1" for="has_dependents"><small class="font-weight-bold">በስር የሚተዳደር ቤተሰብ <span class="text-danger">*</span></small></label>
+    <select class="form-control form-control-sm" id="has_dependents" name="has_dependents" data-validate="numeric-only" data-length="1">
+      <option value="" selected disabled>ይምረጡ</option>
+      <option value="1">አለ</option>
+      <option value="0">የለም</option>
+    </select>
+  </div>
+</div>
                 <div class="col-12 col-sm-6 col-md-3 field-number-of-dependents">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="number_of_dependents"><small class="font-weight-bold">የሚተዳደረው ቤተሰብ ብዛት <span class="text-danger">*</span></small></label>
-                  <input type="number" class="form-control form-control-sm" id="number_of_dependents" name="number_of_dependents" data-validate="numeric-only" data-length="2">
+                  <input type="number" class="form-control form-control-sm" id="number_of_dependents" name="number_of_dependents" data-validate="numeric-only">
                 </div>        
               </div>
                 <div class="col-12 col-sm-6 col-md-3 field-children-under-five">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="children_under_five"><small class="font-weight-bold">ያሉት ከ5 ዓመት በታች ህፃናት ብዛት<span class="text-danger">*</span></small></label>
-                  <input type="number" class="form-control form-control-sm" id="children_under_five" name="children_under_five" data-validate="numeric-only" data-length="2">
+                  <input type="number" class="form-control form-control-sm" id="children_under_five" name="children_under_five" data-validate="numeric-only">
                 </div>        
               </div>
             </div>

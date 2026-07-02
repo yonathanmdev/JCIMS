@@ -27,11 +27,8 @@ $role = $_SESSION['user']['role'] ?? '';
             <?php endif; ?>
             
             <div class="JCIMS-title-container">
-              <h1 class="JCIMS-title-main font-weight-bold" style="font-size: 24px; color: #1a365d; margin: 0 0 4px 0; line-height: 1.2; letter-spacing: -0.2px;">
-                <?= htmlspecialchars($_SESSION['user']['alt_name'] ?? '') ?>
-              </h1>
               <p class="JCIMS-title-sub text-muted font-weight-bold" style="font-size: 13px; color: #4a5568; letter-spacing: 0.4px; margin: 0;">
-                Human Resource Management System
+               ስራ እድል ፈጠራ እና ኢንተርፕራይዝ ምስረታ ሲስተም
               </p>
             </div>
           </div>
