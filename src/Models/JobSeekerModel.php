@@ -127,20 +127,19 @@ try {
 }
 }
 
-public function getJobSeekersByHierarchy(string $myBranchId, string $organizationId, int $limit = 50, int $offset = 0): array {
-    $sql = "SELECT js.id, js.first_name, js.father_name, js.last_name,js.gender, b.name AS branch_name, b.level AS branch_level
+public function getJobSeekersByHierarchy(string $myBranchId, int $limit = 50, int $offset = 0): array
+{
+    $sql = "SELECT js.id, js.first_name, js.father_name, js.last_name, js.gender, 
+                   b.name AS branch_name, b.level AS branch_level
             FROM job_seekers js
-            INNER JOIN branches b ON js.branch_id = b.id
-            WHERE js.organization_id = :org_id
-              AND b.path LIKE CONCAT(
-                    (SELECT path FROM branches WHERE id = :my_branch), '%'
-                  )
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
             ORDER BY js.created_at DESC
             LIMIT :limit OFFSET :offset";
 
     try {
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':org_id', $organizationId);
         $stmt->bindValue(':my_branch', $myBranchId);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);

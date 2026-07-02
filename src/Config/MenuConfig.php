@@ -93,14 +93,54 @@ class MenuConfig
                         'roles' => ['officer'],
                         'levels' => [3, 4]
                     ],
-                    [
-                        'label' => 'ግንዛቤ የተፈጠረላቸው',
+                     [
+                        'label' => 'ግንዛቤ የተፈጠረላቸው ሌሎች',
                         'url'   => '/awareness-list',
+                        'roles' => ['team_leader', 'officer'],
+                        'levels' => [3, 4],
+                    ],
+                    [
+                        'label' => 'የስራፈላጊ ግንዛቤ ዝርዝር ',
+                        'url'   => '/awareness-list-jobseekers',
+                        'roles' => ['team_leader', 'officer'],
+                        'levels' => [3, 4]
+                    ]
+                    
+                ]
+            ],  
+             [
+                'label' => 'ዝዉዉር',
+                'icon'  => 'fas fa-users',
+                'roles' => ['officer'],
+                'levels' => [3, 4],
+                'children' => [
+                    [
+                        'label' => 'ዝዉዉር መሙላት',
+                        'url'   => '/jobseeker-transfer',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                    [
+                        'label' => 'ዝዉዉር ዝርዝር',
+                        'url'   => '/jobseeker-transfers-list',
                         'roles' => ['team_leader', 'officer']
                     ]
                 ]
-            ],  
+            ],
             
+         [
+    'label' => 'ሪፖርት',
+    'icon'  => 'fas fa-users',
+    'roles' => ['team_leader', 'officer'],
+    'children' => [
+        [
+            'label' => 'ማየት',
+            'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
+            'roles' => ['officer'],
+            'levels' => [3, 4]
+        ],
+    ]
+],
            
             [
                 'label' => 'የተሰረዙ',
