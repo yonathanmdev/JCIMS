@@ -4,10 +4,21 @@ $report = $report1 ?? [
     'urban_f_parents' => 0,
     'rural_m_parents' => 0,
     'rural_f_parents' => 0,
+
     'urban_m_others' => 0,
     'urban_f_others' => 0,
     'rural_m_others' => 0,
     'rural_f_others' => 0,
+
+    'urban_m_advice' => 0,
+    'urban_f_advice' => 0,
+    'rural_m_advice' => 0,
+    'rural_f_advice' => 0,
+
+    'urban_m_age15_29' => 0,
+    'urban_f_age15_29' => 0,
+    'rural_m_age15_29' => 0,
+    'rural_f_age15_29' => 0,
 ];
 
 $totalUrbanparents = $report['urban_m_parents'] + $report['urban_f_parents'];
@@ -21,6 +32,18 @@ $totalRuralothers = $report['rural_m_others'] + $report['rural_f_others'];
 $totalMaleothers  = $report['urban_m_others'] + $report['rural_m_others'];
 $totalFemaleothers = $report['urban_f_others'] + $report['rural_f_others'];
 $grandTotalothers = $totalUrbanothers + $totalRuralothers;
+
+$totalUrbanadvice = $report['urban_m_advice'] + $report['urban_f_advice'];
+$totalRuraladvice = $report['rural_m_advice'] + $report['rural_f_advice'];
+$totalMaleadvice  = $report['urban_m_advice'] + $report['rural_m_advice'];
+$totalFemaleadvice = $report['urban_f_advice'] + $report['rural_f_advice'];
+$grandTotaladvice = $totalUrbanadvice + $totalRuraladvice;
+
+$totalUrbanage15_29 = $report['urban_m_age15_29'] + $report['urban_f_age15_29'];
+$totalRuralage15_29 = $report['rural_m_age15_29'] + $report['rural_f_age15_29'];
+$totalMaleage15_29  = $report['urban_m_age15_29'] + $report['rural_m_age15_29'];
+$totalFemaleage15_29 = $report['urban_f_age15_29'] + $report['rural_f_age15_29'];
+$grandTotalage15_29 = $totalUrbanage15_29 + $totalRuralage15_29;
 ?>
 
 
@@ -58,6 +81,43 @@ $grandTotalothers = $totalUrbanothers + $totalRuralothers;
                 ዘላቂ የሥራ ዕድል በመፍጠር የዜጎችን ተጠቃሚነት ማረጋገጥ
                         </td>
                 <td class="text-left">
+                    አጠቃላይ የተመዘገቡ ስራ ፈላጊዎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_advice']; ?></td>
+                <td><?= $report['urban_f_advice']; ?></td>
+                <td><?= $totalUrbanadvice; ?></td>
+
+                <td><?= $report['rural_m_advice']; ?></td>
+                <td><?= $report['rural_f_advice']; ?></td>
+                <td><?= $totalRuraladvice; ?></td>
+
+                <td><?= $totalMaleadvice; ?></td>
+                <td><?= $totalFemaleadvice; ?></td>
+                <td><strong><?= $grandTotaladvice; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    በዕድሜ (15-29 ዓመት)
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_age15_29']; ?></td>
+                <td><?= $report['urban_f_age15_29']; ?></td>
+                <td><?= $totalUrbanage15_29; ?></td>
+
+                <td><?= $report['rural_m_age15_29']; ?></td>
+                <td><?= $report['rural_f_age15_29']; ?></td>
+                <td><?= $totalRuralage15_29; ?></td>
+
+                <td><?= $totalMaleage15_29; ?></td>
+                <td><?= $totalFemaleage15_29; ?></td>
+                <td><strong><?= $grandTotalage15_29; ?></strong></td>
+            </tr>
+            
+            <tr>
+                <td class="text-left">
                     የግንዛቤ ማስጨበጫ ስራ ፈላጊ ወላጆች
                 </td>
                 <td>በቁጥር</td>
@@ -91,6 +151,24 @@ $grandTotalothers = $totalUrbanothers + $totalRuralothers;
                 <td><?= $totalMaleothers; ?></td>
                 <td><?= $totalFemaleothers; ?></td>
                 <td><strong><?= $grandTotalothers; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    ለስራ ፈላጊዎች ተገቢውን የምክርና የመረጃ አገልግሎት መስጠት
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_advice']; ?></td>
+                <td><?= $report['urban_f_advice']; ?></td>
+                <td><?= $totalUrbanadvice; ?></td>
+
+                <td><?= $report['rural_m_advice']; ?></td>
+                <td><?= $report['rural_f_advice']; ?></td>
+                <td><?= $totalRuraladvice; ?></td>
+
+                <td><?= $totalMaleadvice; ?></td>
+                <td><?= $totalFemaleadvice; ?></td>
+                <td><strong><?= $grandTotaladvice; ?></strong></td>
             </tr>
         </tbody>
     </table>

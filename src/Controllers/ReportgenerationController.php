@@ -58,12 +58,22 @@ $reportData = array_merge($mainData ?: [], $otherData ?: []);
 }
 public function report1Show()
 {
-    $myBranchId = $_SESSION['user']['branch_id'] ?? null;   // or wherever you store it
-$awarenessModel = new ReportgenerationModel($this->db);
-    $report = $awarenessModel->getReport1ByHierarchy($myBranchId);
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null; // ወይም የምታገኝበት መንገድ
 
+    $awarenessModel = new ReportgenerationModel($this->db);
+    
+    // 1. ከመጀመሪያው ቴብል ዳታውን ያመጣል
+    $awarenessReport = $awarenessModel->getReport1ByHierarchy($myBranchId);
+
+    // 2. ከሁለተኛው (ከአዲሱ) ቴብል የምክርና መረጃ ዳታውን ያመጣል
+    $adviceReport = $awarenessModel->getJobSeekersAdviceByHierarchy($myBranchId);
+
+    // 3. ሁለቱንም የሪፖርት ውጤቶች በአንድ አሬይ (Array) ላይ ያዋህዳል
+    $finalReport = array_merge($awarenessReport, $adviceReport);
+
+    // 4. የተዋሃደውን ሙሉ ዳታ ለቪው (report-1) ያስተላልፋል
     $this->render('report-1', [
-        'report1' => $report
+        'report1' => $finalReport
     ]);
 }
 }
