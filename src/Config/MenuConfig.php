@@ -97,13 +97,13 @@ class MenuConfig
                         'label' => 'ግንዛቤ የተፈጠረላቸው ሌሎች',
                         'url'   => '/awareness-list',
                         'roles' => ['team_leader', 'officer'],
-                        'levels' => [3, 4],
+                        
                     ],
                     [
                         'label' => 'የስራፈላጊ ግንዛቤ ዝርዝር ',
                         'url'   => '/awareness-list-jobseekers',
                         'roles' => ['team_leader', 'officer'],
-                        'levels' => [3, 4]
+                        
                     ]
                     
                 ]
