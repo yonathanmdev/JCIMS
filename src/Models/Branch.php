@@ -150,6 +150,40 @@ public function isSubBranchOf($branchId, $parentBranchId) {
 }
 
 /**
+ * Walks up the branch hierarchy from the given branch to the root,
+ * collecting the name at each level. Returns [level => name].
+ *
+ * e.g. [1 => 'ስራ እና ስልጠና ቢሮ', 2 => 'ደብረታቦር', 3 => 'ፊታውራሪ ገብርዬ', 4 => '02']
+ */
+public function getAncestryChain(string $branchId): array
+{
+    $chain = [];
+    $currentId = $branchId;
+    $depth = 0;
+    $maxDepth = 10; // safety guard against a corrupted/circular parent_id chain
+
+    while ($currentId !== null && $depth < $maxDepth) {
+        $stmt = $this->db->prepare(
+            "SELECT internal_id, parent_id, name, level
+             FROM branches
+             WHERE internal_id = ?"
+        );
+        $stmt->execute([$currentId]);
+        $branch = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$branch) {
+            break;
+        }
+
+        $chain[(int) $branch['level']] = $branch['name'];
+        $currentId = $branch['parent_id'];
+        $depth++;
+    }
+
+    ksort($chain);
+    return $chain;
+}
+/**
  * ባለ ብዙ ደረጃ ንዑስ ቅርንጫፍ (Descendant at ANY depth) መሆኑን ያረጋግጣል
  * e.g. Kebele ከ Region በታች መሆኑን ለማረጋገጥ
  */

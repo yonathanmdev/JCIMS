@@ -14,7 +14,7 @@
   <?php if ($_SESSION['user']['role'] === 'system_admin'): ?>
       <h4 class="mx-auto mb-0 self-center">Warka Hub</h4>
   <?php else:?>
-      <h4 class="mx-auto mb-0 self-center"><?= htmlspecialchars($_SESSION['user']['branch_name'] ?? 'Organization') ?></h4>
+      <h4 class="mx-auto mb-0 self-center"><?= htmlspecialchars($_SESSION['user']['full_branch_name']) ?></h4>
   <?php endif; ?>
   
   <!-- Empty placeholder to balance the center -->

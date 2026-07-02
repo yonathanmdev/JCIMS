@@ -1,7 +1,5 @@
 <?php
 namespace App\Models;
-use App\Helpers\AmharicNormalizer;
-use App\Models\EmployeeGuarantor;
 use PDO;
 class JobSeekerModel {
     private $db;
@@ -13,13 +11,12 @@ class JobSeekerModel {
 
 public function createJobseeker(array $data): bool {
     try {
-        $fullNameRaw = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['g_father_name'];
-        $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
+        
         // Start transaction
         $this->db->beginTransaction();
         // Insert employee
         $sql = "INSERT INTO job_seekers (id, branch_id, first_name, father_name, last_name, gender, 
-        age, educational_level, educated_dpt, education_trmnet_finsh_year, g8id, CGPA, school_type, 
+        age, education_level_category, educational_level, educated_dpt, education_trmnet_finsh_year, g8id, CGPA, school_type, 
         physical_condition, physical_condition_desc, mender, kebele_id_no, phone_number, 
         choice_sector1, sub_choose1, choice_sector2, sub_choose2, choice_sector3, sub_choose3, 
         meteleya_huneta, residence_status, srafelagi_huneta, graguation_catagory, maritalstatus, 
@@ -27,7 +24,7 @@ public function createJobseeker(array $data): bool {
          wageorself, regstration_level, mothername, Labor_ID, 
          FAN, kebele_id_photo, jsphoto, fiscal_year, agri_business_experience, has_dependents, 
          number_of_dependents, children_under_five, full_name_normalized, registered_by) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+            ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->db->prepare($sql);
@@ -39,6 +36,7 @@ public function createJobseeker(array $data): bool {
             $data['last_name'],
             $data['gender'],
             $data['age'],
+            $data['education_level_catagory'],
             $data['educational_level'],
             $data['educated_dpt'],
             $data['education_trmnet_finsh_year'],
@@ -79,7 +77,7 @@ public function createJobseeker(array $data): bool {
             $data['has_dependents'],
             $data['number_of_dependents'],
             $data['children_under_five'],
-            $normalizedFullName,
+            $data['normalizedFullName'],
             $data['reg_by']
         ]);
 
@@ -96,6 +94,129 @@ public function createJobseeker(array $data): bool {
         $this->db->rollBack();
         error_log("Job seeker registration transaction failed: " . $e->getMessage());
         return false;
+    }
+}
+public function checkDuplicateJobSeeker(array $data): array
+{
+    $sql = "
+        SELECT
+            js.jobseeker_id,
+            js.branch_id,
+
+            b.name AS branch_name,
+            b.level AS branch_level,
+            b.path,
+
+            (
+                SELECT GROUP_CONCAT(bp.name ORDER BY LENGTH(bp.path) SEPARATOR ' → ')
+                FROM branches bp
+                WHERE b.path LIKE CONCAT(bp.path, '%')
+            ) AS branch_hierarchy,
+
+            (js.branch_id = :branch_id
+                AND js.kebele_id_no = :kebele_id_no) AS kebele_duplicate,
+
+            (
+                js.g8id IS NOT NULL
+                AND js.g8id <> ''
+                AND :g8id <> ''
+                AND js.g8id = :g8id
+            ) AS g8id_duplicate,
+
+            (
+                js.Labor_ID IS NOT NULL
+                AND js.Labor_ID <> ''
+                AND :labor_id <> ''
+                AND js.Labor_ID = :labor_id
+            ) AS labor_duplicate,
+
+            (
+                js.FAN IS NOT NULL
+                AND js.FAN <> ''
+                AND :fan <> ''
+                AND js.FAN = :fan
+            ) AS fan_duplicate,
+
+            (
+                js.full_name_normalized = :full_name_normalized
+                AND js.phone_number = :phone_number
+                AND js.mothername = :mothername
+            ) AS identity_duplicate
+
+        FROM job_seekers js
+
+        INNER JOIN branches b
+            ON b.internal_id = js.branch_id
+
+        WHERE
+
+            (
+                js.branch_id = :branch_id
+                AND js.kebele_id_no = :kebele_id_no
+            )
+
+            OR
+
+            (
+                js.g8id IS NOT NULL
+                AND js.g8id <> ''
+                AND :g8id <> ''
+                AND js.g8id = :g8id
+            )
+
+            OR
+
+            (
+                js.Labor_ID IS NOT NULL
+                AND js.Labor_ID <> ''
+                AND :labor_id <> ''
+                AND js.Labor_ID = :labor_id
+            )
+
+            OR
+
+            (
+                js.FAN IS NOT NULL
+                AND js.FAN <> ''
+                AND :fan <> ''
+                AND js.FAN = :fan
+            )
+
+            OR
+
+            (
+                js.full_name_normalized = :full_name_normalized
+                AND js.phone_number = :phone_number
+                AND js.mothername = :mothername
+            )
+
+        LIMIT 1
+    ";
+
+    try {
+
+        $stmt = $this->db->prepare($sql);
+
+        $stmt->bindValue(':branch_id', $data['branch_id'], PDO::PARAM_INT);
+        $stmt->bindValue(':kebele_id_no', $data['kebele_id_no']);
+
+        $stmt->bindValue(':g8id', $data['g8id'] ?? '');
+        $stmt->bindValue(':labor_id', $data['Labor_ID'] ?? '');
+        $stmt->bindValue(':fan', $data['FAN'] ?? '');
+
+        $stmt->bindValue(':full_name_normalized', $data['full_name_normalized']);
+        $stmt->bindValue(':mothername', $data['mothername']);
+        $stmt->bindValue(':phone_number', $data['phone_number']);
+
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    } catch (\PDOException $e) {
+
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+
+        return [];
     }
 }
 public function getLast24HoursCount(string $myBranchId, string $userId, int $limit = 50, int $offset = 0): array {
