@@ -64,6 +64,7 @@ public function getSectors(int $limit = 50, int $offset = 0): array {
         return [];
     }
 }
+
 public function getSectorById(string $id): ?array
 {
     $sql = "SELECT
