@@ -145,7 +145,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="Labor_ID"><small class="font-weight-bold">Labor_ID <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="Labor_ID" name="Labor_ID" required>
+                  <input type="text" class="form-control form-control-sm" id="Labor_ID" name="Labor_ID" data-validate="general-safe" maxlength="10">
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
@@ -165,7 +165,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="age"><small class="font-weight-bold">FAN <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="FAN" name="FAN"  data-validate="numeric-only" data-length="16"  required>
+                  <input type="text" class="form-control form-control-sm" id="FAN" name="FAN"  data-validate="numeric-only" data-length="16">
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">

@@ -467,9 +467,8 @@ if (($data['workplace'] ?? '') === 'ከውጭ አገር') {
         $branchId = $user['branch_id'] ?? null;
         $organizationId = $user['organization_id'] ?? null;
  $myBranchId  = $_SESSION['user']['branch_id'];
-$orgId       = $_SESSION['user']['organization_id'];
  $jobSeekerModel = new JobSeekerModel($this->db);
-$jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId, $orgId);
+$jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId);
         $data = [
             'jobSeekers' => $jobSeekers,
             'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',

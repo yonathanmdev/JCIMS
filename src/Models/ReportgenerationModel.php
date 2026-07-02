@@ -214,4 +214,49 @@ $sql = "SELECT
     $stmt->execute($params);
     return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 }
+
+
+public function getReport1ByHierarchy(string $myBranchId): array
+{
+    $sql = "
+        SELECT
+            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
+                       AND aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ወንድ' THEN 1 END) AS urban_m_parents,
+            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
+                       AND aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ሴት' THEN 1 END) AS urban_f_parents,
+            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
+                       AND aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ወንድ' THEN 1 END) AS rural_m_parents,
+            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
+                       AND aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ሴት' THEN 1 END) AS rural_f_parents
+        FROM awareness_creation_other AS aco
+        INNER JOIN branches AS b ON b.internal_id = aco.branch_id
+        INNER JOIN branches AS root ON root.internal_id = :my_branch
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $this->normalizeReportRow($stmt->fetch(PDO::FETCH_ASSOC));
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return $this->normalizeReportRow([]);
+    }
+}
+private function normalizeReportRow(array|false $row): array
+{
+    $expectedKeys = [
+        'urban_m_parents', 'urban_f_parents', 'rural_m_parents', 'rural_f_parents',
+        // Add corresponding keys here as you add more categories above
+    ];
+
+    $result = [];
+    foreach ($expectedKeys as $key) {
+        $result[$key] = isset($row[$key]) ? (int) $row[$key] : 0;
+    }
+
+    return $result;
+}
 }
