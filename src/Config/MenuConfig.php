@@ -136,7 +136,7 @@ class MenuConfig
         [
             'label' => 'ማየት',
             'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
-            'roles' => ['officer'],
+            'roles' => ['team_leader', 'officer'],
             'levels' => [3, 4]
         ],
     ]
