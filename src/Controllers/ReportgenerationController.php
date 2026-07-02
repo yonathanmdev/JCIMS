@@ -26,7 +26,7 @@ class ReportgenerationController extends BaseController
 
         // 1. ከ Session ላይ የባለቤቱን branch_id እንወስዳለን
         // ማሳሰቢያ፦ ሲስተምህ ላይ በሎግኢን ጊዜ Session ውስጥ የተቀመጠበትን ስም (ለምሳሌ 'user_branch' ወይም 'branch_id') አረጋግጥ
-        $branchId = $_SESSION['branch_id'] ?? null; 
+        $branchId = $_SESSION['user']['branch_id'] ?? null; 
 
         if ($reportType === 'ሠ1') {
             // 2. የ branch_id እሴትን ለሞዴሉ እናሳልፋለን
@@ -55,5 +55,15 @@ $reportData = array_merge($mainData ?: [], $otherData ?: []);
         'title' => 'JCIMS - የሪፖርት ማስሊያ ቦታ',
     ];
     $this->render('report-registration', $data);
+}
+public function report1Show()
+{
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null;   // or wherever you store it
+$awarenessModel = new ReportgenerationModel($this->db);
+    $report = $awarenessModel->getReport1ByHierarchy($myBranchId);
+
+    $this->render('report-1', [
+        'report1' => $report
+    ]);
 }
 }
