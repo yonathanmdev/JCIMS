@@ -219,19 +219,36 @@ $sql = "SELECT
 public function getReport1ByHierarchy(string $myBranchId): array
 {
     $sql = "
+        WITH RECURSIVE SubBranches AS (
+            -- 1. መጀመሪያ ቅርንጫፉንና ከሥሩ ያሉትን ንዑስ ቅርንጫፎች በፓዝ ይለያል
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        ),
+        FilteredAwareness AS (
+            -- 2. ኮምፖዚት ኢንዴክስ ቅደም-ተከተል ሙሉ በሙሉ ጠብቆ ያነባል (image_6c5b41.png)
+            SELECT 
+                aco.yemenoriya_akababi,
+                aco.sex,
+                aco.awareness_type
+            FROM awareness_creation_other aco
+            INNER JOIN SubBranches sb ON aco.branch_id = sb.internal_id
+        )
+        -- 3. ሁሉንም የኅብረተሰብ ክፍሎች የኢንዴክስህን ቅደም ተከተል ጠብቆ እዚህ ያሰላል
         SELECT
-            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
-                       AND aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ወንድ' THEN 1 END) AS urban_m_parents,
-            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
-                       AND aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ሴት' THEN 1 END) AS urban_f_parents,
-            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
-                       AND aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ወንድ' THEN 1 END) AS rural_m_parents,
-            COUNT(CASE WHEN aco.awareness_type = 'ለስራ ፈላጊ ወላጆች'
-                       AND aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ሴት' THEN 1 END) AS rural_f_parents
-        FROM awareness_creation_other AS aco
-        INNER JOIN branches AS b ON b.internal_id = aco.branch_id
-        INNER JOIN branches AS root ON root.internal_id = :my_branch
-        WHERE b.path LIKE CONCAT(root.path, '%')
+            -- ምድብ 1፡ ለስራ ፈላጊ ወላጆች
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ወንድ' AND aco.awareness_type = 'ለስራ ፈላጊ ወላጆች' THEN 1 END) AS urban_m_parents,
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ሴት' AND aco.awareness_type = 'ለስራ ፈላጊ ወላጆች' THEN 1 END) AS urban_f_parents,
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ወንድ' AND aco.awareness_type = 'ለስራ ፈላጊ ወላጆች' THEN 1 END) AS rural_m_parents,
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ሴት' AND aco.awareness_type = 'ለስራ ፈላጊ ወላጆች' THEN 1 END) AS rural_f_parents,
+
+            -- ምድብ 2፡ ለሌሎች ህብረተሰብ ክፍሎች
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ወንድ' AND aco.awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች' THEN 1 END) AS urban_m_others,
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ሴት' AND aco.awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች' THEN 1 END) AS urban_f_others,
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ወንድ' AND aco.awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች' THEN 1 END) AS rural_m_others,
+            COUNT(CASE WHEN aco.yemenoriya_akababi = 'ገጠር' AND aco.sex = 'ሴት' AND aco.awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች' THEN 1 END) AS rural_f_others
+        FROM FilteredAwareness AS aco
     ";
 
     try {
@@ -245,18 +262,20 @@ public function getReport1ByHierarchy(string $myBranchId): array
         return $this->normalizeReportRow([]);
     }
 }
+
 private function normalizeReportRow(array|false $row): array
 {
+    // እያንዳንዱ አዲስ የተጨመረው ቁልፍ (Key) እዚህ ውስጥ ገብቷል ዳታ ባይኖር ራሱ 0 ተደርጎ ይወጣል
     $expectedKeys = [
         'urban_m_parents', 'urban_f_parents', 'rural_m_parents', 'rural_f_parents',
-        // Add corresponding keys here as you add more categories above
+        'urban_m_others', 'urban_f_others', 'rural_m_others', 'rural_f_others',
     ];
 
-    $result = [];
+    $normalized = [];
     foreach ($expectedKeys as $key) {
-        $result[$key] = isset($row[$key]) ? (int) $row[$key] : 0;
+        $normalized[$key] = ($row && isset($row[$key])) ? (int)$row[$key] : 0;
     }
 
-    return $result;
+    return $normalized;
 }
 }
