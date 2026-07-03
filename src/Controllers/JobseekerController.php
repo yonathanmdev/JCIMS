@@ -4,6 +4,7 @@ use App\Helpers\AuthHelper;
 use App\Models\JobSeekerModel;
 use App\Models\SectorModel;
 use Ramsey\Uuid\Uuid;
+use Exception;
 class JobseekerController extends BaseController {
    
     public function showRegisterForm() {
@@ -477,4 +478,289 @@ $jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId, $orgId);
 
         $this->render('jobseekers-list', $data);
     }
+     
+    public function listofJobseekersfortransfer() {
+         AuthHelper::checkRole(['team_leader', 'officer']);
+ $myBranchId  = $_SESSION['user']['branch_id'];
+ $jobSeekerModel = new JobSeekerModel($this->db);
+$jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId);
+        $data = [
+            'jobSeekers' => $jobSeekers,
+            'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
+        ];
+
+         $this->render('jobseeker-transfer', $data);
+    }
+    
+    public function getBranchesByHierarchyAjax() {
+        header('Content-Type: application/json; charset=utf-8');
+        
+        // የSession መኖርን ማረጋገጥ
+        if (!isset($_SESSION['user']['id'])) {
+            echo json_encode(['success' => false, 'data' => [], 'message' => 'ያልተፈቀደ መዳረሻ!']);
+            exit;
+        }
+
+        $level = isset($_GET['level']) ? (int)$_GET['level'] : 0;
+        // parent_id በሕጋዊ መንገድ መቀበል (string ወይም int ሊሆን ይችላል)
+        $parentId = isset($_GET['parent_id']) && $_GET['parent_id'] !== '' ? trim($_GET['parent_id']) : null;
+
+        // የግብዓት ማረጋገጫ ጥንቃቄ
+        if ($level <= 0 || ($level > 1 && $parentId === null)) {
+            echo json_encode(['success' => false, 'data' => [], 'message' => 'የተሳሳተ የተዋረድ ጥያቄ።']);
+            exit;
+        }
+         $jobSeekerModel = new JobSeekerModel($this->db);
+        $branches = $jobSeekerModel->getBranchesByLevel($level, $parentId);
+        
+        echo json_encode(['success' => true, 'data' => $branches]);
+        exit;
+    }
+    private function generateUuidV7() {
+        // የአሁኑን ጊዜ በሚሊሰከንድ ማግኘት
+        $time = (int) floor(microtime(true) * 1000);
+        
+        // 10 የዘፈቀደ ባይቶች ማመንጨት
+        $randomBytes = random_bytes(10);
+        
+        $timestampHex = str_pad(dechex($time), 12, '0', STR_PAD_LEFT);
+        
+        $ver = (7 << 12) | (ord($randomBytes[0]) & 0x0fff);
+        $verHex = str_pad(dechex($ver), 4, '0', STR_PAD_LEFT);
+        
+        $var = (0x8000) | ((ord($randomBytes[1]) << 8) | ord($randomBytes[2])) & 0x3fff;
+        $varHex = str_pad(dechex($var), 4, '0', STR_PAD_LEFT);
+        
+        $restHex = bin2hex(substr($randomBytes, 3));
+        
+        return sprintf('%s-%s-%s-%s-%s',
+            substr($timestampHex, 0, 8),
+            substr($timestampHex, 8, 4),
+            $verHex,
+            $varHex,
+            $restHex
+        );
+    }
+
+    /**
+     * የሥራ ፈላጊ ዝውውርን የሚያስተናግድ ዋናው ፈንክሽን
+     */
+    public function processJobSeekerTransfer() {
+    // ምላሹ JSON መሆኑን ማሳወቂያ
+    header('Content-Type: application/json; charset=utf-8');
+
+    // 💡 1. ላኪው ቅርንጫፍ (Sender Branch) ከሴሽን መኖሩን ማረጋገጥ
+    $sender_branch_id = isset($_SESSION['user']['branch_id']) ? (int)$_SESSION['user']['branch_id'] : 0;
+    $user_id          = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
+    
+    if ($sender_branch_id <= 0 || $user_id <= 0) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'የሎግድ-ኢን ተጠቃሚው መረጃ (Branch ID/User ID) በሴሽን ውስጥ አልተገኘም። እባክዎ እንደገና ይግቡ።'
+        ]);
+        exit;
+    }
+ 
+    // 💡 2. ከቪው (POST) የመጡትን መረጃዎች በደህንነት መቀበል
+    $job_seeker_id = filter_input(INPUT_POST, 'job_seeker_id', FILTER_VALIDATE_INT);
+    $transfer_type = filter_input(INPUT_POST, 'transfer_level_type', FILTER_DEFAULT); // 'center' ወይም 'woreda'
+
+    // የቦታ ተዋረዶችን መቀበልና ወደ Integer መቀየር
+    $region_id = isset($_POST['region_id']) ? (int)$_POST['region_id'] : null;
+    $zone_id   = isset($_POST['zone_id']) ? (int)$_POST['zone_id'] : null;
+    $woreda_id = isset($_POST['woreda_id']) ? (int)$_POST['woreda_id'] : null;
+
+    // 💡 3. የመዳረሻ ቅርንጫፍ (Final Receiver Branch ID) ሎጂክ መወሰኛ
+    $final_receiver_branch_id = 0;
+
+    if ($transfer_type === 'center') {
+        $destination_branch_id = isset($_POST['destination_branch_id']) ? (int)$_POST['destination_branch_id'] : 0;
+        if ($destination_branch_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'እባክዎ ዝውውሩ የሚፈጸምበትን ማዕከል ይምረጡ።']);
+            exit;
+        }
+        $final_receiver_branch_id = $destination_branch_id;
+    } elseif ($transfer_type === 'woreda') {
+        if (!$woreda_id || $woreda_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'እባክዎ ዝውውሩ የሚፈጸምበትን ወረዳ ይምረጡ።']);
+            exit;
+        }
+        $final_receiver_branch_id = $woreda_id;
+    } else {
+        echo json_encode(['success' => false, 'message' => 'የማይታወቅ የዝውውር ዓይነት ተመርጧል።']);
+        exit;
+    }
+
+    // 💡 4. የዳታ ሙሉነት ማረጋገጫ (Validation)
+    if (!$job_seeker_id || !$region_id || !$zone_id || $final_receiver_branch_id <= 0) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'ያልተሟላ መረጃ ተልኳል። እባክዎ ሁሉንም ሳጥኖች በትክክል መሙላትዎን ያረጋግጡ!'
+        ]);
+        exit;
+    }
+
+    // ⚠️ የነበረው የሙከራ 'echo ... exit;' መስመር ኮዱ ወደ ታች እንዳይወርድ ስለሚያደርገው እዚህ ጋር እንዲወገድ ተደርጓል
+
+    // 💡 5. የዳታቤዝ ስራዎችን በደህንነት ማከናወን
+ // 💡 5. የዳታቤዝ ስራዎችን በደህንነት ማከናወን
+    try {
+        // የ UUID V7 መለያ ማመንጫ
+        
+ $jobseekerUuidtra = Uuid::uuid7()->toString();
+      $uuidV7= $jobseekerUuidtra;
+       // 🔐 ከሞዴሉ (insertTransferLog) የፕሌስሆልደር ስሞች ጋር ፍጹም የተጣጣመ አሬይ
+        $logData = [
+            'id'               => $uuidV7,
+            'job_seeker_id'    => $job_seeker_id,
+            'sender_branch_id' => $sender_branch_id,
+            'recver_branch_id' => $final_receiver_branch_id,
+            'transfer_status'  => '0',     // ለቪው ሰንጠረዥ እንዲመች
+            'transferby'       => $user_id,        // 💡 ወደ (int)$data['transferby'] የሚቀየረው ቁልፍ
+            'acceptorrejectby' => null           // የውጭ ቁልፍ (Foreign Key) ስህተትን ለመከላከል NULL
+        ];
+
+        // የሞዴል ኢንስታንስ መፍጠር
+        $model = new JobSeekerModel($this->db);
+        
+
+        // 💡 ሥራ ፈላጊው በተመሳሳይ መዳረሻ ላይ 'pending (0)' ዝውውር ካለው አስቀድሞ መፈተሽ
+        $isDuplicate = $model->checkDuplicateTransfer($job_seeker_id, $final_receiver_branch_id);
+        
+        if ($isDuplicate) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'ይህ ሥራ ፈላጊ ቀደም ሲል ወደዚህ መዳረሻ የተላከ እና ውሳኔ ያልተሰጠው (Pending) ዝውውር ስላለው በድጋሚ መላክ አይቻልም!'
+            ]);
+            exit;
+        }
+        // መረጃውን ማስገባት
+        $inserted = $model->insertTransferLog($logData);
+
+        if ($inserted) {
+            echo json_encode([
+                'success' => true, 
+                'message' => 'የሥራ ፈላጊ ዝውውሩ በተሳካ ሁኔታ ተመዝግቧል።'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'ዝውውሩን መመዝገብ አልተቻለም። እባክዎ የዳታቤዝ ግንኙነቱን ያረጋግጡ።'
+            ]);
+        }
+
+    } catch (Exception $e) {
+        // 💡 የጃቫስክሪፕት ስህተትን ለማስቀረት እዚህ ጋርም ቢሆን የ JSON ምላሽ መላክ ግድ ነው
+        echo json_encode([
+            'success' => false, 
+            'message' => 'የሲስተም ስህተት አጋጥሟል፦ ' . $e->getMessage()
+        ]);
+    }
+    
+}
+public function showTransferTracking() {
+        $branch_id = isset($_SESSION['user']['branch_id']) ? (int)$_SESSION['user']['branch_id'] : 0;
+        
+        $model = new JobSeekerModel($this->db);
+        $transfers = $model->getTransferTrackingList($branch_id);
+      
+        $data = [
+            'transfers' => $transfers,
+            'title' => 'JCIMS - የሥራ ፈላጊ ዝውውር መከታተያ',
+        ];
+        $this->render('jobseeker-transfers-list', $data);
+    }
+    public function updateJobseekerTransferStatus() {
+    // ጥያቄው የመጣው በ POST መሆኑን ማረጋገጥ
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'ልክ ያልሆነ የጥያቄ ዘዴ!']);
+        exit;
+    }
+
+    header('Content-Type: application/json');
+
+    try {
+        // ከፎርሙ የመጡትን መረጃዎች በጥንቃቄ መቀበል
+        $transfer_log_id = isset($_POST['transfer_log_id']) ? (int)$_POST['transfer_log_id'] : 0;
+        $action_status = isset($_POST['action_status']) ? (int)$_POST['action_status'] : null;
+        $current_user_id = $_SESSION['user']['user_id'] ?? null; // ውሳኔ የሰጠው አካል መለያ
+
+        if ($transfer_log_id === 0 || $action_status === null) {
+            echo json_encode(['success' => false, 'message' => 'እባክዎ የተሟላ መረጃ ያቅርቡ!']);
+            exit;
+        }
+
+        // 1. መጀመሪያ ይህ የዝውውር መዝገብ መኖሩን እና ሁኔታው '0' (Pending) መሆኑን ማረጋገጥ
+        $checkSql = "SELECT transfer_status, job_seeker_id, recver_branch_id FROM `transfer_logs` WHERE id = :id";
+        $stmtCheck = $this->db->prepare($checkSql);
+        $stmtCheck->execute(['id' => $transfer_log_id]);
+        $log = $stmtCheck->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$log) {
+            echo json_encode(['success' => false, 'message' => 'የዝውውር መረጃው አልተገኘም!']);
+            exit;
+        }
+
+        if ((int)$log['transfer_status'] !== 0) {
+            echo json_encode(['success' => false, 'message' => 'ይህ ዝውውር ቀድሞውኑ ውሳኔ አግኝቷል!']);
+            exit;
+        }
+
+        // 🔐 የደህንነት ማረጋገጫ፦ ውሳኔ እየሰጠ ያለው ቅርንጫፍ መዳረሻ ቅርንጫፍ መሆኑን ማረጋገጥ
+        $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['user']['internal_id'] : 0;
+        if ((int)$log['recver_branch_id'] !== $current_branch_id) {
+            echo json_encode(['success' => false, 'message' => 'ለዚህ ቅርንጫፍ ውሳኔ የመስጠት ፈቃድ የለዎትም!']);
+            exit;
+        }
+
+        // ዳታቤዙን በአንድ ላይ ለማዘመን ትራንዛክሽን እንጀምር (Transaction)
+        $this->db->beginTransaction();
+
+        // 2. የ `transfer_logs` ሰንጠረዥን ሁኔታ ማዘመን (Approved=1, Rejected=2)
+        // ተቀባዩ ቅርንጫፍ ውሳኔ ስለሰጠ የዕይታ ሁኔታውን (reciver_view_status) '1' እናደርገዋለን
+        $updateLogSql = "UPDATE `transfer_logs` 
+                         SET transfer_status = :status, 
+                             reciver_view_status = 1,
+                             action_by = :user_id,
+                             action_date = NOW()
+                         WHERE id = :id";
+        
+        $stmtLog = $this->db->prepare($updateLogSql);
+        $stmtLog->execute([
+            'status'  => $action_status,
+            'user_id' => $current_user_id,
+            'id'      => $transfer_log_id
+        ]);
+
+        // 3. ውሳኔው "የጸደቀ" (Approve=1) ከሆነ ብቻ፣ በ `job_seekers` ሰንጠረዥ ላይ የሥራ ፈላጊውን ቅርንጫፍ (branch_id) እንለውጣለን
+        if ($action_status === 1) {
+            $job_seeker_id = $log['job_seeker_id'];
+            
+            $updateSeekerSql = "UPDATE `job_seekers` 
+                                SET branch_id = :new_branch_id 
+                                WHERE job_seeker_id = :seeker_id";
+            
+            $stmtSeeker = $this->db->prepare($updateSeekerSql);
+            $stmtSeeker->execute([
+                'new_branch_id' => $current_branch_id,
+                'seeker_id'     => $job_seeker_id
+            ]);
+        }
+
+        // ሁሉንም ለውጦች በሰላም ማጽደቅ
+        $this->db->commit();
+
+        $msg = ($action_status === 1) ? 'ዝውውሩ በተሳካ ሁኔታ ጽድቋል፣ የሥራ ፈላጊው ቅርንጫፍ ተቀይሯል።' : 'ዝውውሩ ውድቅ ተደርጓል።';
+        echo json_encode(['success' => true, 'message' => $msg]);
+
+    } catch (\PDOException $e) {
+        // ስህተት ካለ ወደ ኋላ መመለስ (Rollback)
+        if ($this->db->inTransaction()) {
+            $this->db->rollBack();
+        }
+        echo json_encode(['success' => false, 'message' => 'የዳታቤዝ ስህተት አጋጥሟል፦ ' . $e->getMessage()]);
+    }
+    exit;
+}
     }

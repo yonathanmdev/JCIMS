@@ -20,5 +20,9 @@ return [
     'createupdate-jobseeker-awareness' => ['AwarenessController', 'jobseekerawareness', true],
     'awareness-list-jobseekers' => ['AwarenessController', 'showJobSeekerAwarenessList', true],
     'remove-job-seeker-awareness-ajax' => ['AwarenessController', 'removeJobSeekerAwarenessAjax', true],
+    'jobseeker-transfer' => ['JobseekerController', 'listofJobseekersfortransfer', true],
+    'get-branches-by-hierarchy-ajax' => ['JobseekerController', 'getBranchesByHierarchyAjax', true],
+    'process-jobseeker-transfer' => ['JobseekerController', 'processJobSeekerTransfer', true],
+    'jobseeker-transfers-list' => ['JobseekerController', 'showTransferTracking', true],
    
 ];

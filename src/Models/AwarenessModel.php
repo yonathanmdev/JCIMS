@@ -128,7 +128,7 @@ public function searchAwarenessByName($branch_id, $searchName, $page = 1) {
         $offset = ($page - 1) * $limit;
 
         // 1. መረጃውን በስም እና በቅርንጫፍ ለይቶ የሚያመጣው SQL
-        $sql = "SELECT a.*, b.name 
+        $sql = "SELECT a.*, b.name as branch_name
 FROM awareness_creation_other a
 INNER JOIN branches b ON a.branch_id = b.internal_id
 WHERE b.path LIKE CONCAT(
@@ -284,11 +284,15 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
         $page = (int)$page > 0 ? (int)$page : 1;
         $offset = ($page - 1) * $limit;
 
-        $sql = "SELECT `id`, `branch_id`, `job_seeker_id`, `first_name`, `father_name`, `last_name`, `phone_number`, `awareness`, `gender`, `age`, `employment_status`, `Labor_ID`, `FAN`
-                FROM `job_seekers` 
-                WHERE `branch_id` = :branch_id AND `awareness` = :awareness
-                ORDER BY `job_seeker_id` DESC
-                LIMIT :limit OFFSET :offset";
+        $sql = "SELECT js.`id`, js.`branch_id`, js.`job_seeker_id`, js.`first_name`, js.`father_name`, js.`last_name`, 
+       js.`phone_number`, js.`awareness`, js.`gender`, js.`age`, js.`employment_status`, js.`Labor_ID`, js.`FAN`
+FROM `job_seekers` js
+INNER JOIN `branches` b ON js.`branch_id` = b.`internal_id`
+INNER JOIN `branches` root ON root.`internal_id` = :branch_id
+WHERE b.`path` LIKE CONCAT(root.`path`, '%') 
+  AND js.`awareness` = :awareness
+ORDER BY js.`job_seeker_id` DESC
+LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
         

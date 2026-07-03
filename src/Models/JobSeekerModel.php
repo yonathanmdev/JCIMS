@@ -127,20 +127,19 @@ try {
 }
 }
 
-public function getJobSeekersByHierarchy(string $myBranchId, string $organizationId, int $limit = 50, int $offset = 0): array {
-    $sql = "SELECT js.id, js.first_name, js.father_name, js.last_name,js.gender, b.name AS branch_name, b.level AS branch_level
+public function getJobSeekersByHierarchy(string $myBranchId, int $limit = 50, int $offset = 0): array
+{
+    $sql = "SELECT js.id,js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender, 
+                   b.name AS branch_name, b.level AS branch_level
             FROM job_seekers js
-            INNER JOIN branches b ON js.branch_id = b.id
-            WHERE js.organization_id = :org_id
-              AND b.path LIKE CONCAT(
-                    (SELECT path FROM branches WHERE id = :my_branch), '%'
-                  )
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
             ORDER BY js.created_at DESC
             LIMIT :limit OFFSET :offset";
 
     try {
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':org_id', $organizationId);
         $stmt->bindValue(':my_branch', $myBranchId);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -152,5 +151,148 @@ public function getJobSeekersByHierarchy(string $myBranchId, string $organizatio
         return [];
     }
 }
+// ለAJAX ተዋረድ ቅርንጫፎችን ማምጫ for transfer 
+    public function getBranchesByLevel($level, $parentId = null) {
+       // src/Models/JobSeekerModel.php
+
+if ($level === 1) {
+    $sql = "SELECT `internal_id`, `name`, `ketema_astedader` 
+            FROM `branches` 
+            WHERE `level` = 1 
+              AND `status` = 'active' 
+              AND `is_deleted` = 0 
+            ORDER BY `name` ASC";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute();
+} else {
+    $sql = "SELECT `internal_id`, `name`, `ketema_astedader` 
+            FROM `branches` 
+            WHERE `level` = :level 
+              AND `parent_id` = :parent_id 
+              AND `status` = 'active' 
+              AND `is_deleted` = 0 
+            ORDER BY `name` ASC";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([
+        'level' => (int)$level,
+        'parent_id' => $parentId
+    ]);
+}
+return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // የሥራ ፈላጊውን መኖር ማረጋገጫ
+    public function findJobSeekerById($id) {
+        $stmt = $this->db->prepare("SELECT id, branch_id FROM job_seekers WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // የዝውውር ሂደቱን በTransaction ማከናወኛ
+public function insertTransferLog($data) {
+        try {
+            // 💡 የ Foreign Key እና የ Strict Mode ስህተቶችን ሙሉ በሙሉ የሚከላከል የተስተካከለ SQL
+            $sql = "INSERT INTO `transfer_logs` (
+                        `id`, 
+                        `job_seeker_id`, 
+                        `sender_branch_id`, 
+                        `recver_branch_id`, 
+                        `transfer_status`, 
+                        `transferby`, 
+                        `transferdate`, 
+                        `acceptorrejectby`, 
+                        `accentrejectdate`, 
+                        `reciver_view_status`
+                    ) VALUES (
+                        :id, 
+                        :job_seeker_id, 
+                        :sender_branch_id, 
+                        :recver_branch_id, 
+                        :transfer_status, 
+                        :transferby, 
+                        NOW(), 
+                        :acceptorrejectby,  -- 🔐 0 የነበረው አሁን በፕሌስሆልደር ተተክቷል (NULL እንዲገባ)
+                        NULL, 
+                        0
+                    )";
+                    
+            $stmt = $this->db->prepare($sql);
+            
+            // ሁሉንም ዳታዎች በደህንነት ባይንድ አድርጎ ማስፈጸም
+            return $stmt->execute([
+                'id'                => $data['id'],
+                'job_seeker_id'     => $data['job_seeker_id'], 
+                'sender_branch_id'  => (int)$data['sender_branch_id'],
+                'recver_branch_id'  => (int)$data['recver_branch_id'],
+                'transfer_status'   => $data['transfer_status'] ?? '0', // 'pending' እሴትን ኮንትሮለሩ ላይ ከሰጡት ይወስዳል
+                'transferby'        => (int)$data['transferby'],
+                'acceptorrejectby'  => $data['acceptorrejectby'] // 🔐 እዚህ ጋር NULL ይተላለፋል፤ የ የውጭ ቁልፍ (Foreign Key) ስህተቱን ይፈታል
+            ]);
+
+        } catch (\PDOException $e) {
+            // ትክክለኛውን የ MySQL ስህተት ፈልቅቆ አውጥቶ ለማሳየት
+            throw new \Exception("የዳታቤዝ ስህተት ዝርዝር፦ " . $e->getMessage());
+        }
+    }
+    public function checkDuplicateTransfer($job_seeker_id, $recver_branch_id) {
+        $sql = "SELECT COUNT(*) FROM `transfer_logs` 
+                WHERE `job_seeker_id` = :job_seeker_id 
+                AND `recver_branch_id` = :recver_branch_id 
+                AND `transfer_status` = 0"; // 0 ማለት በመጠባበቅ ላይ (Pending) መሆኑን ከምስሉ አይተናል
+                
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'job_seeker_id'    => $job_seeker_id,
+            'recver_branch_id' => $recver_branch_id
+        ]);
+        
+        return $stmt->fetchColumn() > 0; // ካለ true ይመልሳል
+    }
+   public function getTransferTrackingList($branch_id = null) {
+        try {
+            // የቅርንጫፍ መለያው ከጠፋ ወይም ባዶ ከሆነ ለደህንነት ሲባል ምንም ዳታ አታምጣ (ባዶ ድርድር መልስ)
+            if ($branch_id === null || (int)$branch_id === 0) {
+                return [];
+            }
+
+            $valid_branch_id = (int)$branch_id;
+
+            // 🔐 SQL ጥንቃቄ፦ ሎግኢን ያደረገው ቅርንጫፍ ላኪ (sender) ወይም ተቀባይ (recver) የሆነበትን ብቻ ማምጫ ማጣሪያ (WHERE)
+            $sql = "SELECT 
+                        tl.id,
+                        tl.transferdate,
+                        tl.transfer_status,
+                        tl.reciver_view_status,
+                        tl.sender_branch_id,
+                        tl.recver_branch_id,
+                        js.first_name,
+                        js.father_name,
+                        js.last_name,
+                        js.phone_number AS job_seeker_phone,
+                        sb.name AS sender_branch_name,
+                        rb.name AS receiver_branch_name,
+                        u.username AS sender_user_name
+                    FROM `transfer_logs` tl
+                    JOIN `job_seekers` js ON tl.job_seeker_id = js.job_seeker_id
+                    JOIN `branches` sb ON tl.sender_branch_id = sb.internal_id
+                    JOIN `branches` rb ON tl.recver_branch_id = rb.internal_id
+                    JOIN `users` u ON tl.transferby = u.user_id
+                    WHERE tl.sender_branch_id = :sender_branch OR tl.recver_branch_id = :receiver_branch
+                    ORDER BY tl.transferdate DESC";
+            
+            $stmt = $this->db->prepare($sql);
+            
+            // ሁለቱንም ፕሌስሆልደሮች በሎግኢን ቅርንጫፍ መለያ ማሰር
+            $stmt->execute([
+                'sender_branch'   => $valid_branch_id,
+                'receiver_branch' => $valid_branch_id
+            ]);
+            
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            throw new \Exception("የመከታተያ ዳታ ማምጣት አልተቻለም፦ " . $e->getMessage());
+        }
+    }
     }
 
