@@ -11,6 +11,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
       <div class="ml-md-auto">
         <button 
           type="button" 
+          id="newJobseekerBtn"
           class="btn btn-primary btn-sm w-100 w-md-auto"
           data-toggle="modal" 
           data-target="#jobseekerRegistrationModal"
@@ -40,18 +41,18 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
     </thead>
     <tbody>
       <?php if (!empty($jobSeekers)): ?>
-        <?php foreach ($jobSeekers as $index => $row): ?>
-         <tr id="row-<?= $row['id'] ?>">
+        <?php foreach ($jobSeekers as $index => $js): ?>
+         <tr id="row-<?= $js['id'] ?>">
             <td><?= $index + 1 ?></td>
-            <td><?= htmlspecialchars($row['first_name']).' '.htmlspecialchars($row['father_name']).' '.htmlspecialchars($row['last_name']) ?></td>
-           <td><?= htmlspecialchars($row['gender']) ?></td>
+            <td><?= htmlspecialchars($js['first_name']).' '.htmlspecialchars($js['father_name']).' '.htmlspecialchars($js['last_name']) ?></td>
+           <td><?= htmlspecialchars($js['gender']) ?></td>
             <td class="text-center align-middle">
   <div class="btn-group btn-group-sm shadow-sm" role="group">
-               <button class="btn btn-outline-secondary btn-sm edit-org" 
-                      data-id="<?= $row['id'] ?>"
-                      title="አስተካክል"  >
-                <i class="fas fa-edit"></i>
-              </button> 
+              <button class="btn btn-outline-secondary btn-sm edit-jobseeker-btn"
+        data-id="<?= htmlspecialchars($js['id']) ?>"
+        title="አስተካክል">
+    <i class="fas fa-edit"></i>
+</button>
              
   </div>
             </td>
@@ -72,7 +73,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
            <input type="hidden" name="mode" id="formMode" value="create">
            <input type="hidden" name="jobseeker_id" id="jobseekerIdField" value="">
         <div class="modal-header">
-          <h6 class="modal-title font-weight-bold">
+          <h6 class="modal-title font-weight-bold" id="jobseekerModalTitle">
             <i class="fas fa-plus mr-1"></i> የስራ ፈላጊ መመዝገቢያ ፎርም
           </h6>
           <button type="button" class="close" data-dismiss="modal">
@@ -108,8 +109,8 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
              
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
-                  <label class="mb-1" for="g_father_name"><small class="font-weight-bold">የአያት ስም <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="g_father_name" name="g_father_name" data-validate="name-only" required>
+                  <label class="mb-1" for="last_name"><small class="font-weight-bold">የአያት ስም <span class="text-danger">*</span></small></label>
+                  <input type="text" class="form-control form-control-sm" id="last_name" name="last_name" data-validate="name-only" required>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
@@ -233,15 +234,15 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
 
     <div class="col-12 col-sm-6 col-md-3 field-dept">
       <div class="form-group mb-2">
-        <label class="mb-1" for="dpt"><small class="font-weight-bold">የተመረቀበት ዲፓርትመንት <span class="text-danger">*</span></small></label>
-        <input type="text" name="dpt" id="dpt" class="form-control form-control-sm" placeholder="የተመረቀበት ዲፓርትመንት" data-validate="text-with-spaces">
+        <label class="mb-1" for="educated_dpt"><small class="font-weight-bold">የተመረቀበት ዲፓርትመንት <span class="text-danger">*</span></small></label>
+        <input type="text" name="educated_dpt" id="educated_dpt" class="form-control form-control-sm" placeholder="የተመረቀበት ዲፓርትመንት" data-validate="text-with-spaces">
       </div>
     </div>
 
     <div class="col-12 col-sm-6 col-md-3 field-year">
       <div class="form-group mb-2">
-        <label class="mb-1" for="education_completion_year"><small class="font-weight-bold">ትምህርት ያጠናቀቀበት (ያቋረጠበት) ዓመት <span class="text-danger">*</span></small></label>
-        <select class="form-control form-control-sm" id="education_completion_year" name="education_completion_year" required>
+        <label class="mb-1" for="education_trmnet_finsh_year"><small class="font-weight-bold">ትምህርት ያጠናቀቀበት (ያቋረጠበት) ዓመት <span class="text-danger">*</span></small></label>
+        <select class="form-control form-control-sm" id="education_trmnet_finsh_year" name="education_trmnet_finsh_year" required>
           <option value="" selected disabled>ይምረጡ</option>
           <?php for ($year = $fiscal_year; $year >= 1960; $year--): ?>
             <option value="<?= $year ?>"><?= $year ?></option>
@@ -255,8 +256,8 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
    
     <div class="col-12 col-sm-6 col-md-3 field-grade8">
       <div class="form-group mb-2">
-        <label class="mb-1" for="gradeEight"><small class="font-weight-bold">የ8ኛ ክፍል መለያ ቁጥር <span class="text-danger">*</span></small></label>
-        <input type="text" name="gradeEight" id="gradeEight" class="form-control form-control-sm" placeholder="የ8ኛ ክፍል መለያ ቁጥር" data-validate="numeric-only" data-length="7">
+        <label class="mb-1" for="g8id"><small class="font-weight-bold">የ8ኛ ክፍል መለያ ቁጥር <span class="text-danger">*</span></small></label>
+        <input type="text" name="g8id" id="g8id" class="form-control form-control-sm" placeholder="የ8ኛ ክፍል መለያ ቁጥር" data-validate="numeric-only" data-length="7">
       </div>
     </div>
 
@@ -624,6 +625,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
             <button type="button" class="btn btn-secondary btn-sm" id="prevBtn" data-step-action="prev" disabled>ተመለስ</button>
             <button type="button" class="btn btn-primary btn-sm" id="nextBtn" data-step-action="next">ቀጣይ</button>
             <button type="submit" class="btn btn-success btn-sm d-none" id="submitBtn">መዝግብ</button>
+            
           </div>
         </div>
       </form>
