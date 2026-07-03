@@ -215,8 +215,43 @@ $sql = "SELECT
     return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 }
 
+ 
 
-public function getReport1ByHierarchy(string $myBranchId): array
+
+/**
+ * ከተጠቃሚው ቅርንጫፍ ጀምሮ ያሉትን ንዑስ መዋቅሮች በስም ዝርዝር ያመጣል
+ */
+public function getAllowedBranches(string $myBranchId): array
+{
+    // ተጠቃሚው ያለበትን ቅርንጫፍ እና ከሱ በታች በ parent_id የተሳሰሩትን በሙሉ ያወጣል
+    $sql = "
+        WITH RECURSIVE AllowedBranches AS (
+            SELECT b.internal_id, b.name, b.parent_id, b.level, b.path
+            FROM branches b
+            WHERE b.internal_id = :my_branch AND b.is_deleted = 0
+            
+            UNION ALL
+            
+            SELECT b.internal_id, b.name, b.parent_id, b.level, b.path
+            FROM branches b
+            INNER JOIN AllowedBranches ab ON b.parent_id = ab.internal_id
+            WHERE b.is_deleted = 0
+        )
+        SELECT internal_id, name, level FROM AllowedBranches ORDER BY path ASC
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return [];
+    }
+}
+
+public function getReport1ByHierarchy(string $myBranchId, $date): array
 {
     $sql = "
         WITH RECURSIVE SubBranches AS (
@@ -233,7 +268,7 @@ public function getReport1ByHierarchy(string $myBranchId): array
                 aco.sex,
                 aco.awareness_type
             FROM awareness_creation_other aco
-            INNER JOIN SubBranches sb ON aco.branch_id = sb.internal_id
+            INNER JOIN SubBranches sb ON aco.branch_id = sb.internal_id where aco.reg_date < :report_date + INTERVAL 1 DAY
         )
         -- 3. ሁሉንም የኅብረተሰብ ክፍሎች የኢንዴክስህን ቅደም ተከተል ጠብቆ እዚህ ያሰላል
         SELECT
@@ -254,6 +289,7 @@ public function getReport1ByHierarchy(string $myBranchId): array
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->bindValue(':report_date', $date, PDO::PARAM_STR);
         $stmt->execute();
 
         return $this->normalizeReportRow($stmt->fetch(PDO::FETCH_ASSOC));
@@ -300,12 +336,14 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
             SELECT 
                 js.gender,
                 js.residence_status,
-                js.age
+                js.age,
+                js.education_level_category,
+                js.physical_condition
             FROM job_seekers js
             INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id
         )
         SELECT
-            -- ምድብ 1፦ የምክርና መረጃ አገልግሎት
+            -- ምድብ 1 እና መጨረሻው ፦ የምክርና መረጃ አገልግሎት
             COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' THEN 1 END) AS urban_m_advice,
             COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' THEN 1 END) AS urban_f_advice,
             COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' THEN 1 END) AS rural_m_advice,
@@ -317,12 +355,34 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
             COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS rural_m_age15_29,
             COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS rural_f_age15_29,
 
-             -- ምድብ 2፦ የዕድሜ ክልል ከ 30 እስከ 64 የሆኑ ስራ ፈላጊዎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+             -- ምድብ 3፦ የዕድሜ ክልል ከ 30 እስከ 64 የሆኑ ስራ ፈላጊዎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
             COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.age >= 30 AND js.age <= 64 THEN 1 END) AS urban_m_age30_64,
             COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.age >= 30 AND js.age <= 64 THEN 1 END) AS urban_f_age30_64,
             COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.age >= 30 AND js.age <= 64 THEN 1 END) AS rural_m_age30_64,
-            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.age >= 30 AND js.age <= 64 THEN 1 END) AS rural_f_age30_64
-        FROM FilteredJobSeekers AS js
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.age >= 30 AND js.age <= 64 THEN 1 END) AS rural_f_age30_64,
+
+             -- ምድብ 4፦ የተመዘገቡ የዩኒቨርሲቲ ተመራቂዎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.education_level_category = 2 THEN 1 END) AS urban_m_uni,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.education_level_category  = 2  THEN 1 END) AS urban_f_uni,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.education_level_category = 2  THEN 1 END) AS rural_m_uni,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.education_level_category = 2  THEN 1 END) AS rural_f_uni,
+
+            -- ምድብ 5፦ የተመዘገቡ የቴክኒክና ሙያ ተመራቂዎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.education_level_category = 1 THEN 1 END) AS urban_m_tvt,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.education_level_category  = 1  THEN 1 END) AS urban_f_tvt,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.education_level_category = 1  THEN 1 END) AS rural_m_tvt,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.education_level_category = 1  THEN 1 END) AS rural_f_tvt,
+
+            -- ምድብ 6፦ የተመዘገቡ አካል ጉዳተኞች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.physical_condition = 1 THEN 1 END) AS urban_m_phy,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.physical_condition  = 1  THEN 1 END) AS urban_f_phy,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.physical_condition = 1  THEN 1 END) AS rural_m_phy,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.physical_condition = 1  THEN 1 END) AS rural_f_phy
+
+            
+        
+        
+            FROM FilteredJobSeekers AS js
     ";
 
     try {
@@ -338,7 +398,7 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
 }
 
 /**
- * ለአዲሱ ቴብል ብቻ የተዘጋጀ የዳታ ማስተካከያ (Normalization)
+ * ለአዲሱ ቴብል Jobseekers የተዘጋጀ የዳታ ማስተካከያ (Normalization)
  */
 private function normalizeAdviceRow(array|false $row): array
 {
@@ -346,7 +406,16 @@ private function normalizeAdviceRow(array|false $row): array
         'urban_m_advice', 'urban_f_advice', 'rural_m_advice', 'rural_f_advice',
         // አዲሶቹ የዕድሜ ስብጥር ኪዎች (Keys) እዚህ ተጨምረዋል
         'urban_m_age15_29', 'urban_f_age15_29', 'rural_m_age15_29', 'rural_f_age15_29',
-        'urban_m_age30_64', 'urban_f_age30_64', 'rural_m_age30_64', 'rural_f_age30_64'
+        'urban_m_age30_64', 'urban_f_age30_64', 'rural_m_age30_64', 'rural_f_age30_64',
+
+        // የዩኒቨርሲቲ ተመራቂዎች ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_uni', 'urban_f_uni', 'rural_m_uni', 'rural_f_uni',
+        
+        // የተመዘገቡ የቴክኒክና ሙያ ተመራቂዎች ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_tvt', 'urban_f_tvt', 'rural_m_tvt', 'rural_f_tvt',
+
+        // የተመዘገቡ አካል ጉዳተኞች ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_phy', 'urban_f_phy', 'rural_m_phy', 'rural_f_phy'
     ];
 
     $normalized = [];
