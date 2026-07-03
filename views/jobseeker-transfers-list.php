@@ -22,7 +22,7 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
                 <th>#</th>
                 <th>ሙሉ ስም</th>
                 <th>ስልክ ቁጥር</th>
-                <th>ላኪ ቅርንጫፍ</th>
+                <th>ላኪ መ/ቤት</th>
                 <th>ተቀባይ</th>
                 <th>የተላከበት ቀን</th>
                 <th>የዕይታ ሁኔታ</th>
