@@ -1,4 +1,5 @@
 <?php
+$selectedBranchName = $branchName ?? ($_POST['branch_name'] ?? ($_SESSION['user']['branch_name'] ?? 'አጠቃላይ ሪፖርት'));
 $report = $report1 ?? [
     'urban_m_parents' => 0,
     'urban_f_parents' => 0,
@@ -19,6 +20,11 @@ $report = $report1 ?? [
     'urban_f_age15_29' => 0,
     'rural_m_age15_29' => 0,
     'rural_f_age15_29' => 0,
+
+    'urban_m_age30_64' => 0,
+    'urban_f_age30_64' => 0,
+    'rural_m_age30_64' => 0,
+    'rural_f_age30_64' => 0,
 ];
 
 $totalUrbanparents = $report['urban_m_parents'] + $report['urban_f_parents'];
@@ -44,11 +50,25 @@ $totalRuralage15_29 = $report['rural_m_age15_29'] + $report['rural_f_age15_29'];
 $totalMaleage15_29  = $report['urban_m_age15_29'] + $report['rural_m_age15_29'];
 $totalFemaleage15_29 = $report['urban_f_age15_29'] + $report['rural_f_age15_29'];
 $grandTotalage15_29 = $totalUrbanage15_29 + $totalRuralage15_29;
+
+$totalUrbanage30_64 = $report['urban_m_age30_64'] + $report['urban_f_age30_64'];
+$totalRuralage30_64 = $report['rural_m_age30_64'] + $report['rural_f_age30_64'];
+$totalMaleage30_64  = $report['urban_m_age30_64'] + $report['rural_m_age30_64'];
+$totalFemaleage30_64 = $report['urban_f_age30_64'] + $report['rural_f_age30_64'];
+$grandTotalage30_64 = $totalUrbanage30_64 + $totalRuralage30_64;
 ?>
 
 
-<center><h5>የስራ ፈላጊዎች ምዝገባ እና ግንዛቤ ፈጠራ (ሠ-1)</h5>
-<h6>የሪፖርት ቀን፦</h6></center>
+<center class="mb-4">
+    <!-- የሪፖርት ርዕስ -->
+    <h4 class="font-weight-bold">የስራ ፈላጊዎች ምዝገባ እና ግንዛቤ ፈጠራ (ሠ-1)</h4>
+    
+    <!-- 🟢 አዲስ የተጨመረ፦ የትኛው መዋቅር ሪፖርት እንደሆነ በግልጽ ያሳያል -->
+    <h5 class="text-primary mt-2">የመዋቅር ደረጃ፦ <strong><?= htmlspecialchars($selectedBranchName); ?></strong></h5>
+    
+    <!-- 🟢 አዲስ የተጨመረ፦ የዛሬውን ቀን በዲናሚክ ይተካል -->
+    <h6>የሪፖርት ቀን፦ <strong><?= date('d/m/Y'); ?></strong></h6>
+</center>
 <div class="table-responsive">
     <table class="table table-bordered table-striped text-center">
         <thead class="table-primary">
@@ -115,7 +135,24 @@ $grandTotalage15_29 = $totalUrbanage15_29 + $totalRuralage15_29;
                 <td><?= $totalFemaleage15_29; ?></td>
                 <td><strong><?= $grandTotalage15_29; ?></strong></td>
             </tr>
-            
+            <tr>
+                <td class="text-left">
+                    በዕድሜ (30-64 ዓመት)
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_age30_64']; ?></td>
+                <td><?= $report['urban_f_age30_64']; ?></td>
+                <td><?= $totalUrbanage30_64; ?></td>
+
+                <td><?= $report['rural_m_age30_64']; ?></td>
+                <td><?= $report['rural_f_age30_64']; ?></td>
+                <td><?= $totalRuralage30_64; ?></td>
+
+                <td><?= $totalMaleage30_64; ?></td>
+                <td><?= $totalFemaleage30_64; ?></td>
+                <td><strong><?= $grandTotalage30_64; ?></strong></td>
+            </tr>
             <tr>
                 <td class="text-left">
                     የግንዛቤ ማስጨበጫ ስራ ፈላጊ ወላጆች

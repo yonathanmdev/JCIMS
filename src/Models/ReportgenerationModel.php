@@ -215,6 +215,41 @@ $sql = "SELECT
     return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 }
 
+ 
+
+
+/**
+ * ከተጠቃሚው ቅርንጫፍ ጀምሮ ያሉትን ንዑስ መዋቅሮች በስም ዝርዝር ያመጣል
+ */
+public function getAllowedBranches(string $myBranchId): array
+{
+    // ተጠቃሚው ያለበትን ቅርንጫፍ እና ከሱ በታች በ parent_id የተሳሰሩትን በሙሉ ያወጣል
+    $sql = "
+        WITH RECURSIVE AllowedBranches AS (
+            SELECT b.internal_id, b.name, b.parent_id, b.level, b.path
+            FROM branches b
+            WHERE b.internal_id = :my_branch AND b.is_deleted = 0
+            
+            UNION ALL
+            
+            SELECT b.internal_id, b.name, b.parent_id, b.level, b.path
+            FROM branches b
+            INNER JOIN AllowedBranches ab ON b.parent_id = ab.internal_id
+            WHERE b.is_deleted = 0
+        )
+        SELECT internal_id, name, level FROM AllowedBranches ORDER BY path ASC
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return [];
+    }
+}
 
 public function getReport1ByHierarchy(string $myBranchId): array
 {

@@ -56,6 +56,35 @@ $reportData = array_merge($mainData ?: [], $otherData ?: []);
     ];
     $this->render('report-registration', $data);
 }
+
+
+
+public function reportIndexShow()
+{
+    // 1. ከተጠቃሚው ሴሽን የራሱን ቅርንጫፍ መለያ መውሰድ
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null;
+
+    // 2. ሞዴሉን መጥራት
+    $awarenessModel = new ReportgenerationModel($this->db);
+    
+    // 3. ዳታውን ከሞዴል ማምጣት
+    $branches = $awarenessModel->getAllowedBranches($myBranchId);
+
+    // 4. 🔥 ዋናው ነጥብ፦ ዳታውን በ Array Key 'branches' አድርጎ ወደ ቪው መላክ
+    // የእርስዎ ፍሬምወርቅ $this->render() የሚጠቀም ከሆነ፡
+    $this->render('report-registration', [
+        'branches' => $branches
+    ]);
+
+    /* 
+    💡 ማሳሰቢያ፦ ሲስተምህ custom custom ቢሆንና render() ባይጠቀም፣ 
+    ከላይ የተገኘው $branches ተለዋዋጭ ሳይጠፋ (ሳይሰረዝ) ቪውውን በ include መጥራት አለብህ፡
+    
+    include __DIR__ . '/../views/report-registration.php';
+    */
+}
+
+
 public function report1Show()
 {
     $myBranchId = $_SESSION['user']['branch_id'] ?? null; // ወይም የምታገኝበት መንገድ
