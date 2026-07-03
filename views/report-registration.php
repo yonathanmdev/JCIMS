@@ -25,7 +25,7 @@
             </option>
         <?php endforeach; ?>
     <?php endif; ?>
-        </select>
+  </select>
             </div>
 
             <!-- የሪፖርት መምረጫ -->

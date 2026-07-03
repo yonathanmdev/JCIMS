@@ -25,6 +25,23 @@ $report = $report1 ?? [
     'urban_f_age30_64' => 0,
     'rural_m_age30_64' => 0,
     'rural_f_age30_64' => 0,
+    
+    'urban_m_uni' => 0,
+    'urban_f_uni' => 0,
+    'rural_m_uni' => 0,
+    'rural_f_uni' => 0,
+
+    'urban_m_tvt' => 0,
+    'urban_f_tvt' => 0,
+    'rural_m_tvt' => 0,
+    'rural_f_tvt' => 0,
+
+    'urban_m_phy' => 0,
+    'urban_f_phy' => 0,
+    'rural_m_phy' => 0,
+    'rural_f_phy' => 0,
+    
+    
 ];
 
 $totalUrbanparents = $report['urban_m_parents'] + $report['urban_f_parents'];
@@ -56,6 +73,24 @@ $totalRuralage30_64 = $report['rural_m_age30_64'] + $report['rural_f_age30_64'];
 $totalMaleage30_64  = $report['urban_m_age30_64'] + $report['rural_m_age30_64'];
 $totalFemaleage30_64 = $report['urban_f_age30_64'] + $report['rural_f_age30_64'];
 $grandTotalage30_64 = $totalUrbanage30_64 + $totalRuralage30_64;
+
+$totalUrbanuni = $report['urban_m_uni'] + $report['urban_f_uni'];
+$totalRuraluni = $report['rural_m_uni'] + $report['rural_f_uni'];
+$totalMaleuni  = $report['urban_m_uni'] + $report['rural_m_uni'];
+$totalFemaleuni = $report['urban_f_uni'] + $report['rural_f_uni'];
+$grandTotaluni = $totalUrbanuni + $totalRuraluni;
+
+$totalUrbantvt = $report['urban_m_tvt'] + $report['urban_f_tvt'];
+$totalRuraltvt = $report['rural_m_tvt'] + $report['rural_f_tvt'];
+$totalMaletvt  = $report['urban_m_tvt'] + $report['rural_m_tvt'];
+$totalFemaletvt = $report['urban_f_tvt'] + $report['rural_f_tvt'];
+$grandTotaltvt = $totalUrbantvt + $totalRuraltvt;
+
+$totalUrbanphy = $report['urban_m_phy'] + $report['urban_f_phy'];
+$totalRuralphy = $report['rural_m_phy'] + $report['rural_f_phy'];
+$totalMalephy  = $report['urban_m_phy'] + $report['rural_m_phy'];
+$totalFemalephy = $report['urban_f_phy'] + $report['rural_f_phy'];
+$grandTotalphy = $totalUrbanphy + $totalRuralphy;
 ?>
 
 
@@ -153,6 +188,63 @@ $grandTotalage30_64 = $totalUrbanage30_64 + $totalRuralage30_64;
                 <td><?= $totalFemaleage30_64; ?></td>
                 <td><strong><?= $grandTotalage30_64; ?></strong></td>
             </tr>
+            <tr>
+                <td class="text-left">
+                    የተመዘገቡ የዩኒቨርሲቲ ተመራቂዎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_uni']; ?></td>
+                <td><?= $report['urban_f_uni']; ?></td>
+                <td><?= $totalUrbanuni; ?></td>
+
+                <td><?= $report['rural_m_uni']; ?></td>
+                <td><?= $report['rural_f_uni']; ?></td>
+                <td><?= $totalRuraluni; ?></td>
+
+                <td><?= $totalMaleuni; ?></td>
+                <td><?= $totalFemaleuni; ?></td>
+                <td><strong><?= $grandTotaluni; ?></strong></td>
+            </tr>
+
+            <tr>
+                <td class="text-left">
+                    የተመዘገቡ የቴክኒክና ሙያ ተመራቂዎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_tvt']; ?></td>
+                <td><?= $report['urban_f_tvt']; ?></td>
+                <td><?= $totalUrbantvt; ?></td>
+
+                <td><?= $report['rural_m_tvt']; ?></td>
+                <td><?= $report['rural_f_tvt']; ?></td>
+                <td><?= $totalRuraltvt; ?></td>
+
+                <td><?= $totalMaletvt; ?></td>
+                <td><?= $totalFemaletvt; ?></td>
+                <td><strong><?= $grandTotaltvt; ?></strong></td>
+            </tr>
+
+                <tr>
+                <td class="text-left">
+                    የተመዘገቡ አካል ጉዳተኞች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_phy']; ?></td>
+                <td><?= $report['urban_f_phy']; ?></td>
+                <td><?= $totalUrbanphy; ?></td>
+
+                <td><?= $report['rural_m_phy']; ?></td>
+                <td><?= $report['rural_f_phy']; ?></td>
+                <td><?= $totalRuralphy; ?></td>
+
+                <td><?= $totalMalephy; ?></td>
+                <td><?= $totalFemalephy; ?></td>
+                <td><strong><?= $grandTotalphy; ?></strong></td>
+            </tr>
+
             <tr>
                 <td class="text-left">
                     የግንዛቤ ማስጨበጫ ስራ ፈላጊ ወላጆች
