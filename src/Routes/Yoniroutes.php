@@ -43,7 +43,7 @@ return [
     'jobseeker-registration'                 => ['JobseekerController', 'showRegisterForm', true],
     'jobseeker-registration-process'         => ['JobseekerController', 'handleRegistration', true],
     'jobseekers-list'                        => ['JobseekerController', 'listofJobseekers', true],
-    
+    'retrieve-jobseeker'                     => ['JobseekerController', 'getJobseekerById', true],
     
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 

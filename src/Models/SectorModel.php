@@ -162,6 +162,24 @@ public function getSubsectorBySectorId(string $sectorId): array
 
     return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 }
+public function getSubsectorBySectorUuid(string $sectorUuid): array
+{
+    $sql = "
+        SELECT ss.id, ss.subsector
+        FROM sub_sector ss
+        INNER JOIN sector_table st
+            ON st.sectorid = ss.sectorid
+        WHERE st.id = :sector_uuid
+        ORDER BY ss.subsector
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([
+        ':sector_uuid' => $sectorUuid
+    ]);
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 // In SectorModel
 public function getSubsectorBigIntIds(string $subsectorUuid): ?array
 {

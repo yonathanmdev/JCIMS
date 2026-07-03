@@ -89,8 +89,8 @@ public function getImmediateSubBranches($myBranchId) {
  */
 public function getDescendantBranches($myBranchId) {
     $sql = "SELECT * FROM branches 
-            WHERE path LIKE CONCAT((SELECT path FROM branches WHERE id = ?), '%')
-              AND id != ?
+            WHERE path LIKE CONCAT((SELECT path FROM branches WHERE internal_id = ?), '%')
+              AND internal_id != ?
               AND status = 'active'
             ORDER BY level ASC, name ASC";
 

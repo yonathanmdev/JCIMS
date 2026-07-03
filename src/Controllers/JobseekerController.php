@@ -29,6 +29,56 @@ $jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
 
         $this->render('jobseeker-registration', $data);
     }
+
+    
+  public function getJobseekerById()
+{
+    $t0 = microtime(true);
+    header('Content-Type: application/json');
+
+    AuthHelper::checkRole(['officer'], [3, 4]);
+    session_write_close();
+    $t1 = microtime(true);
+    error_log("checkRole took: " . round(($t1 - $t0) * 1000, 2) . "ms");
+
+    $user     = $_SESSION['user'] ?? [];
+    $branchId = $user['branch_id'] ?? null;
+
+    if (!$branchId || empty($user['id'])) {
+        echo json_encode(['success' => false, 'message' => 'ፍቃድ የለዎትም።']);
+        return;
+    }
+
+    $jobseekerId = trim($_GET['jobseeker_id'] ?? '');
+    if ($jobseekerId === '') {
+        echo json_encode(['success' => false, 'message' => 'የስራ ፈላጊ መለያ አልተገኘም።']);
+        return;
+    }
+
+    $jobSeekerModel = new JobSeekerModel($this->db);
+
+    $t2 = microtime(true);
+    $jobseeker = $jobSeekerModel->findById((int)$branchId, $jobseekerId);
+    $t3 = microtime(true);
+    error_log("findById took: " . round(($t3 - $t2) * 1000, 2) . "ms");
+
+    if (!$jobseeker) {
+        echo json_encode(['success' => false, 'message' => 'ስራ ፈላጊው አልተገኘም ወይም በዚህ ቅርንጫፍ አልተመዘገበም።']);
+        return;
+    }
+
+    $jobseeker['choice_sector1'] = $jobseeker['choice_sector1_uuid'] ?? '';
+    $jobseeker['sub_choose1']    = $jobseeker['sub_choose1_uuid'] ?? '';
+    $jobseeker['choice_sector2'] = $jobseeker['choice_sector2_uuid'] ?? '';
+    $jobseeker['sub_choose2']    = $jobseeker['sub_choose2_uuid'] ?? '';
+    $jobseeker['choice_sector3'] = $jobseeker['choice_sector3_uuid'] ?? '';
+    $jobseeker['sub_choose3']    = $jobseeker['sub_choose3_uuid'] ?? '';
+
+    echo json_encode(['success' => true, 'jobseeker' => $jobseeker]);
+
+    $t4 = microtime(true);
+    error_log("TOTAL request took: " . round(($t4 - $t0) * 1000, 2) . "ms");
+}
 public function handleRegistration() {
     AuthHelper::checkRole(['officer'],[3, 4]);
 
@@ -53,7 +103,7 @@ public function handleRegistration() {
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
         exit();
     }
-    $fullNameRaw = $_POST['first_name'] . ' ' . $_POST['father_name'] . ' ' . $_POST['g_father_name'];
+    $fullNameRaw = $_POST['first_name'] . ' ' . $_POST['father_name'] . ' ' . $_POST['last_name'];
         $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
 
          // ── Persist ───────────────────────────────────────────────────────
@@ -62,7 +112,7 @@ public function handleRegistration() {
      $duplicate = $jobSeekerModel->checkDuplicateJobSeeker([
     'branch_id'            => $_SESSION['user']['branch_id'],
     'kebele_id_no'         => trim($_POST['kebele_id_no']),
-    'g8id'                 => trim($_POST['gradeEight'] ?? ''),
+    'g8id'                 => trim($_POST['g8id'] ?? ''),
     'Labor_ID'             => trim($_POST['Labor_ID'] ?? ''),
     'FAN'                  => trim($_POST['FAN'] ?? ''),
     'full_name_normalized' => $normalizedFullName,
@@ -86,7 +136,7 @@ if (!empty($duplicate)) {
         'trigger_type'           => $triggerType,
         'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
         'attempted_kebele_id_no' => trim($_POST['kebele_id_no']),
-        'attempted_g8id'         => trim($_POST['gradeEight'] ?? ''),
+        'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
         'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
         'attempted_fan'          => trim($_POST['FAN'] ?? ''),
         'attempted_full_name'    => $normalizedFullName,
@@ -146,14 +196,14 @@ if (!empty($duplicate)) {
             'uuid'                             => $jobseekerUuid,
             'first_name'                       => trim($_POST['first_name'] ?? ''),
             'father_name'                      => trim($_POST['father_name'] ?? ''),
-            'last_name'                        => trim($_POST['g_father_name'] ?? ''),
+            'last_name'                        => trim($_POST['last_name'] ?? ''),
             'gender'                           => trim($_POST['gender'] ?? ''),
             'age'                              => $_POST['age'] ?? '',
             'educational_level'                => trim($_POST['educational_level'] ?? ''),
             'education_level_catagory'         => $educationLevelCategory,
-            'educated_dpt'                     => trim($_POST['dpt'] ?? ''),
-            'education_trmnet_finsh_year'      => $_POST['education_completion_year'] ?? '',
-            'g8id'                             => trim($_POST['gradeEight'] ?? ''),
+            'educated_dpt'                     => trim($_POST['educated_dpt'] ?? ''),
+            'education_trmnet_finsh_year'      => $_POST['education_trmnet_finsh_year'] ?? '',
+            'g8id'                             => trim($_POST['g8id'] ?? ''),
             'CGPA'                             => $_POST['CGPA'] ?? '',
             'school_type'                      => trim($_POST['school_type'] ?? ''),
             'physical_condition'               => $_POST['physical_condition'] ?? '',
@@ -249,7 +299,7 @@ private function validateJobseekerData(array $post): array
     $alwaysRequired = [
         'first_name'         => 'ስም',
         'father_name'        => 'የአባት ስም',
-        'g_father_name'      => 'የአያት ስም',
+        'last_name'      => 'የአያት ስም',
         'age'                => 'እድሜ',
         'gender'             => 'ጾታ',
         'educational_level'  => 'የት/ት ደረጃ',
@@ -285,7 +335,7 @@ private function validateJobseekerData(array $post): array
     if (!preg_match('/^[\p{L}\s]+$/u', $get('father_name'))) {
         $errors[] = "የአባት ስም ቁጥር ወይም ልዩ ምልክት መያዝ የለበትም።";
     }
-    if (!preg_match('/^[\p{L}\s]+$/u', $get('g_father_name'))) {
+    if (!preg_match('/^[\p{L}\s]+$/u', $get('last_name'))) {
         $errors[] = "የአያት ስም ቁጥር ወይም ልዩ ምልክት መያዝ የለበትም።";
     }
 
@@ -312,18 +362,18 @@ private function validateJobseekerData(array $post): array
     // CATEGORY 5: EDUCATIONAL LEVEL CONDITIONAL LOGIC
     // ═══════════════════════════════════════════════════════════════
     $hideSchoolFor = ['ማንበብና መፃፍ የማይችሉ', 'መሰረተ ትምህርት'];
-    $dptLevels = ['ደረጃ 2', 'ደረጃ 3', 'ደረጃ 4', 'ደረጃ 5', 'የመጀመሪያ ዲግሪ', 'ሁለተኛ ዲግሪ'];
-    $gradeEightLevels = array_merge(
+    $educated_dptLevels = ['ደረጃ 2', 'ደረጃ 3', 'ደረጃ 4', 'ደረጃ 5', 'የመጀመሪያ ዲግሪ', 'ሁለተኛ ዲግሪ'];
+    $g8idLevels = array_merge(
         ['8ኛ ያጠናቀቁ', 'ከ9-10ኛ', 'ከ11-12ኛ'],
-        $dptLevels
+        $educated_dptLevels
     );
 
-    if (!in_array($eduLevel, $hideSchoolFor, true) && $get('education_completion_year') === '') {
+    if (!in_array($eduLevel, $hideSchoolFor, true) && $get('education_trmnet_finsh_year') === '') {
         $errors[] = 'የትምህርት ማጠናቀቂያ ዓመት ያስፈልጋል።';
     }
 
-    if (in_array($eduLevel, $dptLevels, true)) {
-        if ($get('dpt') === '') {
+    if (in_array($eduLevel, $educated_dptLevels, true)) {
+        if ($get('educated_dpt') === '') {
             $errors[] = 'የትምህርት ክፍል ያስፈልጋል።';
         }
         if ($get('CGPA') === '') {
@@ -337,7 +387,7 @@ private function validateJobseekerData(array $post): array
         }
     }
 
-    if (in_array($eduLevel, $gradeEightLevels, true) && $get('gradeEight') === '') {
+    if (in_array($eduLevel, $g8idLevels, true) && $get('g8id') === '') {
         $errors[] = 'የ8ኛ ክፍል id ያስፈልጋል።';
     }
 
@@ -361,9 +411,6 @@ private function validateJobseekerData(array $post): array
 
         if ($get('workplace') === 'ከውጭ አገር' && $get('nameofcountry') === '') {
             $errors[] = 'የሀገር ስም ያስፈልጋል።';
-        }
-        if ($get('workplace') === 'ከውጭ አገር' && $get('language') === '') {
-            $errors[] = 'ቋንቋ ያስፈልጋል።';
         }
          
     // ═══════════════════════════════════════════════════════════════

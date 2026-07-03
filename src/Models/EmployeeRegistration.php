@@ -62,14 +62,14 @@ public function assignJob(string $newJobId, string $branchId, ?string $oldJobId 
 }
  public function createEmployee(array $data, ?array $guarantorData = null): bool {
         try {
-            $fullNameRaw = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['g_father_name'];
+            $fullNameRaw = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['last_name'];
             $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
             // Start transaction
             $this->db->beginTransaction();
 
 $this->assignJob($data['job_property_id'], $data['branch_id']);            // Insert employee
             $sql = "INSERT INTO employees_table (
-                uuid, employee_id, first_name, father_name, g_father_name, mother_name,
+                uuid, employee_id, first_name, father_name, last_name, mother_name,
                 sex, birth_date, phone_number, yegabcha_huneta, organization_id,
                 branch_id, job_property_id, date_of_employed, level_of_education,
                 department, employment_situation, immidate_boss, experience, pension_number, annual_rest,
@@ -85,7 +85,7 @@ $this->assignJob($data['job_property_id'], $data['branch_id']);            // In
                 $data['employee_id'],
                 $data['first_name'],
                 $data['father_name'],
-                $data['g_father_name'],
+                $data['last_name'],
                 $data['mother_name'],
                 $data['sex'],
                 $data['birth_date'],
@@ -150,7 +150,7 @@ $this->assignJob($data['job_property_id'], $data['branch_id']);            // In
                 e.employee_id,
                 e.first_name,
                 e.father_name,
-                e.g_father_name,
+                e.last_name,
                 e.sex,
                 e.birth_date,
                 e.phone_number,
@@ -206,7 +206,7 @@ $this->assignJob($data['job_property_id'], $data['branch_id']);            // In
             if (!$currentEmployee) {
                 throw new \Exception("Employee not found");
             }
-            $fullNameRaw = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['g_father_name'];
+            $fullNameRaw = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['last_name'];
             $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
             $oldJobId = $currentEmployee['job_property_id'];
             $newJobId = $data['job_property_id'];
@@ -220,7 +220,7 @@ if ($oldJobId != $newJobId) {
 }
             // Update employee
             $sql = "UPDATE employees_table SET
-                employee_id = ?, pension_number = ?, first_name = ?, father_name = ?, g_father_name = ?, mother_name = ?,
+                employee_id = ?, pension_number = ?, first_name = ?, father_name = ?, last_name = ?, mother_name = ?,
                 sex = ?, birth_date = ?, phone_number = ?, yegabcha_huneta = ?, job_property_id = ?,
                 date_of_employed = ?, level_of_education = ?, department = ?, employment_situation = ?,
                 immidate_boss = ?, experience = ?, annual_rest = ?, displin_situation = ?,
@@ -234,7 +234,7 @@ if ($oldJobId != $newJobId) {
                 $data['pension_number'],
                 $data['first_name'],
                 $data['father_name'],
-                $data['g_father_name'],
+                $data['last_name'],
                 $data['mother_name'],
                 $data['sex'],
                 $data['birth_date'],
@@ -323,7 +323,7 @@ public function getOnboardingEmployees(string $organizationId, string $branchId)
                 e.employee_id,
                 e.first_name,
                 e.father_name,
-                e.g_father_name,
+                e.last_name,
                 e.sex,
                 e.birth_date,
                 e.phone_number,
@@ -364,7 +364,7 @@ public function autoSearch(string $term, string $branchId, ?string $source = nul
                 e.uuid, 
                 e.first_name, 
                 e.father_name, 
-                e.g_father_name, 
+                e.last_name, 
                 e.employee_id, 
                 e.employee_image, 
                 e.deletion_source

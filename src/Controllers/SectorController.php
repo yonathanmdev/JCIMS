@@ -174,6 +174,8 @@ $sectors  = $sectorModel->getSectors();
 }
  public function subsectorsBySector(): void
 {
+    session_write_close(); // 🔥 unlock session early
+    $start = microtime(true);
     header('Content-Type: application/json; charset=utf-8');
 
     $sectorUuid = $_GET['sector_id'] ?? '';
@@ -184,15 +186,9 @@ $sectors  = $sectorModel->getSectors();
     }
 
     $sectorModel = new SectorModel($this->db);
-    $sector = $sectorModel->getSectorById($sectorUuid);
+    $subsectors = $sectorModel->getSubsectorBySectorUuid($sectorUuid);
 
-    if (!$sector) {
-        error_log('No sector found for UUID: ' . $sectorUuid); // TEMP DEBUG
-        echo json_encode([]);
-        return;
-    }
-
-    $subsectors = $sectorModel->getSubsectorBySectorId($sector['sectorid']);
+    error_log('subsectorsBySector: ' . round((microtime(true) - $start) * 1000) . ' ms');
     error_log('Subsectors found: ' . count($subsectors)); // TEMP DEBUG
 
     echo json_encode($subsectors);

@@ -333,7 +333,69 @@ try {
     return [];
 }
 }
+public function findById(int $branchId, string $jobseekerId): ?array
+{
+    try {
+        $sql = "
+            SELECT
+                js.*,
 
+                s1.id        AS choice_sector1_uuid,
+                s1.sector    AS choice_sector1_name,
+
+                ss1.id       AS sub_choose1_uuid,
+                ss1.subsector AS sub_choose1_name,
+
+                s2.id        AS choice_sector2_uuid,
+                s2.sector    AS choice_sector2_name,
+
+                ss2.id       AS sub_choose2_uuid,
+                ss2.subsector AS sub_choose2_name,
+
+                s3.id        AS choice_sector3_uuid,
+                s3.sector    AS choice_sector3_name,
+
+                ss3.id       AS sub_choose3_uuid,
+                ss3.subsector AS sub_choose3_name
+
+            FROM job_seekers js
+
+            LEFT JOIN sector_table s1
+                ON js.choice_sector1 = s1.sectorid
+
+            LEFT JOIN sub_sector ss1
+                ON js.sub_choose1 = ss1.sub_sectorid
+
+            LEFT JOIN sector_table s2
+                ON js.choice_sector2 = s2.sectorid
+
+            LEFT JOIN sub_sector ss2
+                ON js.sub_choose2 = ss2.sub_sectorid
+
+            LEFT JOIN sector_table s3
+                ON js.choice_sector3 = s3.sectorid
+
+            LEFT JOIN sub_sector ss3
+                ON js.sub_choose3 = ss3.sub_sectorid
+
+            WHERE js.branch_id = :branch_id
+              AND js.id = :jobseeker_id
+
+            LIMIT 1
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+        $stmt->bindValue(':jobseeker_id', $jobseekerId);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return null;
+    }
+}
 public function getJobSeekersByHierarchy(string $myBranchId, int $limit = 50, int $offset = 0): array
 {
     $sql = "SELECT js.id,js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender, 
