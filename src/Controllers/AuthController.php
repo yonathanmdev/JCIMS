@@ -1,6 +1,6 @@
 <?php
 namespace App\Controllers;
-
+use App\Helpers\BranchNameHelper;
 use App\Models\User;
 use App\Models\Branch;
 
@@ -49,30 +49,38 @@ class AuthController extends BaseController {
                     'user_uuid'      => $user['id'],
                 ];
 // 2. Safely resolve Branch details if a branch assignment exists
-    if (!empty($user['branch_id'])) {
-        $branchModel = new Branch($this->db);
-        $branchData  = $branchModel->getBranchById($user['branch_id']);
-        
-      
-        $_SESSION['user']['branch_name']     = !empty($branchData['name']) ? $branchData['name'] : 'Unknown Branch';
-        $_SESSION['user']['alt_name'] = !empty($branchData['alt_name']) ? $branchData['alt_name'] : null;
-        $_SESSION['user']['phone_number'] = !empty($branchData['phone_number']) ? $branchData['phone_number'] : null;
-        $_SESSION['user']['postal_code'] = !empty($branchData['postal_code']) ? $branchData['postal_code'] : null;
-        $_SESSION['user']['logo_url'] = !empty($branchData['logo_url']) ? $branchData['logo_url'] : null;
-        $_SESSION['user']['level']        = $branchData['level'] ?? null;   // ← add this
-        $_SESSION['user']['ketema_astedader']        = $branchData['ketema_astedader'] ?? null;   // ← add this
-    
-         } else {
-        // Fallback defaults for system-wide/global administrators
-        $_SESSION['user']['branch_name']     = 'ዋናው መስሪያ ቤት (Headquarters)';
-        $_SESSION['user']['alt_name'] = null;
-        $_SESSION['user']['phone_number'] = null;
-        $_SESSION['user']['postal_code'] = null;
-        $_SESSION['user']['logo_url'] = null; // Dashboard code falls back to icon cleanly
-        $_SESSION['user']['level']        = 0;   // ← system_admin / no-branch users, treat as top-level
-        $_SESSION['user']['ketema_astedader'] = null;   // ← add this
-     
-        }     
+   if (!empty($user['branch_id'])) {
+    $branchModel = new Branch($this->db);
+    $branchData  = $branchModel->getBranchById($user['branch_id']);
+
+    $_SESSION['user']['branch_name']  = !empty($branchData['name']) ? $branchData['name'] : 'Unknown Branch';
+    $_SESSION['user']['alt_name']     = !empty($branchData['alt_name']) ? $branchData['alt_name'] : null;
+    $_SESSION['user']['phone_number'] = !empty($branchData['phone_number']) ? $branchData['phone_number'] : null;
+    $_SESSION['user']['postal_code']  = !empty($branchData['postal_code']) ? $branchData['postal_code'] : null;
+    $_SESSION['user']['logo_url']     = !empty($branchData['logo_url']) ? $branchData['logo_url'] : null;
+    $_SESSION['user']['level']        = $branchData['level'] ?? null;
+
+    // Resolve full ancestry chain + inherited ketema_astedader flag
+    $ancestry = $branchModel->getAncestryChain($user['branch_id']);
+
+    $_SESSION['user']['ketema_astedader'] = $ancestry['ketema_astedader'] ? 'on' : null;
+
+    $_SESSION['user']['full_branch_name'] = BranchNameHelper::getFullBranchName(
+        $ancestry['names'],
+        $ancestry['ketema_astedader']
+    );
+
+} else {
+    // Fallback defaults for system-wide/global administrators
+    $_SESSION['user']['branch_name']      = 'ዋናው መስሪያ ቤት (Headquarters)';
+    $_SESSION['user']['alt_name']         = null;
+    $_SESSION['user']['phone_number']     = null;
+    $_SESSION['user']['postal_code']      = null;
+    $_SESSION['user']['logo_url']         = null;
+    $_SESSION['user']['level']            = 0;
+    $_SESSION['user']['ketema_astedader'] = null;
+    $_SESSION['user']['full_branch_name'] = 'ዋናው መስሪያ ቤት (Headquarters)';
+}
 // Log successful login
                 \App\Helpers\AuditHelper::logAs($user['id'], 'login_success', 'auth', $user['id']);
 

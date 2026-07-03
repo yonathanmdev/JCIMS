@@ -8,12 +8,17 @@
   };
 
   // ── Custom field validators config ─────────────────────────────────
+  
+  const AGRI_LABEL = 'ግብርና';
+const SECTOR_SELECT_IDS = ['choice_sector1', 'choice_sector2', 'choice_sector3'];
+
   const NAME_ONLY_PATTERN = /^\p{L}*$/u;
   const TEXT_WITH_SPACES_PATTERN = /^[\p{L}]+(\s[\p{L}]+)*$/u; // multiple words, single spaces between, no leading/trailing/double spaces
   const NUMERIC_PATTERN = /^\d*$/;
  const NUMERIC_DASH_SLASH_SPACE_PATTERN = /^[\d\-\/\s]*$/;
  const GENERAL_SAFE_PATTERN = /^[\p{L}\d\-\/\s፣]*$/u;
  const DECIMAL_PATTERN = /^\d+(\.\d+)?$/;
+ 
   const validators = {
     'name-only': {
       pattern: NAME_ONLY_PATTERN,
@@ -41,6 +46,10 @@
   }
   };
 
+  function getSelectedText(selectEl) {
+  if (!selectEl || selectEl.selectedIndex < 0) return '';
+  return selectEl.options[selectEl.selectedIndex].text.trim();
+}
   function getFeedbackEl(input) {
     let feedback = input.parentElement.querySelector('.invalid-feedback[data-validator-feedback]');
     if (!feedback) {
@@ -153,11 +162,25 @@ function getExactLengthMessage(length) {
   function validateAllFields(container) {
     const scope = container || document;
     let allValid = true;
+
     scope.querySelectorAll('[data-validate]').forEach(function (input) {
-      if (!validateField(input)) allValid = false;
+        if (!validateField(input)) {
+            allValid = false;
+        }
     });
+
+    // Run the cross-field validation if the relevant fields are in this scope
+    if (
+        scope.querySelector('#number_of_dependents') &&
+        scope.querySelector('#children_under_five')
+    ) {
+        if (!validateChildrenUnderFive()) {
+            allValid = false;
+        }
+    }
+
     return allValid;
-  }
+}
 
   // ── Step navigation ───────────────────────────────────────────────
   function changeStep(direction) {
@@ -206,10 +229,10 @@ function getExactLengthMessage(length) {
   // Re-apply conditional logic in case the form retains old values on reopen,
   // or reset dropdowns to blank first if the modal should always start fresh
   applyEducationLevelLogic();
-  applyExperienceLogic();
+  applyExperienceLogic();              // internally also calls applyLanguageLogic()
   applyPhysicalConditionLogic();
-  applyAgriExperienceLogic();
-  applyDependentsLogic();
+  applyGenderDependentsVisibility();   // internally also calls applyDependentsLogic()
+  applyAgriStatusVisibility();         // internally also calls applyAgriExperienceLogic()
 }
 
   // Conditional field visibility based on education level (illiterate/basic = hide school fields)
@@ -239,7 +262,7 @@ function getExactLengthMessage(length) {
     'ሁለተኛ ዲግሪ'
   ];
 
-  // ── schoolname / education_completion_year ─────────────────────────
+  // education_completion_year ─────────────────────────
   const generalFields = document.querySelectorAll('.field-school, .field-year');
 
   if (hideFor.includes(eduLevel)) {
@@ -253,7 +276,6 @@ function getExactLengthMessage(length) {
     });
   } else {
     generalFields.forEach(el => el.classList.remove('d-none'));
-    document.getElementById('schoolname')?.setAttribute('required', 'required');
     document.getElementById('education_completion_year')?.setAttribute('required', 'required');
   }
 
@@ -303,9 +325,12 @@ function getExactLengthMessage(length) {
 }
 function applyExperienceLogic() {
   const haveExp = document.querySelector('input[name="haveexp"]:checked')?.value
-    ?? document.getElementById('haveexp')?.value; // adjust based on whether haveexp is radio or select
+    ?? document.getElementById('haveexp')?.value;
 
-  const expFields = document.querySelectorAll('.field-experience, .field-workplace, .field-profession, .field-country, .field-language');
+  // field-language is handled separately by applyLanguageLogic() — excluded here
+  const expFields = document.querySelectorAll(
+    '.field-experience, .field-workplace, .field-profession'
+  );
 
   if (haveExp === '1') {
     expFields.forEach(el => {
@@ -324,6 +349,37 @@ function applyExperienceLogic() {
         input.value = '';
       }
     });
+  }
+
+  // Re-evaluate language field whenever experience toggle changes,
+  // since hiding experience should also hide/clear language.
+  applyLanguageLogic();
+}
+
+function applyLanguageLogic() {
+  const haveExp = document.querySelector('input[name="haveexp"]:checked')?.value
+    ?? document.getElementById('haveexp')?.value;
+
+  const workplaceSelect = document.querySelector('.field-workplace select, .field-workplace input');
+  const workplaceValue = workplaceSelect?.value;
+
+  const languageField = document.querySelector('.field-language');
+  const countryField = document.querySelector('.field-country');
+  if (!languageField) return;
+
+  const input = languageField.querySelector('input, select');
+  const countryInput = countryField?.querySelector('input, select');
+
+  const shouldShow = haveExp === '1' && workplaceValue === 'ከውጭ አገር';
+
+  if (shouldShow) {
+    languageField.classList.remove('d-none');
+    countryField.classList.remove('d-none');
+     countryInput.setAttribute('required', 'required');
+  } else {
+    countryField.classList.add('d-none');
+    languageField.classList.add('d-none');
+
   }
 }
 
@@ -344,8 +400,37 @@ function applyPhysicalConditionLogic() {
   }
 }
 
+// Step 1: show/hide the agri STATUS field itself, based on sector selection
+function applyAgriStatusVisibility() {
+  const isAgriSelected = SECTOR_SELECT_IDS.some(id => {
+    const el = document.getElementById(id);
+    return el && getSelectedText(el) === AGRI_LABEL;
+  });
+
+  const agriStatusField = document.querySelector('.field-agri-status');
+  const agriStatusSelect = document.getElementById('agri_business_experience_status');
+
+  if (isAgriSelected) {
+    agriStatusField?.classList.remove('d-none');
+    agriStatusSelect?.setAttribute('required', 'required');
+  } else {
+    agriStatusField?.classList.add('d-none');
+    if (agriStatusSelect) {
+      agriStatusSelect.removeAttribute('required');
+      agriStatusSelect.value = '';
+    }
+  }
+
+  // If the status field just got hidden/reset, the dependent
+  // experience field must also be re-evaluated (it should collapse too).
+  applyAgriExperienceLogic();
+}
+
+// Step 2: show/hide the agri EXPERIENCE field, based on the status field's value
 function applyAgriExperienceLogic() {
-  const agriStatus = document.getElementById('agri_business_experience_status').value;
+  const agriStatusSelect = document.getElementById('agri_business_experience_status');
+  const agriStatus = agriStatusSelect?.value;
+
   const agriExpField = document.querySelector('.field-agri-experience');
   const agriExpInput = document.getElementById('agri_business_experience');
 
@@ -360,25 +445,43 @@ function applyAgriExperienceLogic() {
     }
   }
 }
+
+function applyGenderDependentsVisibility() {
+  const genderSelect = document.getElementById('gender');
+  const genderValue = genderSelect?.value;
+
+  const dependentsField = document.querySelector('.field-has-dependents');
+  const dependentsSelect = document.getElementById('has_dependents');
+
+  const shouldShow = genderValue === 'ሴት';
+
+  if (shouldShow) {
+    dependentsField?.classList.remove('d-none');
+    dependentsSelect?.setAttribute('required', 'required');
+  } else {
+    dependentsField?.classList.add('d-none');
+    if (dependentsSelect) {
+      dependentsSelect.removeAttribute('required');
+      dependentsSelect.value = '';
+    }
+  }
+
+  // If has_dependents just got hidden/reset (e.g. gender switched away from ሴት),
+  // the fields depending on ITS value must also collapse/clear.
+  applyDependentsLogic();
+}
 function applyDependentsLogic() {
   const hasDependentsStatus = document.getElementById('has_dependents').value;
-  // This selects BOTH containers
   const dependentFields = document.querySelectorAll('.field-number-of-dependents, .field-children-under-five');
-  
+
   const numberofDependentsInput = document.getElementById('number_of_dependents');
   const childrenUnderFiveInput = document.getElementById('children_under_five');
 
   if (hasDependentsStatus === '1') {
-    // Both become VISIBLE
     dependentFields.forEach(field => field.classList.remove('d-none'));
-    
-    // ONLY this one becomes REQUIRED
     numberofDependentsInput?.setAttribute('required', 'required');
   } else {
-    // Both become HIDDEN
     dependentFields.forEach(field => field.classList.add('d-none'));
-    
-    // Cleanup
     if (numberofDependentsInput) {
       numberofDependentsInput.removeAttribute('required');
       numberofDependentsInput.value = '';
@@ -389,25 +492,99 @@ function applyDependentsLogic() {
     }
   }
 }
+function validateChildrenUnderFive() {
+    const numberOfDependentsInput = document.getElementById('number_of_dependents');
+    const childrenUnderFiveInput = document.getElementById('children_under_five');
+
+    if (!numberOfDependentsInput || !childrenUnderFiveInput) {
+        return true;
+    }
+
+    const maxDependents = parseInt(numberOfDependentsInput.value, 10) || 0;
+    const childrenValue = parseInt(childrenUnderFiveInput.value, 10) || 0;
+
+    const feedback = getFeedbackEl(childrenUnderFiveInput);
+
+    if (
+        childrenUnderFiveInput.value !== '' &&
+        childrenValue > maxDependents
+    ) {
+        const msg = `ከ5 ዓመት በታች ያሉ ልጆች ቁጥር ከጠቅላላ ቤተሰብ ብዛት (${maxDependents}) መብለጥ አይችልም።`;
+
+        childrenUnderFiveInput.classList.add('is-invalid');
+        childrenUnderFiveInput.classList.remove('is-valid');
+
+        if (feedback) {
+            feedback.textContent = msg;
+        }
+
+        childrenUnderFiveInput.setCustomValidity(msg);
+
+        return false;
+    }
+
+    childrenUnderFiveInput.classList.remove('is-invalid');
+    childrenUnderFiveInput.classList.add('is-valid');
+
+    if (feedback) {
+        feedback.textContent = '';
+    }
+
+    childrenUnderFiveInput.setCustomValidity('');
+
+    return true;
+}
 
   document.addEventListener('DOMContentLoaded', function () {
     // Step navigation — bound via data-step-action, no inline onclick
- document.getElementById('prevBtn').addEventListener('click', () => changeStep(-1));
-document.getElementById('nextBtn').addEventListener('click', () => changeStep(1));
+    document.getElementById('prevBtn').addEventListener('click', () => changeStep(-1));
+    document.getElementById('nextBtn').addEventListener('click', () => changeStep(1));
 
-// Education level conditional logic — bound via addEventListener, no inline onchange
-document.getElementById('educational_level').addEventListener('change', applyEducationLevelLogic);
-document.getElementById('haveexp').addEventListener('change', applyExperienceLogic);
-document.getElementById('physical_condition').addEventListener('change', applyPhysicalConditionLogic);
-document.getElementById('agri_business_experience_status').addEventListener('change', applyAgriExperienceLogic);
-document.getElementById('has_dependents').addEventListener('change', applyDependentsLogic);
+    // Education level conditional logic — bound via addEventListener, no inline onchange
+    document.getElementById('educational_level').addEventListener('change', applyEducationLevelLogic);
 
-// Run once on load so pre-selected values (e.g. modal reopened) apply correctly
-applyEducationLevelLogic();
-applyExperienceLogic();
-applyPhysicalConditionLogic();
-applyAgriExperienceLogic();
-applyDependentsLogic();
+    // Experience toggle — also cascades into language logic (see applyExperienceLogic)
+    document.getElementById('haveexp').addEventListener('change', applyExperienceLogic);
+
+    // Workplace select — controls whether language field shows (depends on haveexp + workplace value)
+    document.getElementById('workplace').addEventListener('change', applyLanguageLogic);
+
+    document.getElementById('physical_condition').addEventListener('change', applyPhysicalConditionLogic);
+
+    // Sector selects — control whether agri-status field shows at all
+    ['choice_sector1', 'choice_sector2', 'choice_sector3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', applyAgriStatusVisibility);
+        }
+    });
+
+    // Agri-status select — controls whether agri-experience field shows
+    document.getElementById('agri_business_experience_status')
+        .addEventListener('change', applyAgriExperienceLogic);
+
+    // Gender — controls whether has_dependents field shows at all
+    document.getElementById('gender').addEventListener('change', applyGenderDependentsVisibility);
+
+    // has_dependents — controls whether number_of_dependents / children_under_five show
+    document.getElementById('has_dependents').addEventListener('change', applyDependentsLogic);
+document.getElementById('children_under_five')?.addEventListener('input', validateChildrenUnderFive);
+document.getElementById('number_of_dependents')?.addEventListener('input', validateChildrenUnderFive);
+    // Run once on load so pre-selected values (e.g. modal reopened / edit mode) apply correctly
+    applyEducationLevelLogic();
+    applyExperienceLogic();              // internally also calls applyLanguageLogic()
+    applyPhysicalConditionLogic();
+    applyAgriStatusVisibility();         // internally also calls applyAgriExperienceLogic()
+    applyGenderDependentsVisibility();   // internally also calls applyDependentsLogic()
+
+    document.getElementById('jobseekerForm').addEventListener('submit', function (e) {
+    if (!validateChildrenUnderFive()) {
+        e.preventDefault();
+        document.getElementById('children_under_five').reportValidity();
+        return;
+    }
+
+});
     // Reset wizard each time modal opens
     $('#jobseekerRegistrationModal').on('show.bs.modal', resetWizard);
 

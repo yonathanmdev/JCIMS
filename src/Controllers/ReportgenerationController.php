@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Helpers\AuthHelper;
 use App\Models\ReportgenerationModel;
+use App\Models\Branch;
 
 class ReportgenerationController extends BaseController
 {
@@ -56,5 +57,59 @@ $reportData = array_merge($mainData ?: [], $otherData ?: []);
         'title' => 'JCIMS - የሪፖርት ማስሊያ ቦታ',
     ];
     $this->render('report-registration', $data);
+}
+
+
+
+
+
+
+public function reportIndexShow()
+{
+    // 1. ከተጠቃሚው ሴሽን የራሱን ቅርንጫፍ መለያ መውሰድ
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null;
+
+    // 2. ሞዴሉን መጥራት
+    $branchModel = new Branch($this->db);
+    
+    // 3. ዳታውን ከሞዴል ማምጣት
+    $branches = $branchModel->getImmediateSubBranches($myBranchId);
+
+    // 4. 🔥 ዋናው ነጥብ፦ ዳታውን በ Array Key 'branches' አድርጎ ወደ ቪው መላክ
+    // የእርስዎ ፍሬምወርቅ $this->render() የሚጠቀም ከሆነ፡
+    $this->render('report-registration', [
+        'branches' => $branches
+    ]);
+
+    /* 
+    💡 ማሳሰቢያ፦ ሲስተምህ custom custom ቢሆንና render() ባይጠቀም፣ 
+    ከላይ የተገኘው $branches ተለዋዋጭ ሳይጠፋ (ሳይሰረዝ) ቪውውን በ include መጥራት አለብህ፡
+    
+    include __DIR__ . '/../views/report-registration.php';
+    */
+}
+
+
+public function report1Show()
+{
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null; // ወይም የምታገኝበት መንገድ
+    $date = date('Y-m-d');
+
+    $awarenessModel = new ReportgenerationModel($this->db);
+
+    
+    // 1. ከመጀመሪያው ቴብል ዳታውን ያመጣል
+    $awarenessReport = $awarenessModel->getReport1ByHierarchy($myBranchId, $date);
+
+    // 2. ከሁለተኛው (ከአዲሱ) ቴብል የምክርና መረጃ ዳታውን ያመጣል
+    $adviceReport = $awarenessModel->getJobSeekersAdviceByHierarchy($myBranchId, $date);
+
+    // 3. ሁለቱንም የሪፖርት ውጤቶች በአንድ አሬይ (Array) ላይ ያዋህዳል
+    $finalReport = array_merge($awarenessReport, $adviceReport);
+
+    // 4. የተዋሃደውን ሙሉ ዳታ ለቪው (report-1) ያስተላልፋል
+    $this->render('report-1', [
+        'report1' => $finalReport
+    ]);
 }
 }

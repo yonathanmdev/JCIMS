@@ -1,14 +1,35 @@
 <section class="content">
   <div class="container-fluid">
     <div class="card card-primary card-outline">
-      <form action="report-registration" method="POST" target="_blank" id="reportForm">
-    
-    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+      <!-- action መነሻው report-registration ቢሆንም በጃቫስክሪፕት ይቀየራል -->
+      <form action="" method="POST" target="_blank" id="reportForm">
+        <input type="hidden" name="_token" value="{{ csrf_token() }}">
         
-        <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
-          <div class="ml-md-auto d-flex align-items-end">
+        <div class="card-header bg-white">
+          <!-- 💡 ማሻሻያ፦ አሰላለፉን በ Row እና በምንጭነት በመጠቀም ወደ ጎን አደረግነው -->
+          <div class="row align-items-end">
             
-            <div class="form-group mb-0 mr-2">
+            <!-- 🟢 አዲስ የተጨመረ፦ የቅርንጫፍ/መዋቅር መምረጫ -->
+            <div class="col-md-5 form-group mb-2 mb-md-0">
+              <label for="branchSelect" class="mb-1">
+                <small class="font-weight-bold">የመዋቅር/ቅርንጫፍ ደረጃ ይምረጡ</small>
+              </label>
+              <select class="form-control" id="branchSelect" name="branch_id" required>
+    <?php if (empty($branches)): ?>
+        <option value="" disabled selected>ምንም የመዋቅር ስም ዝርዝር አልተገኘም</option>
+    <?php else: ?>
+        <?php foreach ($branches as $b): ?>
+            <!-- value ላይ internal_id ይቀመጣል፣ ለተጠቃሚው ግን name ይታያል -->
+            <option value="<?= $b['internal_id']; ?>">
+                <?= str_repeat('&nbsp;&nbsp;▪️&nbsp;', $b['level']) . htmlspecialchars($b['name']); ?>
+            </option>
+        <?php endforeach; ?>
+    <?php endif; ?>
+  </select>
+            </div>
+
+            <!-- የሪፖርት መምረጫ -->
+            <div class="col-md-5 form-group mb-2 mb-md-0">
               <label for="reportSelect" class="mb-1">
                 <small class="font-weight-bold">የምትፈልጉትን ሪፖርት ዓይነት ይምረጡ</small>
               </label>
@@ -27,18 +48,9 @@
               </select>
             </div>
 
-            <div class="form-group mb-0 mr-2">
-              <label for="yearSelect" class="mb-1"><small class="font-weight-bold">ዓመተ ምህረት</small></label>
-              <select class="form-control" id="yearSelect" name="year">
-                <option value="">-- ሁሉንም --</option>
-                <option value="2016">2016</option>
-                <option value="2017">2017</option>
-                <option value="2018">2018</option>
-              </select>
-            </div>
-
-            <div class="form-group mb-0">
-              <button type="submit" class="btn btn-primary" id="submitBtn">
+            <!-- አሳይ ቁልፍ -->
+            <div class="col-md-2 form-group mb-0">
+              <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
                 <i class="fas fa-eye"></i> አሳይ
               </button>
             </div>
@@ -48,22 +60,34 @@
       </form>
       
       <div class="card-body">
-         <p class="text-center text-muted">የሚፈልጉትን ሪፖርት እና ዓመተ ምህረት መርጠው "አሳይ" የሚለውን ቁልፍ ሲጫኑ ሪፖርቱ በአዲስ ታብ ላይ ይከፈታል።</p>
+         <p class="text-center text-muted">የሚፈልጉትን መዋቅር እና የሪፖርት ዓይነት መርጠው "አሳይ" የሚለውን ቁልፍ ሲጫኑ ሪፖርቱ በአዲስ ታብ ላይ ይከፈታል።</p>
       </div>
     </div>
   </div>
 </section>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(document).ready(function() {
-    // ፎርሙ ሰብሚት ከመደረጉ በፊት የሪፖርት ዓይነት መመረጡን ጃቫስክሪፕቱ ያረጋግጣል
-    $('#reportForm').submit(function(e) {
-        var reportType = $('#reportSelect').val();
-        if(!reportType) {
+<script nonce="<?php echo $GLOBALS['nonce']; ?>">
+document.addEventListener('DOMContentLoaded', function() {
+    const reportForm = document.getElementById('reportForm');
+    const reportSelect = document.getElementById('reportSelect');
+
+    reportForm.addEventListener('submit', function(e) {
+        const reportType = reportSelect.value;
+        
+        // 1. መጀመሪያ ምርጫ መደረጉን ማረጋገጥ
+        if (!reportType) {
             e.preventDefault();
             alert('እባክዎ መጀመሪያ ማየት የሚፈልጉትን ሪፖርት ይምረጡ!');
+            return false;
         }
+
+        // 2. 'ሠ' የሚለውን ፊደል አጥፍቶ ቁጥሯን ብቻ መለየት (ሠ1 -> 1)
+        const reportNumber = reportType.replace('ሠ', ''); 
+
+        // 3. የፎርሙን መሄጃ አድራሻ (action) በቁጥሩ መሠረት በዲናሚክ መቀየር
+        reportForm.action = `${BASE_URL}/report-${reportNumber}`;
+        
+        // ፎርሙ በ POST እና በ target="_blank" መሠረት ሁለቱንም (branch_id እና report_type) ይዞ በአዲስ ታብ ይከፈታል
     });
 });
 </script>

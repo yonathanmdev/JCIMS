@@ -219,15 +219,16 @@ function myAsset($path) {
     <?php if ($_SESSION['user']['role']==='team_leader'): ?>
     <script nonce="<?php echo $GLOBALS['nonce']; ?>">const BASE_URL = "<?= '/JCIMS' ?>"; // or use $_ENV['BASE_URL'] if you have .env</script>
    <script nonce="<?php echo $GLOBALS['nonce']; ?>">
-    const NOTIFICATION_URLS = {
+   /* const NOTIFICATION_URLS = {
         onboarding: BASE_URL + '/onBoardingEmployees',
         scholarship: BASE_URL + '/on-leave-scholarship-count',
         debtsuspension: BASE_URL + '/debt-suspension-count',
         employee_deleteion_request: BASE_URL + '/employee-deletions-request-count'
     };
-    
+    */
 </script>
-<script src="<?= myAsset('js/all-userdefined-notifications.js') ?>"></script>
+
+<!-- <script src="<?= myAsset('js/all-userdefined-notifications.js') ?>"></script> -->
     <?php endif; ?>
 <script nonce="<?php echo $GLOBALS['nonce']; ?>">
 $(function () {
