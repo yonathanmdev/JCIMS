@@ -49,24 +49,25 @@ class AuthController extends BaseController {
                     'user_uuid'      => $user['id'],
                 ];
 // 2. Safely resolve Branch details if a branch assignment exists
-    if (!empty($user['branch_id'])) {
+   if (!empty($user['branch_id'])) {
     $branchModel = new Branch($this->db);
     $branchData  = $branchModel->getBranchById($user['branch_id']);
 
-    $_SESSION['user']['branch_name']      = !empty($branchData['name']) ? $branchData['name'] : 'Unknown Branch';
-    $_SESSION['user']['alt_name']         = !empty($branchData['alt_name']) ? $branchData['alt_name'] : null;
-    $_SESSION['user']['phone_number']     = !empty($branchData['phone_number']) ? $branchData['phone_number'] : null;
-    $_SESSION['user']['postal_code']      = !empty($branchData['postal_code']) ? $branchData['postal_code'] : null;
-    $_SESSION['user']['logo_url']         = !empty($branchData['logo_url']) ? $branchData['logo_url'] : null;
-    $_SESSION['user']['level']            = $branchData['level'] ?? null;
-    $_SESSION['user']['ketema_astedader'] = $branchData['ketema_astedader'] ?? null;
+    $_SESSION['user']['branch_name']  = !empty($branchData['name']) ? $branchData['name'] : 'Unknown Branch';
+    $_SESSION['user']['alt_name']     = !empty($branchData['alt_name']) ? $branchData['alt_name'] : null;
+    $_SESSION['user']['phone_number'] = !empty($branchData['phone_number']) ? $branchData['phone_number'] : null;
+    $_SESSION['user']['postal_code']  = !empty($branchData['postal_code']) ? $branchData['postal_code'] : null;
+    $_SESSION['user']['logo_url']     = !empty($branchData['logo_url']) ? $branchData['logo_url'] : null;
+    $_SESSION['user']['level']        = $branchData['level'] ?? null;
 
-    // Walk the hierarchy and build the official full-text branch name
-    $levelNames = $branchModel->getAncestryChain($user['branch_id']);
+    // Resolve full ancestry chain + inherited ketema_astedader flag
+    $ancestry = $branchModel->getAncestryChain($user['branch_id']);
+
+    $_SESSION['user']['ketema_astedader'] = $ancestry['ketema_astedader'] ? 'on' : null;
 
     $_SESSION['user']['full_branch_name'] = BranchNameHelper::getFullBranchName(
-        $levelNames,
-        ($branchData['ketema_astedader'] ?? null) === 'on'
+        $ancestry['names'],
+        $ancestry['ketema_astedader']
     );
 
 } else {
@@ -79,7 +80,7 @@ class AuthController extends BaseController {
     $_SESSION['user']['level']            = 0;
     $_SESSION['user']['ketema_astedader'] = null;
     $_SESSION['user']['full_branch_name'] = 'ዋናው መስሪያ ቤት (Headquarters)';
-}  
+}
 // Log successful login
                 \App\Helpers\AuditHelper::logAs($user['id'], 'login_success', 'auth', $user['id']);
 
