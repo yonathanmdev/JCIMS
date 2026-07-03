@@ -155,18 +155,30 @@ public function isSubBranchOf($branchId, $parentBranchId) {
  *
  * e.g. [1 => 'ስራ እና ስልጠና ቢሮ', 2 => 'ደብረታቦር', 3 => 'ፊታውራሪ ገብርዬ', 4 => '02']
  */
+/**
+ * Walks up the branch hierarchy from the given branch to the root,
+ * collecting the name at each level, and resolving ketema_astedader
+ * from whichever ancestor in the chain has it set (typically level 2).
+ *
+ * @return array{
+ *     names: array<int, string>,        // [1 => name, 2 => name, ...]
+ *     ketema_astedader: bool
+ * }
+ */
 public function getAncestryChain(string $branchId): array
 {
-    $chain = [];
+    $names = [];
+    $ketemaAstedader = false;
+
     $currentId = $branchId;
     $depth = 0;
     $maxDepth = 10; // safety guard against a corrupted/circular parent_id chain
 
     while ($currentId !== null && $depth < $maxDepth) {
         $stmt = $this->db->prepare(
-            "SELECT internal_id, parent_id, name, level
+            "SELECT internal_id, parent_id, name, level, ketema_astedader
              FROM branches
-             WHERE internal_id = ?"
+             WHERE internal_id = ? AND is_deleted = 0"
         );
         $stmt->execute([$currentId]);
         $branch = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -175,13 +187,23 @@ public function getAncestryChain(string $branchId): array
             break;
         }
 
-        $chain[(int) $branch['level']] = $branch['name'];
+        $names[(int) $branch['level']] = $branch['name'];
+
+        // Once found anywhere up the chain, it applies to the whole branch
+        if (!$ketemaAstedader && ($branch['ketema_astedader'] ?? null) === 'on') {
+            $ketemaAstedader = true;
+        }
+
         $currentId = $branch['parent_id'];
         $depth++;
     }
 
-    ksort($chain);
-    return $chain;
+    ksort($names);
+
+    return [
+        'names' => $names,
+        'ketema_astedader' => $ketemaAstedader,
+    ];
 }
 /**
  * ባለ ብዙ ደረጃ ንዑስ ቅርንጫፍ (Descendant at ANY depth) መሆኑን ያረጋግጣል

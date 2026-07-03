@@ -71,13 +71,35 @@ public function handleRegistration() {
 
 if (!empty($duplicate)) {
 
+    $triggerType = 'identity'; // default fallback
+    if (!empty($duplicate['kebele_duplicate']))  $triggerType = 'kebele_id';
+    elseif (!empty($duplicate['g8id_duplicate']))  $triggerType = 'g8id';
+    elseif (!empty($duplicate['labor_duplicate'])) $triggerType = 'labor_id';
+    elseif (!empty($duplicate['fan_duplicate']))   $triggerType = 'fan';
+    elseif (!empty($duplicate['identity_duplicate'])) $triggerType = 'identity';
+
+    $jobSeekerModel->logDuplicateAttempt([
+        'id'                     => Uuid::uuid7()->toString(),
+        'attempted_by'           => $user['id'],
+        'branch_id'              => $branchId,
+        'trigger_type'           => $triggerType,
+        'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
+        'attempted_kebele_id_no' => trim($_POST['kebele_id_no']),
+        'attempted_g8id'         => trim($_POST['gradeEight'] ?? ''),
+        'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
+        'attempted_fan'          => trim($_POST['FAN'] ?? ''),
+        'attempted_full_name'    => $normalizedFullName,
+        'attempted_phone_number' => trim($_POST['phone_number']),
+        'attempted_mothername'   => trim($_POST['mothername']),
+        'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
+    ]);
+
     $_SESSION['error'] =
         "ስራ ፈላጊው ከዚህ በፊት <strong>{$duplicate['branch_hierarchy']}</strong> ተመዝግቧል።";
 
     header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
     exit();
 }
-
 
     try {
         // ── Resolve sector/subsector UUIDs to bigint FK values ────────────
@@ -178,6 +200,7 @@ if (!empty($duplicate)) {
 
         if ($jobSeekerModel->createJobseeker($data)) {
             \App\Helpers\AuditHelper::log('jobseeker_registered', 'job_seekers', $jobseekerUuid, null, [
+                'uuid'        => $jobseekerUuid,
                 'first_name'  => $data['first_name'],
                 'father_name' => $data['father_name'],
                 'last_name'   => $data['last_name'],

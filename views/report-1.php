@@ -4,56 +4,171 @@ $report = $report1 ?? [
     'urban_f_parents' => 0,
     'rural_m_parents' => 0,
     'rural_f_parents' => 0,
+
+    'urban_m_others' => 0,
+    'urban_f_others' => 0,
+    'rural_m_others' => 0,
+    'rural_f_others' => 0,
+
+    'urban_m_advice' => 0,
+    'urban_f_advice' => 0,
+    'rural_m_advice' => 0,
+    'rural_f_advice' => 0,
+
+    'urban_m_age15_29' => 0,
+    'urban_f_age15_29' => 0,
+    'rural_m_age15_29' => 0,
+    'rural_f_age15_29' => 0,
 ];
 
-$totalUrban = $report['urban_m_parents'] + $report['urban_f_parents'];
-$totalRural = $report['rural_m_parents'] + $report['rural_f_parents'];
-$totalMale  = $report['urban_m_parents'] + $report['rural_m_parents'];
-$totalFemale = $report['urban_f_parents'] + $report['rural_f_parents'];
-$grandTotal = $totalUrban + $totalRural;
+$totalUrbanparents = $report['urban_m_parents'] + $report['urban_f_parents'];
+$totalRuralparents = $report['rural_m_parents'] + $report['rural_f_parents'];
+$totalMaleparents  = $report['urban_m_parents'] + $report['rural_m_parents'];
+$totalFemaleparents = $report['urban_f_parents'] + $report['rural_f_parents'];
+$grandTotalparents = $totalUrbanparents + $totalRuralparents;
+
+$totalUrbanothers = $report['urban_m_others'] + $report['urban_f_others'];
+$totalRuralothers = $report['rural_m_others'] + $report['rural_f_others'];
+$totalMaleothers  = $report['urban_m_others'] + $report['rural_m_others'];
+$totalFemaleothers = $report['urban_f_others'] + $report['rural_f_others'];
+$grandTotalothers = $totalUrbanothers + $totalRuralothers;
+
+$totalUrbanadvice = $report['urban_m_advice'] + $report['urban_f_advice'];
+$totalRuraladvice = $report['rural_m_advice'] + $report['rural_f_advice'];
+$totalMaleadvice  = $report['urban_m_advice'] + $report['rural_m_advice'];
+$totalFemaleadvice = $report['urban_f_advice'] + $report['rural_f_advice'];
+$grandTotaladvice = $totalUrbanadvice + $totalRuraladvice;
+
+$totalUrbanage15_29 = $report['urban_m_age15_29'] + $report['urban_f_age15_29'];
+$totalRuralage15_29 = $report['rural_m_age15_29'] + $report['rural_f_age15_29'];
+$totalMaleage15_29  = $report['urban_m_age15_29'] + $report['rural_m_age15_29'];
+$totalFemaleage15_29 = $report['urban_f_age15_29'] + $report['rural_f_age15_29'];
+$grandTotalage15_29 = $totalUrbanage15_29 + $totalRuralage15_29;
 ?>
 
+
+<center><h5>የስራ ፈላጊዎች ምዝገባ እና ግንዛቤ ፈጠራ (ሠ-1)</h5>
+<h6>የሪፖርት ቀን፦</h6></center>
 <div class="table-responsive">
     <table class="table table-bordered table-striped text-center">
         <thead class="table-primary">
             <tr>
-                <th rowspan="2">Category</th>
-                <th colspan="3">Urban</th>
-                <th colspan="3">Rural</th>
-                <th colspan="3">Grand Total</th>
+                <th rowspan="3" style="width: 10%;">ስትራቴጂያዊ ግቦች</th>
+                <th rowspan="2">አመልካቾች</th>
+                <th rowspan="3" style="width: 4%;">መለኪያ</th>
+                <th colspan="3">ከተማ</th>
+                <th colspan="3">ገጠር</th>
+                <th colspan="3">ከተማና ገጠር</th>
             </tr>
             <tr>
-                <th>Male</th>
-                <th>Female</th>
-                <th>Total</th>
+                <th>ወንድ</th>
+                <th>ሴት</th>
+                <th>ድምር</th>
 
-                <th>Male</th>
-                <th>Female</th>
-                <th>Total</th>
+                <th>ወንድ</th>
+                <th>ሴት</th>
+                <th>ድምር</th>
 
-                <th>Male</th>
-                <th>Female</th>
-                <th>Total</th>
+                <th>ወንድ</th>
+                <th>ሴት</th>
+                <th>ድምር</th>
             </tr>
         </thead>
 
         <tbody>
             <tr>
+                <td rowspan="20" class="font-weight-bold" style="background-color: #fff;">
+                ዘላቂ የሥራ ዕድል በመፍጠር የዜጎችን ተጠቃሚነት ማረጋገጥ
+                        </td>
                 <td class="text-left">
-                    ለስራ ፈላጊ ወላጆች
+                    አጠቃላይ የተመዘገቡ ስራ ፈላጊዎች
                 </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_advice']; ?></td>
+                <td><?= $report['urban_f_advice']; ?></td>
+                <td><?= $totalUrbanadvice; ?></td>
+
+                <td><?= $report['rural_m_advice']; ?></td>
+                <td><?= $report['rural_f_advice']; ?></td>
+                <td><?= $totalRuraladvice; ?></td>
+
+                <td><?= $totalMaleadvice; ?></td>
+                <td><?= $totalFemaleadvice; ?></td>
+                <td><strong><?= $grandTotaladvice; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    በዕድሜ (15-29 ዓመት)
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_age15_29']; ?></td>
+                <td><?= $report['urban_f_age15_29']; ?></td>
+                <td><?= $totalUrbanage15_29; ?></td>
+
+                <td><?= $report['rural_m_age15_29']; ?></td>
+                <td><?= $report['rural_f_age15_29']; ?></td>
+                <td><?= $totalRuralage15_29; ?></td>
+
+                <td><?= $totalMaleage15_29; ?></td>
+                <td><?= $totalFemaleage15_29; ?></td>
+                <td><strong><?= $grandTotalage15_29; ?></strong></td>
+            </tr>
+            
+            <tr>
+                <td class="text-left">
+                    የግንዛቤ ማስጨበጫ ስራ ፈላጊ ወላጆች
+                </td>
+                <td>በቁጥር</td>
 
                 <td><?= $report['urban_m_parents']; ?></td>
                 <td><?= $report['urban_f_parents']; ?></td>
-                <td><?= $totalUrban; ?></td>
+                <td><?= $totalUrbanparents; ?></td>
 
                 <td><?= $report['rural_m_parents']; ?></td>
                 <td><?= $report['rural_f_parents']; ?></td>
-                <td><?= $totalRural; ?></td>
+                <td><?= $totalRuralparents; ?></td>
 
-                <td><?= $totalMale; ?></td>
-                <td><?= $totalFemale; ?></td>
-                <td><strong><?= $grandTotal; ?></strong></td>
+                <td><?= $totalMaleparents; ?></td>
+                <td><?= $totalFemaleparents; ?></td>
+                <td><strong><?= $grandTotalparents; ?></strong></td>
+            </tr>
+             <tr>
+                <td class="text-left">
+                    የግንዛቤ ማስጨበጫ ሌሎች ህብረተሰብ ክፍሎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_others']; ?></td>
+                <td><?= $report['urban_f_others']; ?></td>
+                <td><?= $totalUrbanothers; ?></td>
+
+                <td><?= $report['rural_m_others']; ?></td>
+                <td><?= $report['rural_f_others']; ?></td>
+                <td><?= $totalRuralothers; ?></td>
+
+                <td><?= $totalMaleothers; ?></td>
+                <td><?= $totalFemaleothers; ?></td>
+                <td><strong><?= $grandTotalothers; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    ለስራ ፈላጊዎች ተገቢውን የምክርና የመረጃ አገልግሎት መስጠት
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_advice']; ?></td>
+                <td><?= $report['urban_f_advice']; ?></td>
+                <td><?= $totalUrbanadvice; ?></td>
+
+                <td><?= $report['rural_m_advice']; ?></td>
+                <td><?= $report['rural_f_advice']; ?></td>
+                <td><?= $totalRuraladvice; ?></td>
+
+                <td><?= $totalMaleadvice; ?></td>
+                <td><?= $totalFemaleadvice; ?></td>
+                <td><strong><?= $grandTotaladvice; ?></strong></td>
             </tr>
         </tbody>
     </table>
