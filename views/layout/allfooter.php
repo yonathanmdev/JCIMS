@@ -143,7 +143,7 @@ function myAsset($path) {
    
  <?php if (isset($is_deleteawarness) && $is_deleteawarness === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
-    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
+ 
      
     <script src="<?= myAsset('js/sweetalert2.min.js') ?>"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>

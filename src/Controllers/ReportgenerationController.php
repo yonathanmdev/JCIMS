@@ -28,6 +28,7 @@ class ReportgenerationController extends BaseController
         // 1. ከ Session ላይ የባለቤቱን branch_id እንወስዳለን
         // ማሳሰቢያ፦ ሲስተምህ ላይ በሎግኢን ጊዜ Session ውስጥ የተቀመጠበትን ስም (ለምሳሌ 'user_branch' ወይም 'branch_id') አረጋግጥ
         $branchId = $_SESSION['user']['branch_id'] ?? null; 
+        
 
         if ($reportType === 'ሠ1') {
             // 2. የ branch_id እሴትን ለሞዴሉ እናሳልፋለን
@@ -40,7 +41,7 @@ $otherData = $this->reportModel->getSe1OtherData($year, $branchId);
 // 3. ሁለቱን ዳታዎች ማዋሃድ (ይህ ወሳኝ ነው!)
 $reportData = array_merge($mainData ?: [], $otherData ?: []);
 
-            $title = 'የስራ ፈላጊዎች ምዝገባና ግንዛቤ ፈጠራ ሪፖርት (ሠ1)';
+            $title = 'የስራ ፈላጊዎች ምዝገባና ግንዛቤ ፈጠራ ሪፖርት (ሠ1)'.$branchId;
             
             $viewPath = __DIR__ . '/../views/report1.php'; 
             if (file_exists($viewPath)) {
