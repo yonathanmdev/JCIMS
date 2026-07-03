@@ -398,7 +398,7 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
 }
 
 /**
- * ለአዲሱ ቴብል ብቻ የተዘጋጀ የዳታ ማስተካከያ (Normalization)
+ * ለአዲሱ ቴብል Jobseekers የተዘጋጀ የዳታ ማስተካከያ (Normalization)
  */
 private function normalizeAdviceRow(array|false $row): array
 {
