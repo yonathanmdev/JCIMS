@@ -1,54 +1,87 @@
-<?php $is_organization_page = true; ?>
-<!-- Main content -->
+<?php
+use App\Helpers\EthiopianDateHelper; 
+use App\Helpers\AuthHelper;
+$fiscal_year = AuthHelper::checkFiscalYear();
+$is_jobseeker_list_page = true; 
+?>
 <section class="content">
   <div class="container-fluid">
-
-    <!-- Card -->
-    <div class="card card-default">
-     <div class="card card-primary card-outline">
-
-      <div class="card-body">
+    <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center card-primary card-outline">
+  
+      
+    </div>
+     <div class="card-body">
+      <small class="text-muted">
+        ጠቅላላ የመዘገቡት ስራ ፈላጊ ብዛት፦
+     <span class="badge badge-primary"> 
+        <?= $totalCount ?>
+  </span>
+   </small>
         <!-- Example Table (optional) -->
-      <table id="example1" data-empty-msg="ምንም ስራ ፈላጊ የለም።" class="table table-bordered table-hover dataTable dtr-inline small" style="color: #000;" aria-describedby="example2_info">
+      <table id="example1" data-empty-msg="ምንም ስራ ፈላጊ የለም።" class="table table-bordered table-hover small">
     <thead class="thead-light">
-      <tr>
-        <th>#</th>
-        <th>ስም </th>
-        <th>ጾታ</th>
-        <th>ቅርንጫፍ</th>
-        <th>Action</th>
-      </tr>
+        <tr>
+            <th>#</th>
+            <th>ስም</th>
+            <th>ጾታ</th>
+            <th>Action</th>
+        </tr>
     </thead>
     <tbody>
-      <?php if (!empty($jobSeekers)): ?>
-        <?php foreach ($jobSeekers as $index => $row): ?>
-         <tr id="row-<?= $row['id'] ?>">
-            <td><?= $index + 1 ?></td>
-            <td><?= htmlspecialchars($row['first_name']).' '.htmlspecialchars($row['father_name']).' '.htmlspecialchars($row['last_name']) ?></td>
-           <td><?= htmlspecialchars($row['gender']) ?></td>
-           <td><?= htmlspecialchars($row['branch_name']) ?></td>
-            <td class="text-center align-middle">
-  <div class="btn-group btn-group-sm shadow-sm" role="group">
-               <button class="btn btn-outline-secondary btn-sm edit-org" 
-                      data-id="<?= $row['id'] ?>"
-                      title="አስተካክል"  >
-                <i class="fas fa-edit"></i>
-              </button> 
-              <button class="btn btn-outline-danger btn-sm delete-org"
-            data-id="<?= $row['id'] ?>">
-             <i class="fas fa-trash-alt me-1"></i>
-        </button>
-  </div>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-      <?php endif; ?>
+        <?php if (!empty($jobSeekers)): ?>
+            <?php foreach ($jobSeekers as $index => $js): ?>
+                <tr id="row-<?= $js['id'] ?>">
+                    <td><?= $offset + $index + 1 ?></td>
+                    <td><?= htmlspecialchars($js['first_name']) . ' ' . htmlspecialchars($js['father_name']) . ' ' . htmlspecialchars($js['last_name']) ?></td>
+                    <td><?= htmlspecialchars($js['gender']) ?></td>
+                    <td class="text-center align-middle">
+                        <button class="btn btn-outline-primary btn-sm view-jobseeker-btn"
+                                data-id="<?= htmlspecialchars($js['id']) ?>"
+                                title="ሙሉ መረጃ ይመልከቱ">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4])): ?>
+                            <button class="btn btn-outline-warning btn-sm edit-jobseeker-btn"
+                                    data-id="<?= htmlspecialchars($js['id']) ?>"
+                                    title="አስተካክል">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr>
+                <td colspan="4" class="text-center text-muted py-3">ዛሬ ምንም ስራ ፈላጊ አልመዘገቡም።</td>
+            </tr>
+        <?php endif; ?>
     </tbody>
-  </table>
-      </div>
+</table>
+<?php
+$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual working route
+?>
 
-    </div>
-    <!-- /.card -->
+<?php if ($totalPages > 1): ?>
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-end">
+        <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
+            <a class="page-link" href="<?= $basePath ?>?page=<?= $currentPage - 1 ?>">ቀዳሚ</a>
+        </li>
 
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <li class="page-item <?= $i === $currentPage ? 'active' : '' ?>">
+                <a class="page-link" href="<?= $basePath ?>?page=<?= $i ?>"><?= $i ?></a>
+            </li>
+        <?php endfor; ?>
+
+        <li class="page-item <?= $currentPage >= $totalPages ? 'disabled' : '' ?>">
+            <a class="page-link" href="<?= $basePath ?>?page=<?= $currentPage + 1 ?>">ቀጣይ</a>
+        </li>
+    </ul>
+</nav>
+<?php endif; ?>
+  </div>
   </div>
 </section>
+<?php include 'partials/jobseeker-modal.php'; ?>
+<?php include 'partials/jobseeker-views-modal.php'; ?>

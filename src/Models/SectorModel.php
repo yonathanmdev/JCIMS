@@ -191,4 +191,45 @@ public function getSubsectorBigIntIds(string $subsectorUuid): ?array
 
     return $result ?: null;
 }
+
+public function getAllSectorsAndSubsectors(): array
+{
+    try {
+        $sql = "SELECT
+                    s.id AS sector_id,
+                    s.sector AS sector_name,
+                    ss.id AS subsector_id,
+                    ss.subsector AS subsector_name
+                FROM sector_table s
+                LEFT JOIN sub_sector ss ON ss.sectorid = s.sectorid
+                ORDER BY s.sector, ss.subsector";
+
+        $stmt = $this->db->query($sql);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $sectors = [];
+        $subsectorsBySector = [];
+        $seen = [];
+
+        foreach ($rows as $row) {
+            if (!isset($seen[$row['sector_id']])) {
+                $sectors[] = ['id' => $row['sector_id'], 'name' => $row['sector_name']];
+                $seen[$row['sector_id']] = true;
+                $subsectorsBySector[$row['sector_id']] = []; // keyed by sector UUID
+            }
+            if ($row['subsector_id']) {
+                $subsectorsBySector[$row['sector_id']][] = [
+                    'id'   => $row['subsector_id'],   // subsector UUID
+                    'name' => $row['subsector_name'],
+                ];
+            }
+        }
+
+        return ['sectors' => $sectors, 'subsectorsBySector' => $subsectorsBySector];
+
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return ['sectors' => [], 'subsectorsBySector' => []];
+    }
+}
     }

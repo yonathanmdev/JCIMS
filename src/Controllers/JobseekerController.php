@@ -36,7 +36,7 @@ $jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
     $t0 = microtime(true);
     header('Content-Type: application/json');
 
-    AuthHelper::checkRole(['officer'], [3, 4]);
+    AuthHelper::checkRole(['team_leader', 'officer']);
     session_write_close();
     $t1 = microtime(true);
     error_log("checkRole took: " . round(($t1 - $t0) * 1000, 2) . "ms");
@@ -80,9 +80,18 @@ $jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
     error_log("TOTAL request took: " . round(($t4 - $t0) * 1000, 2) . "ms");
 }
 public function handleRegistration() {
-    AuthHelper::checkRole(['officer'],[3, 4]);
+    AuthHelper::checkRole(['team_leader', 'officer'],[3, 4]);
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+        exit();
+    }
+
+     $mode = trim($_POST['mode'] ?? 'create');
+    $jobseekerId = trim($_POST['jobseeker_id'] ?? '');
+
+    if ($mode === 'edit' && $jobseekerId === '') {
+        $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
         exit();
     }
@@ -118,7 +127,8 @@ public function handleRegistration() {
     'full_name_normalized' => $normalizedFullName,
     'mothername'           => trim($_POST['mothername']),
     'phone_number'         => trim($_POST['phone_number']),
-]);
+], $mode === 'edit' ? $jobseekerId : null
+);
 
 if (!empty($duplicate)) {
 
@@ -146,7 +156,7 @@ if (!empty($duplicate)) {
     ]);
 
     $_SESSION['error'] =
-        "ስራ ፈላጊው ከዚህ በፊት <strong>{$duplicate['branch_hierarchy']}</strong> ተመዝግቧል።";
+        "ስራ ፈላጊው ከዚህ በፊት <strong>{$duplicate['branch_hierarchy']}</strong> ተመዝግቧል።".$mode;
 
     header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
     exit();
@@ -190,10 +200,8 @@ if (!empty($duplicate)) {
         );
 
         // ── Build data arrays ─────────────────────────────────────────────
-        $jobseekerUuid = Uuid::uuid7()->toString();
-
         $data = [
-            'uuid'                             => $jobseekerUuid,
+            'uuid'                             => $mode === 'edit' ? $jobseekerId : Uuid::uuid7()->toString(),
             'first_name'                       => trim($_POST['first_name'] ?? ''),
             'father_name'                      => trim($_POST['father_name'] ?? ''),
             'last_name'                        => trim($_POST['last_name'] ?? ''),
@@ -247,18 +255,27 @@ if (!empty($duplicate)) {
             'sub_choose3'    => $resolvedSectors[3]['subsector_id'],
         ];
 
-       
+       if ($mode === 'edit') {
+            $success = $jobSeekerModel->updateJobseeker($data);
+            $auditAction = 'jobseeker_updated';
+            $successMsg  = 'ስራ ፈላጊ መረጃ በትክክል ተስተካክሏል።';
+        } else {
+            $data['uuid'] = Uuid::uuid7()->toString();
+            $success = $jobSeekerModel->createJobseeker($data);
+            $auditAction = 'jobseeker_registered';
+            $successMsg  = 'ስራ ፈላጊ በትክክል ተመዝግቧል።';
+        }
 
-        if ($jobSeekerModel->createJobseeker($data)) {
-            \App\Helpers\AuditHelper::log('jobseeker_registered', 'job_seekers', $jobseekerUuid, null, [
-                'uuid'        => $jobseekerUuid,
+         if ($success) {
+            \App\Helpers\AuditHelper::log($auditAction, 'job_seekers', $data['reg_by'], null, [
+                'uuid'        => $data['uuid'],
                 'first_name'  => $data['first_name'],
                 'father_name' => $data['father_name'],
                 'last_name'   => $data['last_name'],
                 'branch_id'   => $data['branch_id'],
             ]);
 
-            $_SESSION['success'] = 'ስራ ፈላጊ በትክክል ተመዝግቧል።';
+            $_SESSION['success'] =  $successMsg;
         } else {
             $_SESSION['error'] = 'ስራ ፈላጊ መመዝገቢያ ሂደት አልተሳካም።';
         }
@@ -602,18 +619,33 @@ private function validateJobseekerData(array $post): array
 
 
     public function listofJobseekers() {
-         AuthHelper::checkRole(['team_leader', 'officer']);
- $myBranchId  = $_SESSION['user']['branch_id'];
- $jobSeekerModel = new JobSeekerModel($this->db);
-$jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId);
-        $data = [
-            'jobSeekers' => $jobSeekers,
-            'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
-        ];
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    $myBranchId = $_SESSION['user']['branch_id'];
 
-        $this->render('jobseekers-list', $data);
-    }
-     
+    $sectorModel = new SectorModel($this->db);
+    $sectors = $sectorModel->getSectors();
+
+    $jobSeekerModel = new JobSeekerModel($this->db);
+    $limit = 5;
+    $currentPage = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($currentPage - 1) * $limit;
+
+    $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId, $limit, $offset);
+    $totalCount = $jobSeekerModel->countJobSeekersByHierarchy($myBranchId);
+    $totalPages = (int)ceil($totalCount / $limit);
+
+    $data = [
+        'title'       => 'JCIMS - የሰራተኛ መመዝገቢያ',
+        'jobSeekers'  => $jobSeekers,
+        'sectors'     => $sectors,
+        'offset'      => $offset,        // ADD THIS
+        'currentPage' => $currentPage,   // ADD THIS
+        'totalPages'  => $totalPages,    // ADD THIS
+        'totalCount' => $totalCount
+    ];
+
+    $this->render('jobseekers-list', $data);
+}
     public function listofJobseekersfortransfer() {
          AuthHelper::checkRole(['team_leader', 'officer']);
  $myBranchId  = $_SESSION['user']['branch_id'];

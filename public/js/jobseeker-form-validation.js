@@ -562,84 +562,53 @@ const state = {
     }
 
     
+function populateSubSectorsForEdit(js) {
+    // Step 1: render each sub-select's options based on its OWN sector value,
+    // in order 1 → 2 → 3, so getSelectedSubValues() sees earlier selections
+    // already in place when rendering later ones (correct "taken" greying).
+    [1, 2, 3].forEach(n => {
+        const subSelect = document.getElementById(`sub_choose${n}`);
+        if (!subSelect) return;
 
+        // Set the value BEFORE rendering options isn't right either —
+        // renderSubOptions rebuilds innerHTML, so instead:
+        renderSubOptions(subSelect);              // builds the option list for current sector
+        subSelect.value = js[`sub_choose${n}`] ?? ''; // now select the saved value
+    });
+
+    // Step 2: one more pass to correctly greltay-out cross-selected values
+    // now that all three have their real final values in place
+    [1, 2, 3].forEach(n => {
+        const subSelect = document.getElementById(`sub_choose${n}`);
+        if (subSelect) renderSubOptions(subSelect); // re-render so "taken elsewhere" reflects final state
+    });
+
+    // Step 3: since re-rendering wipes value again, restore once more (final)
+    [1, 2, 3].forEach(n => {
+        const subSelect = document.getElementById(`sub_choose${n}`);
+        if (subSelect) subSelect.value = js[`sub_choose${n}`] ?? '';
+    });
+}
     // ── populateFormFromData — now async, handles cascading dropdowns ──
-async function populateFormFromData(form, js) {
-    // ─────────────────────────────────────────────
-    // STEP 1: Fill ALL simple fields first
-    // ─────────────────────────────────────────────
+function populateFormFromData(form, js) {
     Object.keys(js).forEach(key => {
         const field = form.elements[key];
         if (!field) return;
-
-        // skip sub-sector fields for now
-        if (key.includes('sub_sector')) return;
+        if (key.includes('sub_sector') || key.includes('sub_choose')) return;
 
         if (field.type === 'checkbox') {
             field.checked = !!js[key];
-
         } else if (field.type === 'radio') {
             form.querySelectorAll(`input[name="${key}"]`).forEach(r => {
                 r.checked = (r.value == js[key]);
             });
-
-        } else if (field.tagName === 'SELECT') {
-            field.value = js[key] ?? '';
-
         } else {
             field.value = js[key] ?? '';
         }
     });
 
-    // ─────────────────────────────────────────────
-    // STEP 2: FORCE CASCADE LOAD (sector → sub-sector)
-    // ─────────────────────────────────────────────
-    const sectorMap = [
-        'choice_sector1',
-        'choice_sector2',
-        'choice_sector3'
-    ];
+    populateSubSectorsForEdit(js); // handles sub_choose1/2/3 correctly, no events involved
 
-    for (const sectorId of sectorMap) {
-        const sectorEl = document.getElementById(sectorId);
-        if (!sectorEl) continue;
-
-        // trigger async loader AND WAIT
-        await window.loadSubsectorsFor(sectorEl);
-    }
-
-    // ─────────────────────────────────────────────
-    // STEP 3: WAIT FOR DOM UPDATE SAFELY
-    // ─────────────────────────────────────────────
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    // ─────────────────────────────────────────────
-    // STEP 4: SET SUB-SECTOR VALUES (AFTER OPTIONS EXIST)
-    // ─────────────────────────────────────────────
-    const subMap = {
-        choice_sub_sector1: js.choice_sub_sector1,
-        choice_sub_sector2: js.choice_sub_sector2,
-        choice_sub_sector3: js.choice_sub_sector3
-    };
-
-    Object.entries(subMap).forEach(([id, value]) => {
-        if (!value) return;
-
-        const el = document.getElementById(id);
-        if (!el) return;
-
-        const exists = Array.from(el.options).some(opt => opt.value == value);
-
-        if (exists) {
-            el.value = value;
-        } else {
-            console.warn(`Sub-sector not found: ${id} = ${value}`);
-        }
-    });
-
-    // ─────────────────────────────────────────────
-    // STEP 5: TRIGGER CONDITIONAL LOGIC LAST
-    // ─────────────────────────────────────────────
     applyAllConditionalLogic?.();
 }
 
@@ -665,13 +634,34 @@ async function populateFormFromData(form, js) {
         // Run all conditional logic once on load to apply initial states
         applyAllConditionalLogic();
 
-        document.getElementById('jobseekerForm')?.addEventListener('submit', function (e) {
-            if (!validateChildrenUnderFive()) {
-                e.preventDefault();
-                document.getElementById('children_under_five').reportValidity();
-                return;
-            }
-        });
+       document.getElementById('jobseekerForm')?.addEventListener('submit', function (e) {
+
+    if (!validateChildrenUnderFive()) {
+
+        e.preventDefault();
+
+        const $form = $(this);
+
+        // 🚫 stop global script from disabling buttons
+        $form.data('prevent-submit', true);
+
+        // restore UI state
+        $form.data('submitting', false);
+        $form.removeData('submitButton');
+
+        $form.find('button[type="submit"], input[type="submit"]')
+              .prop('disabled', false);
+
+        document.getElementById('children_under_five').focus();
+
+        // cleanup flag
+        setTimeout(() => {
+            $form.removeData('prevent-submit');
+        }, 0);
+
+        return;
+    }
+});
 
         // Reset wizard each time modal opens
         $('#jobseekerRegistrationModal').on('show.bs.modal', resetWizard);
@@ -685,7 +675,10 @@ async function populateFormFromData(form, js) {
             document.getElementById('jobseekerIdField').value = '';
             document.getElementById('jobseekerModalTitle').innerHTML =
                 '<i class="fas fa-plus mr-1"></i> የስራ ፈላጊ መመዝገቢያ ፎርም';
+            const submitBtn = document.getElementById('submitBtn');
             document.getElementById('submitBtn').textContent = 'መዝግብ';
+            submitBtn.classList.remove('btn-warning');
+            submitBtn.classList.add('btn-success');
 
             $('#jobseekerRegistrationModal').modal('show');
             $('#jobseekerRegistrationModal').one('shown.bs.modal', function () {
@@ -702,7 +695,7 @@ async function populateFormFromData(form, js) {
             console.time('fetch');
             fetch(`${window.BASE_URL}/retrieve-jobseeker?jobseeker_id=${jobseekerId}`)
                 .then(res => res.json())
-                .then(async function (data) {
+                .then(function (data) {
                     console.timeEnd('fetch');
                     if (!data.success) {
                         Swal.fire({ icon: 'error', title: data.message || 'መረጃ አልተገኘም' });
@@ -716,48 +709,13 @@ async function populateFormFromData(form, js) {
                     document.getElementById('jobseekerModalTitle').innerHTML =
                         '<i class="fas fa-edit mr-1"></i> የስራ ፈላጊ መረጃ ማስተካከያ ፎርም';
                     document.getElementById('submitBtn').textContent = 'አስተካክል';
+                    const submitBtn = document.getElementById('submitBtn');
+                    submitBtn.classList.remove('btn-success');
+                    submitBtn.classList.add('btn-warning');
 
-                    console.time('populate');
-                   console.time('populate');
-
-await populateFormFromData(form, data.jobseeker);
-
-// 🔥 IMPORTANT: force cascade reload AFTER base values exist
-const sector1 = document.getElementById('choice_sector1');
-const sector2 = document.getElementById('choice_sector2');
-const sector3 = document.getElementById('choice_sector3');
-
-if (sector1) await window.loadSubsectorsFor(sector1);
-if (sector2) await window.loadSubsectorsFor(sector2);
-if (sector3) await window.loadSubsectorsFor(sector3);
-
-// NOW set sub-sector values AFTER options exist
-requestAnimationFrame(() => {
-    const js = data.jobseeker;
-
-    const map = {
-        choice_sub_sector1: js.choice_sub_sector1,
-        choice_sub_sector2: js.choice_sub_sector2,
-        choice_sub_sector3: js.choice_sub_sector3
-    };
-
-    Object.entries(map).forEach(([id, value]) => {
-        const el = document.getElementById(id);
-        if (!el || !value) return;
-
-        // wait until options exist
-        const exists = Array.from(el.options).some(o => o.value == value);
-
-        if (exists) {
-            el.value = value;
-        } else {
-            console.warn("Sub-sector not ready:", id, value);
-        }
-    });
-});
-
-
-                    console.timeEnd('populate');
+                 console.time('populate');
+                 populateFormFromData(form, data.jobseeker); // now synchronous — no await needed
+                 // console.timeEnd('populate');
 
                     $('#jobseekerRegistrationModal').modal('show');
                     $('#jobseekerRegistrationModal').one('shown.bs.modal', function () {

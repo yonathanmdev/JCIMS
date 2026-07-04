@@ -1,7 +1,20 @@
 // ── Module-level state, OUTSIDE DOMContentLoaded ──────────────────
-const subOptionsCache = {};
+let ALL_SECTOR_DATA = null;   // { subsectorsBySector: { sectorId: [{id, name}, ...] } }
 let cascadeGroups = [];
 let subSelectIds = [];
+
+// ── Load all sector/subsector data ONCE per page load ──────────────
+async function loadAllSectorData() {
+    if (ALL_SECTOR_DATA) return ALL_SECTOR_DATA;
+    try {
+        const res = await fetch(`${BASE_URL}/all-sectors-subsectors`);
+        ALL_SECTOR_DATA = await res.json();
+    } catch (err) {
+        console.error('Failed to load sector/subsector data:', err);
+        ALL_SECTOR_DATA = { subsectorsBySector: {} };
+    }
+    return ALL_SECTOR_DATA;
+}
 
 function getSelectedSubValues(excludeId) {
     return subSelectIds
@@ -12,96 +25,98 @@ function getSelectedSubValues(excludeId) {
 
 function renderSubOptions(subSelect) {
     const subId = subSelect.id;
-    const options = subOptionsCache[subId] || [];
-    const selectedElsewhere = getSelectedSubValues(subId);
-    const currentValue = subSelect.value;
+
+    const sectorSelect = cascadeGroups.find(
+        sel => sel.getAttribute('data-cascade-target') === subId
+    );
+    const sectorId = sectorSelect?.value;
+
+    const currentValue = subSelect.value; // capture BEFORE wiping
 
     subSelect.innerHTML = '<option value="">-- ንዑስ ዘርፍ ይምረጡ --</option>';
+
+    if (!sectorId || !ALL_SECTOR_DATA) {
+        subSelect.disabled = true;
+        return;
+    }
+
+    const options = ALL_SECTOR_DATA.subsectorsBySector[sectorId] || [];
+    const selectedElsewhere = getSelectedSubValues(subId);
+
+    if (!options.length) {
+        subSelect.innerHTML = '<option value="">-- ንዑስ ዘርፍ የለም --</option>';
+        subSelect.disabled = true;
+        return;
+    }
 
     options.forEach(function (sub) {
         const isTakenElsewhere = selectedElsewhere.includes(String(sub.id));
         const opt = document.createElement('option');
         opt.value = sub.id;
-        opt.textContent = sub.subsector;
-        if (isTakenElsewhere) {
-            opt.disabled = true;
-            opt.textContent += ' (ተመርጧል)';
-        }
+        opt.textContent = isTakenElsewhere ? `${sub.name} (ተመርጧል)` : sub.name;
+        // no opt.disabled — stays selectable either way
         subSelect.appendChild(opt);
     });
+
+    subSelect.disabled = false;
 
     if (currentValue && options.some(o => String(o.id) === currentValue)) {
         subSelect.value = currentValue;
     }
 }
+function clearConflictingDownstreamSelections(changedId, newValue) {
+    const changedIndex = subSelectIds.indexOf(changedId);
+    if (changedIndex === -1 || !newValue) return;
 
-function refreshAllSubSelects() {
-    subSelectIds.forEach(function (id) {
+    subSelectIds.forEach(function (id, index) {
+        if (index <= changedIndex) return; // only later selects
+
         const subSelect = document.getElementById(id);
-        if (!subSelect.disabled) {
-            renderSubOptions(subSelect);
+        if (subSelect && subSelect.value === newValue) {
+            subSelect.selectedIndex = 0; // reset to the default placeholder option
         }
     });
 }
 
-// ── Shared loader — callable from a real "change" event AND programmatically ──
-window.loadSubsectorsFor = async function (sectorSelect) {
+// ── FIX: accepts an excludeId so the select the user just interacted
+// with isn't rebuilt out from under their own click. Only the OTHER
+// sub-selects get refreshed, to grey out options now taken elsewhere. ──
+function refreshSubsequentSubSelects(changedId) {
+    const changedIndex = subSelectIds.indexOf(changedId);
+    if (changedIndex === -1) return;
+
+    subSelectIds.forEach(function (id, index) {
+        if (index <= changedIndex) return;
+        const subSelect = document.getElementById(id);
+        renderSubOptions(subSelect);
+    });
+}
+
+window.loadSubsectorsFor = function (sectorSelect) {
     const targetId = sectorSelect.getAttribute('data-cascade-target');
     const subSelect = document.getElementById(targetId);
-    const sectorId = sectorSelect.value;
-
-    subOptionsCache[targetId] = [];
-
-    // ⚡ minimal DOM work (do NOT force reflow early)
-    subSelect.disabled = true;
-    subSelect.innerHTML = '<option>Loading...</option>';
-
-    if (!sectorId) {
-        subSelect.innerHTML = '<option>-- መጀመሪያ ዘርፍ ይምረጡ --</option>';
-        return;
-    }
-
-    try {
-        const res = await fetch(
-            `${BASE_URL}/subsectors-by-sector?sector_id=${encodeURIComponent(sectorId)}`
-        );
-
-        const subsectors = await res.json();
-        subOptionsCache[targetId] = subsectors;
-
-        if (!subsectors.length) {
-            subSelect.innerHTML = '<option>-- ንዑስ ዘርፍ የለም --</option>';
-            return;
-        }
-
-        // FIX: route freshly-loaded options through renderSubOptions instead of
-        // building the option list by hand. Building it manually skipped the
-        // "already selected in another sector" disabling logic entirely, so a
-        // subsector could be picked twice across the cascade groups until some
-        // other select happened to change and trigger a refresh.
-        requestAnimationFrame(() => {
-            renderSubOptions(subSelect);
-            subSelect.disabled = false;
-        });
-
-    } catch (err) {
-        console.error('Subsector fetch failed:', err);
-        subSelect.innerHTML = '<option>-- ስህተት ተከስቷል --</option>';
-    }
+    if (subSelect) renderSubOptions(subSelect);
 };
 
-// ── DOMContentLoaded: only wiring, no logic definitions ────────────
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     cascadeGroups = Array.from(document.querySelectorAll('[data-cascade-target]'));
     subSelectIds = cascadeGroups.map(sel => sel.getAttribute('data-cascade-target'));
 
+    await loadAllSectorData();
+
     cascadeGroups.forEach(function (sectorSelect) {
         sectorSelect.addEventListener('change', function () {
-            window.loadSubsectorsFor(sectorSelect);   // path 1: real user selection
+            window.loadSubsectorsFor(sectorSelect);
         });
     });
 
     subSelectIds.forEach(function (id) {
-        document.getElementById(id).addEventListener('change', refreshAllSubSelects);
+    document.getElementById(id)?.addEventListener('change', function () {
+        const changedSelect = document.getElementById(id);
+        const newValue = changedSelect.value;
+
+        clearConflictingDownstreamSelections(id, newValue);
+        refreshSubsequentSubSelects(id);
     });
+});
 });
