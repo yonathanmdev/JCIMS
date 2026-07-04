@@ -172,6 +172,16 @@ $sectors  = $sectorModel->getSectors();
     header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/sub-sector-registration");
     exit();
 }
+
+public function getAllSectorsWithSubsectors(): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+
+    $sectorModel = new SectorModel($this->db);
+    $data = $sectorModel->getAllSectorsAndSubsectors();
+
+    echo json_encode($data);
+}
  public function subsectorsBySector(): void
 {
     session_write_close(); // 🔥 unlock session early

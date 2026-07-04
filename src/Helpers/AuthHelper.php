@@ -62,4 +62,15 @@ public static function checkFiscalYear(): int
 
     return $fiscalYear;
 }
+
+public static function hasRole(array $allowedRoles, array $allowedLevels = []): bool
+{
+    $userRole  = $_SESSION['user']['role'] ?? null;
+    $userLevel = $_SESSION['user']['level'] ?? null;
+
+    $roleAllowed = in_array($userRole, $allowedRoles, true);
+    $levelAllowed = empty($allowedLevels) ? true : in_array($userLevel, $allowedLevels, true);
+
+    return $roleAllowed && $levelAllowed;
+}
 }

@@ -17,8 +17,7 @@ $role = $_SESSION['user']['role'] ?? '';
             
             <?php if (!empty($_SESSION['user']['logo_url'])): ?>
               <img src="<?= rtrim($_ENV['BASE_URL'] ?? '', '/') ?>/serve-file?file=<?= htmlspecialchars($_SESSION['user']['logo_url']) ?>&type=image" 
-                   alt="<?= htmlspecialchars($_SESSION['user']['alt_name'] ?? '') ?>" 
-                   class="JCIMS-bureau-logo" style="height: 65px; width: auto; object-fit: contain;">
+                   alt="<?= htmlspecialchars($_SESSION['user']['alt_name'] ?? '') ?>"    class="JCIMS-bureau-logo" style="height: 65px; width: auto; object-fit: contain;">
             <?php else: ?>
               <img src="images/logo_transparent.png" 
                    alt="System Logo" 

@@ -139,6 +139,16 @@ function myAsset($path) {
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
+     <script src="<?= myAsset('js/jobseeker.views.js') ?>"></script>
+    <?php endif; ?>
+
+     <?php if (isset($is_jobseeker_list_page) && $is_jobseeker_list_page === true): ?>
+    <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
+    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
+    <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
+     <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
+     <script src="<?= myAsset('js/jobseeker.views.js') ?>"></script>
     <?php endif; ?>
    
  <?php if (isset($is_deleteawarness) && $is_deleteawarness === true): ?>
@@ -237,35 +247,51 @@ $(function () {
 </script>
 <script nonce="<?php echo $GLOBALS['nonce']; ?>">
   $(function () {
+
     function resetSubmitButtons($form) {
       $form.data('submitting', false);
       $form.removeData('submitButton');
-      $form.find('button[type="submit"], input[type="submit"]').prop('disabled', false);
+      $form.removeData('prevent-submit');
+
+      $form.find('button[type="submit"], input[type="submit"]')
+        .prop('disabled', false);
     }
 
-    $(document).on('click', 'form button[type="submit"], form input[type="submit"]', function() {
+    $(document).on('click', 'form button[type="submit"], form input[type="submit"]', function () {
       var $button = $(this);
       var $form = $button.closest('form');
+
       if ($form.data('submitting')) {
         return;
       }
+
       $form.data('submitButton', $button);
     });
 
-    $(document).on('submit', 'form', function(event) {
+    $(document).on('submit', 'form', function (event) {
       var $form = $(this);
+
+      // ❌ BLOCK global disabling when validation already failed
+      if ($form.data('prevent-submit') === true) {
+        event.preventDefault();
+        return false;
+      }
+
       if ($form.data('submitting')) {
         event.preventDefault();
         return false;
       }
 
       $form.data('submitting', true);
-      $form.find('button[type="submit"], input[type="submit"]').prop('disabled', true);
+
+      $form.find('button[type="submit"], input[type="submit"]')
+        .prop('disabled', true);
     });
 
-    $(document).on('invalid-form.validate invalid', 'form', function() {
+    $(document).on('invalid-form.validate invalid', 'form', function () {
       resetSubmitButtons($(this));
     });
+
   });
 </script>
 </body>
