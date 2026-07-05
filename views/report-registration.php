@@ -14,18 +14,18 @@
               <label for="branchSelect" class="mb-1">
                 <small class="font-weight-bold">የመዋቅር/ቅርንጫፍ ደረጃ ይምረጡ</small>
               </label>
-              <select class="form-control" id="branchSelect" name="branch_id" required>
+             <select class="form-control select2-branch" id="branchSelect" name="branch_id" required style="width: 100%;">
     <?php if (empty($branches)): ?>
         <option value="" disabled selected>ምንም የመዋቅር ስም ዝርዝር አልተገኘም</option>
     <?php else: ?>
+        <option value="" disabled selected>-- ቅርንጫፍ ይምረጡ --</option>
         <?php foreach ($branches as $b): ?>
-            <!-- value ላይ internal_id ይቀመጣል፣ ለተጠቃሚው ግን name ይታያል -->
-            <option value="<?= $b['internal_id']; ?>">
-                <?= str_repeat('&nbsp;&nbsp;▪️&nbsp;', $b['level']) . htmlspecialchars($b['name']); ?>
+            <option value="<?= $b['internal_id']; ?>" data-level="<?= (int)$b['level']; ?>">
+                <?= htmlspecialchars($b['name']); ?>
             </option>
         <?php endforeach; ?>
     <?php endif; ?>
-  </select>
+</select>
             </div>
 
             <!-- የሪፖርት መምረጫ -->
@@ -90,4 +90,43 @@ document.addEventListener('DOMContentLoaded', function() {
         // ፎርሙ በ POST እና በ target="_blank" መሠረት ሁለቱንም (branch_id እና report_type) ይዞ በአዲስ ታብ ይከፈታል
     });
 });
+function initBranchSelect2() {
+    if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
+        // jQuery or select2 not loaded yet — try again shortly
+        setTimeout(initBranchSelect2, 50);
+        return;
+    }
+
+    $('.select2-branch').select2({
+        placeholder: '-- ቅርንጫፍ ይምረጡ --',
+        allowClear: false,
+        width: '100%',
+        templateResult: formatBranchOption,
+        templateSelection: formatBranchSelection,
+        matcher: branchMatcher
+    });
+
+    function formatBranchOption(option) {
+        if (!option.id) return option.text;
+        const level = $(option.element).data('level') || 0;
+        const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(level);
+        const bullet = level > 0 ? '▪ ' : '';
+        return $(`<span>${indent}${bullet}${$('<div>').text(option.text).html()}</span>`);
+    }
+
+    function formatBranchSelection(option) {
+        return option.text;
+    }
+
+    function branchMatcher(params, data) {
+        if ($.trim(params.term) === '') return data;
+        if (typeof data.text === 'undefined') return null;
+        if (data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1) {
+            return data;
+        }
+        return null;
+    }
+}
+
+initBranchSelect2();
 </script>

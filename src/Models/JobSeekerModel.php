@@ -430,7 +430,7 @@ public function countJobSeekersByHierarchy(string $myBranchId): int
 }
 public function getJobSeekersByHierarchy(string $myBranchId, int $limit, int $offset): array
 {
-    $sql = "SELECT js.id, js.first_name, js.father_name, js.last_name, js.gender, 
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender, 
                    b.name AS branch_name, b.level AS branch_level
             FROM job_seekers js
             INNER JOIN branches b ON js.branch_id = b.internal_id
