@@ -66,14 +66,21 @@ $reportData = array_merge($mainData ?: [], $otherData ?: []);
 
 public function reportIndexShow()
 {
+    AuthHelper::checkRole(['team_leader', 'officer']);
     // 1. ከተጠቃሚው ሴሽን የራሱን ቅርንጫፍ መለያ መውሰድ
     $myBranchId = $_SESSION['user']['branch_id'] ?? null;
+    $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
 
     // 2. ሞዴሉን መጥራት
+    $branches = [];
     $branchModel = new Branch($this->db);
     
     // 3. ዳታውን ከሞዴል ማምጣት
-    $branches = $branchModel->getImmediateSubBranches($myBranchId);
+    if($ketemaAstedader){
+        $branches = $branchModel->getOneStopCenter($myBranchId);
+    } else {
+        $branches = $branchModel->getImmediateSubBranches($myBranchId);
+    }
 
     // 4. 🔥 ዋናው ነጥብ፦ ዳታውን በ Array Key 'branches' አድርጎ ወደ ቪው መላክ
     // የእርስዎ ፍሬምወርቅ $this->render() የሚጠቀም ከሆነ፡
@@ -92,24 +99,54 @@ public function reportIndexShow()
 
 public function report1Show()
 {
-    $myBranchId = $_SESSION['user']['branch_id'] ?? null; // ወይም የምታገኝበት መንገድ
-    $date = date('Y-m-d');
-
+AuthHelper::checkRole(['team_leader', 'officer']);
+ $level = $_SESSION['user']['level'];
+ $myBranchId = $_POST['branch_id'] ?? null;
+$branchData = [];
+if (empty($myBranchId) && $level !== 4) {
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null;
+}
+else{
+    $myBranchId = $_POST['branch_id'] ?? null;
+    $branchModel = new Branch($this->db);
+    $branchData  = $branchModel->getBranchById($myBranchId);
+}
+    $today = date('Y-m-d');
+    $startdate = $_POST['start_date'] ?? date('Y-m-d');
+    $enddate = $_POST['end_date'] ?? date('Y-m-d');
+    if($startdate > $today){
+         $_SESSION['error'] = 'የሪፖርት መጀመሪያ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit(); 
+    }
+    if($enddate > $today){
+          $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+    if ($startdate > $enddate) {
+        $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከመጀምሪያ ቀን በኋላ መሆን አለበት።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
     $awarenessModel = new ReportgenerationModel($this->db);
 
     
     // 1. ከመጀመሪያው ቴብል ዳታውን ያመጣል
-    $awarenessReport = $awarenessModel->getReport1ByHierarchy($myBranchId, $date);
+    $awarenessReport = $awarenessModel->getReport1ByHierarchy($myBranchId, $startdate, $enddate);
 
     // 2. ከሁለተኛው (ከአዲሱ) ቴብል የምክርና መረጃ ዳታውን ያመጣል
-    $adviceReport = $awarenessModel->getJobSeekersAdviceByHierarchy($myBranchId, $date);
+    $adviceReport = $awarenessModel->getJobSeekersAdviceByHierarchy($myBranchId, $startdate, $enddate);
 
     // 3. ሁለቱንም የሪፖርት ውጤቶች በአንድ አሬይ (Array) ላይ ያዋህዳል
     $finalReport = array_merge($awarenessReport, $adviceReport);
 
     // 4. የተዋሃደውን ሙሉ ዳታ ለቪው (report-1) ያስተላልፋል
-    $this->render('report-1', [
-        'report1' => $finalReport
+    $this->renderPrintable('report-1', [
+        'report1' => $finalReport,
+        'branchData' => $branchData,
+        'startdate' => $startdate,
+        'enddate' => $enddate
     ]);
 }
 }
