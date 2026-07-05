@@ -1,6 +1,6 @@
 <?php
-$selectedBranchName = $branchName ?? ($_POST['branch_name'] ?? ($_SESSION['user']['branch_name'] ?? 'አጠቃላይ ሪፖርት'));
-$report = $report1 ?? [
+use App\Helpers\EthiopianDateHelper; 
+ $report = $report1 ?? [
     'urban_m_parents' => 0,
     'urban_f_parents' => 0,
     'rural_m_parents' => 0,
@@ -91,7 +91,7 @@ $report = $report1 ?? [
     'rural_m_ajsnoh' => 0,
     'rural_f_ajsnoh' => 0,
     ];
-
+$selectedBranchName = $branchData['name'] ?? $_SESSION['user']['branch_name'];
 $totalUrbanparents = $report['urban_m_parents'] + $report['urban_f_parents'];
 $totalRuralparents = $report['rural_m_parents'] + $report['rural_f_parents'];
 $totalMaleparents  = $report['urban_m_parents'] + $report['rural_m_parents'];
@@ -200,9 +200,26 @@ $totalMaleajsnoh  = $report['urban_m_ajsnoh'] + $report['rural_m_ajsnoh'];
 $totalFemaleajsnoh = $report['urban_f_ajsnoh'] + $report['rural_f_ajsnoh'];
 $grandTotalajsnoh = $totalUrbanajsnoh + $totalRuralajsnoh;
 
+$startdate = !empty($startdate) ? $startdate : date('Y-m-d');
+$startdateParts = explode('-', $startdate);
+$ethstartDate = EthiopianDateHelper::toEthCalendar($startdateParts[2], $startdateParts[1], $startdateParts[0]);
 
-?>
-
+$enddate = !empty($enddate) ? $enddate : date('Y-m-d');
+$enddateParts = explode('-', $enddate);
+$ethendDate = EthiopianDateHelper::toEthCalendar($enddateParts[2], $enddateParts[1], $enddateParts[0]);?>
+<style>
+        body { padding: 30px; background-color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #000; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { background-color: #f8f9fa; text-align: center; vertical-align: middle !important; font-size: 11px; font-weight: bold; border: 1px solid #000 !important; padding: 4px; }
+        .table td { vertical-align: middle !important; font-size: 11px; border: 1px solid #000 !important; padding: 4px; }
+        .report-header { text-align: center; margin-bottom: 20px; }
+        .text-left { text-align: left !important; padding-left: 8px !important; }
+        
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
 
 <center class="mb-4">
     <!-- የሪፖርት ርዕስ -->
@@ -211,8 +228,19 @@ $grandTotalajsnoh = $totalUrbanajsnoh + $totalRuralajsnoh;
     <!-- 🟢 አዲስ የተጨመረ፦ የትኛው መዋቅር ሪፖርት እንደሆነ በግልጽ ያሳያል -->
     <h5 class="text-primary mt-2">የመዋቅር ደረጃ፦ <strong><?= htmlspecialchars($selectedBranchName); ?></strong></h5>
     
-    <!-- 🟢 አዲስ የተጨመረ፦ የዛሬውን ቀን በዲናሚክ ይተካል -->
-    <h6>የሪፖርት ቀን፦ <strong><?= date('d/m/Y'); ?></strong></h6>
+ <h6>
+    የሪፖርት ቀን፦
+    <?= EthiopianDateHelper::getMonthName($ethstartDate['month']) ?>
+    <?= $ethstartDate['day'] ?>
+    <?= $ethstartDate['year'] ?>
+
+    <?php if ($startdate != $enddate): ?>
+        -
+        <?= EthiopianDateHelper::getMonthName($ethendDate['month']) ?>
+        <?= $ethendDate['day'] ?>
+        <?= $ethendDate['year'] ?>
+    <?php endif; ?>
+</h6>
 </center>
 <div class="table-responsive">
     <table class="table table-bordered table-striped text-center">

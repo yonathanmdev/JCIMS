@@ -251,7 +251,7 @@ public function getAllowedBranches(string $myBranchId): array
     }
 }
 
-public function getReport1ByHierarchy(string $myBranchId, $date): array
+public function getReport1ByHierarchy(string $myBranchId, $startdate, $enddate): array
 {
     $sql = "
         WITH RECURSIVE SubBranches AS (
@@ -289,7 +289,7 @@ public function getReport1ByHierarchy(string $myBranchId, $date): array
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
-        $stmt->bindValue(':report_date', $date, PDO::PARAM_STR);
+        $stmt->bindValue(':start_date', $startdate, PDO::PARAM_STR);
         $stmt->execute();
 
         return $this->normalizeReportRow($stmt->fetch(PDO::FETCH_ASSOC));

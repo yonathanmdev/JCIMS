@@ -104,7 +104,26 @@ public function getDescendantBranches($myBranchId) {
         return [];
     }
 }
+public function getOneStopCenter($myBranchId) {
+    $sql = "SELECT b.* 
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = ?
+            WHERE b.path LIKE CONCAT(root.path, '%')
+              AND b.internal_id != ?
+              AND b.level = 4
+              AND b.status = 'active'
+            ORDER BY b.level ASC, b.name ASC";
 
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$myBranchId, $myBranchId]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Get descendant branches error: " . $e->getMessage());
+        return [];
+    }
+}
 public function getMainOfficeId($orgId) {
     $sql = "SELECT internal_id AS id FROM branches WHERE organization_id = ? AND level = 1 LIMIT 1";
     try {
@@ -149,22 +168,7 @@ public function isSubBranchOf($branchId, $parentBranchId) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-/**
- * Walks up the branch hierarchy from the given branch to the root,
- * collecting the name at each level. Returns [level => name].
- *
- * e.g. [1 => 'ስራ እና ስልጠና ቢሮ', 2 => 'ደብረታቦር', 3 => 'ፊታውራሪ ገብርዬ', 4 => '02']
- */
-/**
- * Walks up the branch hierarchy from the given branch to the root,
- * collecting the name at each level, and resolving ketema_astedader
- * from whichever ancestor in the chain has it set (typically level 2).
- *
- * @return array{
- *     names: array<int, string>,        // [1 => name, 2 => name, ...]
- *     ketema_astedader: bool
- * }
- */
+
 public function getAncestryChain(string $branchId): array
 {
     $names = [];
