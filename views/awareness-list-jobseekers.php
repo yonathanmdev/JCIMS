@@ -9,7 +9,7 @@
             <i class="fas fa-user-graduate mr-2"></i> ግንዛቤ የተፈጠረላቸዉ የስራ ፈላጊዎች ዝርዝር
           </h3>
         </div>
-
+ <?php $level=$_SESSION['user']['level'] ?>
         <div class="card-body">
           <table id="example1" data-empty-msg="ምንም ስራ ፈላጊ የለም።" class="table table-bordered table-striped table-hover dataTable dtr-inline small" style="color: #000;">
             <thead class="thead-light">
@@ -64,6 +64,7 @@
                     
                    <td>
   <div class="btn-group">
+     <?php if ($level === 3 || $level === 4){ ?>
     <button type="button" 
             class="btn btn-sm btn-danger remove-awareness-btn" 
             data-id="<?= htmlspecialchars($seeker['id'], ENT_QUOTES, 'UTF-8') ?>"
@@ -71,6 +72,7 @@
             title="የግንዛቤ ሪፖርት ሰርዝ">
       <i class="fas fa-trash-alt"></i>
     </button>
+    <?php }; ?>
   </div>
 </td>
                   </tr>

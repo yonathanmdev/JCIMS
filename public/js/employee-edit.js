@@ -16,7 +16,7 @@ $(document).ready(function() {
                 minlength: 2,
                 maxlength: 50
             },
-            g_father_name: {
+            last_name: {
                 required: true,
                 minlength: 2,
                 maxlength: 50
@@ -112,7 +112,7 @@ guarantor_phone: {
                 minlength: "የአባት ስም ቢያንስ 2  ፊደል መሆን አለበት።",
                 maxlength: "የአባት ስም  ከ50 ፊደል መብለጥ የለበትም።"
             },
-            g_father_name: {
+            last_name: {
                 required: "የአያት ስም አስፈላጊ ነው።",
                 minlength: "የአያት ስም ቢያንስ 2  ፊደል መሆን አለበት።",
                 maxlength: "የአያት ስም  ከ50 ፊደል መብለጥ የለበትም።"

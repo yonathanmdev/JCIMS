@@ -43,35 +43,43 @@ public function createAwareness(array $data): bool {
             return false;
         }
     } // 1. $page ን በፓራሜትር አስገባ
-public function getallawarenessbybranch($branch_id, $page = 1) {
+public function getAllAwarenessByBranch($my_branch, $page = 1) {
     try {       
         $limit = 20;
         $page = (int)$page > 0 ? (int)$page : 1;
         $offset = ($page - 1) * $limit;
 
-        $sql = "SELECT a.*, b.name 
+        // 1. በአዲሱ እና ይበልጥ ፈጣን በሆነው የ INNER JOIN መዋቅር ዋናውን ዳታ ማምጣት
+        $sql = "SELECT a.*, b.name AS branch_name
                 FROM awareness_creation_other a
                 INNER JOIN branches b ON a.branch_id = b.internal_id
-                WHERE a.branch_id = :branch_id 
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
                 ORDER BY a.tbleid DESC
                 LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':branch_id', $branch_id, PDO::PARAM_INT);
-        // 2. እነዚህን ሁለቱን እዚህ ጋር ማሰርህን እርግጠኛ ሁን
-        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+        $stmt->bindValue(':my_branch', $my_branch);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
         $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. አጠቃላይ ገጾችን ለመቁጠር ይህንን ጨምር
-        $countSql = "SELECT COUNT(*) FROM awareness_creation_other WHERE branch_id = :branch_id";
+        // 2. የገጽ ቁጥር መቁጠሪያውንም (Count SQL) በተመሳሳይ ፈጣን የ JOIN መዋቅር መተካት
+        $countSql = "SELECT COUNT(*) 
+                     FROM awareness_creation_other a
+                     INNER JOIN branches b ON a.branch_id = b.internal_id
+                     INNER JOIN branches root ON root.internal_id = :my_branch
+                     WHERE b.path LIKE CONCAT(root.path, '%')";
+                          
         $countStmt = $this->db->prepare($countSql);
-        $countStmt->bindParam(':branch_id', $branch_id, PDO::PARAM_INT);
+        $countStmt->bindValue(':my_branch', $my_branch);
         $countStmt->execute();
-        $totalPages = ceil($countStmt->fetchColumn() / $limit);
+        
+        $totalRecords = (int)$countStmt->fetchColumn();
+        $totalPages = ceil($totalRecords / $limit);
 
-        // 4. በ Array መልሰው
+        // 3. ውጤቱን በ Array መልሶ መላክ
         return [
             'data' => $records,
             'total_pages' => $totalPages,
@@ -79,8 +87,8 @@ public function getallawarenessbybranch($branch_id, $page = 1) {
         ];
 
     } catch (\PDOException $e) { 
-        
-        error_log("Error fetching awareness records: " . $e->getMessage());
+        // 🔒 የደህንነት ማስታወሻ፦ የSQL ስህተቱን ለተጠቃሚ ሳናሳይ በምስጢር ሲስተም ሎግ ላይ እናስቀምጣለን
+        error_log("Error fetching awareness records (Optimized Hierarchical): " . $e->getMessage());
         return [
             'data' => [],
             'total_pages' => 0,
@@ -120,13 +128,15 @@ public function searchAwarenessByName($branch_id, $searchName, $page = 1) {
         $offset = ($page - 1) * $limit;
 
         // 1. መረጃውን በስም እና በቅርንጫፍ ለይቶ የሚያመጣው SQL
-        $sql = "SELECT a.*, b.name 
-                FROM awareness_creation_other a
-                INNER JOIN branches b ON a.branch_id = b.internal_id
-                WHERE a.branch_id = :branch_id 
-                  AND a.fullname LIKE :search_name 
-                ORDER BY a.tbleid DESC
-                LIMIT :limit OFFSET :offset";
+        $sql = "SELECT a.*, b.name as branch_name
+FROM awareness_creation_other a
+INNER JOIN branches b ON a.branch_id = b.internal_id
+WHERE b.path LIKE CONCAT(
+        (SELECT path FROM branches WHERE internal_id = :branch_id), '%'
+      )
+  AND a.fullname LIKE :search_name 
+ORDER BY a.tbleid DESC
+LIMIT :limit OFFSET :offset";
                 
         $stmt = $this->db->prepare($sql);
         
@@ -274,11 +284,15 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
         $page = (int)$page > 0 ? (int)$page : 1;
         $offset = ($page - 1) * $limit;
 
-        $sql = "SELECT `id`, `branch_id`, `job_seeker_id`, `first_name`, `father_name`, `last_name`, `phone_number`, `awareness`, `gender`, `age`, `employment_status`, `Labor_ID`, `FAN`
-                FROM `job_seekers` 
-                WHERE `branch_id` = :branch_id AND `awareness` = :awareness
-                ORDER BY `job_seeker_id` DESC
-                LIMIT :limit OFFSET :offset";
+        $sql = "SELECT js.`id`, js.`branch_id`, js.`job_seeker_id`, js.`first_name`, js.`father_name`, js.`last_name`, 
+       js.`phone_number`, js.`awareness`, js.`gender`, js.`age`, js.`employment_status`, js.`Labor_ID`, js.`FAN`
+FROM `job_seekers` js
+INNER JOIN `branches` b ON js.`branch_id` = b.`internal_id`
+INNER JOIN `branches` root ON root.`internal_id` = :branch_id
+WHERE b.`path` LIKE CONCAT(root.`path`, '%') 
+  AND js.`awareness` = :awareness
+ORDER BY js.`job_seeker_id` DESC
+LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
         

@@ -47,8 +47,8 @@ $is_employee_edit_page = true; ?>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label for="g_father_name">የአያት ስም</label>
-                <input type="text" class="form-control" id="g_father_name" name="g_father_name" value="<?= htmlspecialchars($employee['g_father_name'] ?? '') ?>" required>
+                <label for="last_name">የአያት ስም</label>
+                <input type="text" class="form-control" id="last_name" name="last_name" value="<?= htmlspecialchars($employee['last_name'] ?? '') ?>" required>
               </div>
             </div>
             <div class="col-md-4">

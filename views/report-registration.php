@@ -5,11 +5,31 @@
       <form action="" method="POST" target="_blank" id="reportForm">
         <input type="hidden" name="_token" value="{{ csrf_token() }}">
         
-        <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
-          <div class="ml-md-auto d-flex align-items-end">
+        <div class="card-header bg-white">
+          <!-- 💡 ማሻሻያ፦ አሰላለፉን በ Row እና በምንጭነት በመጠቀም ወደ ጎን አደረግነው -->
+          <div class="row align-items-end">
             
-            <!-- የሪፖርት መምረጫ ብቻ -->
-            <div class="form-group mb-0 mr-2">
+            <!-- 🟢 አዲስ የተጨመረ፦ የቅርንጫፍ/መዋቅር መምረጫ -->
+            <div class="col-md-5 form-group mb-2 mb-md-0">
+              <label for="branchSelect" class="mb-1">
+                <small class="font-weight-bold">የመዋቅር/ቅርንጫፍ ደረጃ ይምረጡ</small>
+              </label>
+              <select class="form-control" id="branchSelect" name="branch_id" required>
+    <?php if (empty($branches)): ?>
+        <option value="" disabled selected>ምንም የመዋቅር ስም ዝርዝር አልተገኘም</option>
+    <?php else: ?>
+        <?php foreach ($branches as $b): ?>
+            <!-- value ላይ internal_id ይቀመጣል፣ ለተጠቃሚው ግን name ይታያል -->
+            <option value="<?= $b['internal_id']; ?>">
+                <?= str_repeat('&nbsp;&nbsp;▪️&nbsp;', $b['level']) . htmlspecialchars($b['name']); ?>
+            </option>
+        <?php endforeach; ?>
+    <?php endif; ?>
+  </select>
+            </div>
+
+            <!-- የሪፖርት መምረጫ -->
+            <div class="col-md-5 form-group mb-2 mb-md-0">
               <label for="reportSelect" class="mb-1">
                 <small class="font-weight-bold">የምትፈልጉትን ሪፖርት ዓይነት ይምረጡ</small>
               </label>
@@ -29,8 +49,8 @@
             </div>
 
             <!-- አሳይ ቁልፍ -->
-            <div class="form-group mb-0">
-              <button type="submit" class="btn btn-primary" id="submitBtn">
+            <div class="col-md-2 form-group mb-0">
+              <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
                 <i class="fas fa-eye"></i> አሳይ
               </button>
             </div>
@@ -40,11 +60,12 @@
       </form>
       
       <div class="card-body">
-         <p class="text-center text-muted">የሚፈልጉትን ሪፖርት መርጠው "አሳይ" የሚለውን ቁልፍ ሲጫኑ ሪፖርቱ በአዲስ ታብ ላይ ይከፈታል።</p>
+         <p class="text-center text-muted">የሚፈልጉትን መዋቅር እና የሪፖርት ዓይነት መርጠው "አሳይ" የሚለውን ቁልፍ ሲጫኑ ሪፖርቱ በአዲስ ታብ ላይ ይከፈታል።</p>
       </div>
     </div>
   </div>
 </section>
+
 <script nonce="<?php echo $GLOBALS['nonce']; ?>">
 document.addEventListener('DOMContentLoaded', function() {
     const reportForm = document.getElementById('reportForm');
@@ -64,10 +85,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const reportNumber = reportType.replace('ሠ', ''); 
 
         // 3. የፎርሙን መሄጃ አድራሻ (action) በቁጥሩ መሠረት በዲናሚክ መቀየር
-        // ይህ ሲሆን አድራሻው በቀጥታ http://localhost/JCIMS/report-1 ይሆናል
         reportForm.action = `${BASE_URL}/report-${reportNumber}`;
         
-        // ፎርሙ በ POST እና በ target="_blank" መሠረት በራሱ በአዲስ ታብ ላይ በንጽህና ይከፈታል
+        // ፎርሙ በ POST እና በ target="_blank" መሠረት ሁለቱንም (branch_id እና report_type) ይዞ በአዲስ ታብ ይከፈታል
     });
 });
 </script>

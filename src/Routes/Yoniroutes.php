@@ -39,11 +39,12 @@ return [
     'sub-sector-registration'               => ['SectorController', 'showSubRegisterForm', true],    
     'sub-sector-registration-process'       => ['SectorController', 'handleSubsectorRegistration', true],
     'subsectors-by-sector' => ['SectorController', 'subsectorsBySector', true],
+    'all-sectors-subsectors' => ['SectorController', 'getAllSectorsWithSubsectors', true],
     // job seeker Management
     'jobseeker-registration'                 => ['JobseekerController', 'showRegisterForm', true],
     'jobseeker-registration-process'         => ['JobseekerController', 'handleRegistration', true],
     'jobseekers-list'                        => ['JobseekerController', 'listofJobseekers', true],
-    
+    'retrieve-jobseeker'                     => ['JobseekerController', 'getJobseekerById', true],
     
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 

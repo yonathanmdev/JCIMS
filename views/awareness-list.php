@@ -57,6 +57,7 @@ $searchName = isset($_GET['search_name']) ? htmlspecialchars($_GET['search_name'
         </tr>
     </thead>
     <tbody>
+        <?php $level=$_SESSION['user']['level'] ?>
         <?php if (!empty($awarenessList)): ?>
             <?php foreach ($awarenessList as $index => $awareness): ?>
                 <tr>
@@ -65,8 +66,10 @@ $searchName = isset($_GET['search_name']) ? htmlspecialchars($_GET['search_name'
                     <td><?= htmlspecialchars($awareness['sex'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars($awareness['yemenoriya_akababi'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars($awareness['awareness_type'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($awareness['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($awareness['branch_name'] ?? 'የለም', ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="text-center">
+                     
+                        <?php if ($level === 3 || $level === 4){ ?>
                         <button type="button" 
                                 class="btn btn-sm btn-primary edit-awareness-btn" 
                                 data-id="<?= (int)$awareness['tbleid'] ?>"
@@ -74,8 +77,9 @@ $searchName = isset($_GET['search_name']) ? htmlspecialchars($_GET['search_name'
                                 data-sex="<?= htmlspecialchars($awareness['sex'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                 data-akababi="<?= htmlspecialchars($awareness['yemenoriya_akababi'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                 data-type="<?= htmlspecialchars($awareness['awareness_type'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                            <i class="fas fa-edit me-1"></i> አስተካክል
+                            <i class="fas fa-edit me-1"></i> አስተካክል 
                         </button>
+                        <?php }; ?>
                     </td>  
                 </tr>
             <?php endforeach; ?>
@@ -239,6 +243,77 @@ $(document).ready(function() {
                 }
             });
         }
+    });
+});
+</script>
+<script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+// 💡 ከ jQuery ነፃ በሆነ መንገድ መጻፍ (ReferenceErrorን ሙሉ በሙሉ ያስቀራል)
+window.addEventListener('DOMContentLoaded', function() {
+    
+    // በሰንጠረዡ ላይ ክሊክ ሲደረግ ለመስማት (Event Delegation)
+    document.addEventListener('click', function(e) {
+        // የኛን ቁልፍ መሆኑን ማረጋገጥ
+        var button = e.target.closest('.remove-awareness-btn');
+        if (!button) return;
+        
+        e.preventDefault();
+        
+        var seekerId = button.getAttribute('data-id');
+        var fullName = button.getAttribute('data-fullname');
+        
+        Swal.fire({
+            title: '⚠️ ጥብቅ ማስጠንቀቂያ እና ማረጋገጫ!',
+            html: '<div class="text-start small text-dark" style="line-height: 1.6; text-align: left;">' +
+                  'እርግጠኛ ነህ ለስራ ፈላጊ <b>' + fullName + '</b> ግንዛቤ ፈጥሬለታለሁ ብለህ ቀደም ሲል ሪፖርት አድርገሃል?<br><br>' +
+                  '<span class="text-danger font-weight-bold">የፈጠርክለት ግንዛቤ በስህተት እንደሆነና አሁን በምታጠፋው ዳታ ሙሉ ኃላፊነት ትወስዳለህ!</span><br><br>' +
+                  'ሁሉም የሲስተም ዳታዎች በኦዲት መዝገብ (Log) ላይ ሪከርድ ስለሚሆኑ ከእነ አካቴው እስከመጨረሻው አይጠፉም።' +
+                  '</div>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'አዎ፣ ስህተት ነው ኃላፊነት እወስዳለሁ!',
+            cancelButtonText: 'አይ፣ ተመለስ',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                
+                // 🚀 በንጹህ JS Fetch API በመጠቀም የ AJAX ጥሪ ማድረግ
+                fetch('<?= htmlspecialchars(rtrim($_ENV['BASE_URL'] ?? '', '/'), ENT_QUOTES, 'UTF-8') ?>/remove-job-seeker-awareness-ajax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'job_seeker_id=' + encodeURIComponent(seekerId)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'ተስተካክሏል!',
+                            text: data.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        
+                        // መስመሩን ከሰንጠረዡ ላይ ማጥፋት
+                        var row = button.closest('tr');
+                        if (row) {
+                            row.style.transition = 'opacity 0.4s';
+                            row.style.opacity = '0';
+                            setTimeout(function() { row.remove(); }, 400);
+                        }
+                    } else {
+                        Swal.fire('ስህተት', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    Swal.fire('ስህተት', 'የሰርቨር ግንኙነት ተቋርጧል ወይም የስርዓት ስህተት ተከስቷል።', 'error');
+                });
+            }
+        });
     });
 });
 </script>
