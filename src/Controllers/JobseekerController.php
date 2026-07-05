@@ -626,7 +626,7 @@ private function validateJobseekerData(array $post): array
     $sectors = $sectorModel->getSectors();
 
     $jobSeekerModel = new JobSeekerModel($this->db);
-    $limit = 5;
+    $limit = 50;
     $currentPage = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($currentPage - 1) * $limit;
 
@@ -650,6 +650,7 @@ private function validateJobseekerData(array $post): array
          AuthHelper::checkRole(['team_leader', 'officer']);
  $myBranchId  = $_SESSION['user']['branch_id'];
  $jobSeekerModel = new JobSeekerModel($this->db);
+ 
 $jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId);
         $data = [
             'jobSeekers' => $jobSeekers,
