@@ -10,11 +10,22 @@ class JobseekerTransferController extends BaseController {
          AuthHelper::checkRole(['team_leader', 'officer']);
  $myBranchId  = $_SESSION['user']['branch_id'];
  $jobSeekerModel = new JobSeekerModel($this->db);
-$jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId);
-        $data = [
-            'jobSeekers' => $jobSeekers,
-            'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
-        ];
+ $limit = 50;
+    $currentPage = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($currentPage - 1) * $limit;
+
+    $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId, $limit, $offset);
+    $totalCount = $jobSeekerModel->countJobSeekersByHierarchy($myBranchId);
+    $totalPages = (int)ceil($totalCount / $limit);
+
+    $data = [
+        'title'       => 'JCIMS - የሰራተኛ መመዝገቢያ',
+        'jobSeekers'  => $jobSeekers,
+        'offset'      => $offset,        // ADD THIS
+        'currentPage' => $currentPage,   // ADD THIS
+        'totalPages'  => $totalPages,    // ADD THIS
+        'totalCount' => $totalCount
+    ];
 
          $this->render('jobseeker-transfer', $data);
     }
