@@ -338,7 +338,10 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
                 js.residence_status,
                 js.age,
                 js.education_level_category,
-                js.physical_condition
+                js.physical_condition,
+                js.srafelagi_huneta,
+                js.meteleya_huneta,
+                js.awareness
             FROM job_seekers js
             INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id
         )
@@ -377,11 +380,69 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
             COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.physical_condition = 1 THEN 1 END) AS urban_m_phy,
             COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.physical_condition  = 1  THEN 1 END) AS urban_f_phy,
             COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.physical_condition = 1  THEN 1 END) AS rural_m_phy,
-            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.physical_condition = 1  THEN 1 END) AS rural_f_phy
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.physical_condition = 1  THEN 1 END) AS rural_f_phy,
+
+             -- ምድብ 7፦ የተመዘገቡ ከስደት ተመላሾች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS urban_m_immg,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS urban_f_immg,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS rural_m_immg,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS rural_f_immg,
+
+             -- ምድብ 8፦ የተመዘገቡ የሀገር ውስጥ ተፈናቃዮች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS urban_m_teff,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS urban_f_teff,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS rural_m_teff,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS rural_f_teff,
+
+            -- ምድብ 9፦ የተመዘገቡ መኖሪያቸው ጎዳና የሆኑ ዜጎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS urban_m_noh,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS urban_f_noh,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS rural_m_noh,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS rural_f_noh,
+
+            -- ምድብ 10፦ የግንዛቤ ማስጨባጫ የወሰዱ ስራ ፈላጊዎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.awareness = '1' THEN 1 END) AS urban_m_ajs,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.awareness = '1' THEN 1 END) AS urban_f_ajs,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.awareness = '1' THEN 1 END) AS rural_m_ajs,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.awareness = '1' THEN 1 END) AS rural_f_ajs,
+
+            -- ምድብ 11፦ የግንዛቤ ማስጨባጫ የወሰዱ ወጣቶች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS urban_m_ajs15_29,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS urban_f_ajs15_29,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS rural_m_ajs15_29,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS rural_f_ajs15_29,
 
             
+            -- ምድብ 12፦ የግንዛቤ ማስጨባጫ የወሰዱ የዩኒቨርሲቲ ተመራቂዎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.education_level_category = 2 THEN 1 END) AS urban_m_ajsuni,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.education_level_category = 2 THEN 1 END) AS urban_f_ajsuni,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.education_level_category = 2 THEN 1 END) AS rural_m_ajsuni,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.education_level_category = 2 THEN 1 END) AS rural_f_ajsuni,
+
+            -- ምድብ 13፦ የግንዛቤ ማስጨባጫ የወሰዱ የቴክኒክና ሙያ ኮሌጅ ተመራቂዎች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.education_level_category = 1 THEN 1 END) AS urban_m_ajstvt,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.education_level_category = 1 THEN 1 END) AS urban_f_ajstvt,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.education_level_category = 1 THEN 1 END) AS rural_m_ajstvt,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.education_level_category = 1 THEN 1 END) AS rural_f_ajstvt,
         
-        
+            -- ምድብ 14፦ የግንዛቤ ማስጨባጫ የወሰዱ የአካል ጉዳተኞች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.physical_condition = 1 THEN 1 END) AS urban_m_ajsdis,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.physical_condition = 1 THEN 1 END) AS urban_f_ajsdis,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.physical_condition = 1 THEN 1 END) AS rural_m_ajsdis,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.physical_condition = 1 THEN 1 END) AS rural_f_ajsdis,
+            
+            -- ምድብ 15፦ የግንዛቤ ማስጨባጫ የወሰዱ ከስደት ተመላሾች (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS urban_m_ajsimmg,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS urban_f_ajsimmg,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS rural_m_ajsimmg,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS rural_f_ajsimmg,
+
+            -- ምድብ 16፦ የግንዛቤ ማስጨባጫ የወሰዱ የጎዳና ተዳዳሪ (ኢንዴክስ ኦርደር ጠብቆ የተሰራ)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS urban_m_ajsnoh,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.awareness = '1' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS urban_f_ajsnoh,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS rural_m_ajsnoh,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.awareness = '1' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS rural_f_ajsnoh
+
             FROM FilteredJobSeekers AS js
     ";
 
@@ -415,8 +476,41 @@ private function normalizeAdviceRow(array|false $row): array
         'urban_m_tvt', 'urban_f_tvt', 'rural_m_tvt', 'rural_f_tvt',
 
         // የተመዘገቡ አካል ጉዳተኞች ኪዎች (Keys) እዚህ ተጨምረዋል
-        'urban_m_phy', 'urban_f_phy', 'rural_m_phy', 'rural_f_phy'
-    ];
+        'urban_m_phy', 'urban_f_phy', 'rural_m_phy', 'rural_f_phy',
+
+        // የተመዘገቡ ከስደት ተመላሽ ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_immg', 'urban_f_immg', 'rural_m_immg', 'rural_f_immg',
+
+        // የተመዘገቡ ተፈናቃይ ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_teff', 'urban_f_teff', 'rural_m_teff', 'rural_f_teff',
+
+        // የተመዘገቡ መኖሪያቸው ጎዳና የሆኑ ዜጎች ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_noh', 'urban_f_noh', 'rural_m_noh', 'rural_f_noh',
+        
+        // ግንዛቤ ማስጨባጫ የወሰዱ ስራ ፈላጊዎች ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_ajs', 'urban_f_ajs', 'rural_m_ajs', 'rural_f_ajs',
+        
+        // ግንዛቤ ማስጨባጫ የወሰዱ ወጣቶች ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_ajs15_29', 'urban_f_ajs15_29', 'rural_m_ajs15_29', 'rural_f_ajs15_29',
+        
+        // ግንዛቤ ማስጨባጫ የወሰዱ የዩኒቨርሲቲ ተመራቂዎች ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_ajsuni', 'urban_f_ajsuni', 'rural_m_ajsuni', 'rural_f_ajsuni',
+
+        // ግንዛቤ ማስጨባጫ የወሰዱ የቴክኒክና ሙያ ኮሌጅ ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_ajstvt', 'urban_f_ajstvt', 'rural_m_ajstvt', 'rural_f_ajstvt',
+        
+        // ግንዛቤ ማስጨባጫ የወሰዱ የአካል ጉዳተኞች  ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_ajsdis', 'urban_f_ajsdis', 'rural_m_ajsdis', 'rural_f_ajsdis',
+
+        // ግንዛቤ ማስጨባጫ የወሰዱ ከስደት ተመላሾች  ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_ajsimmg', 'urban_f_ajsimmg', 'rural_m_ajsimmg', 'rural_f_ajsimmg',
+
+        // ግንዛቤ ማስጨባጫ የወሰዱ ጎዳና ተዳዳሪ  ኪዎች (Keys) እዚህ ተጨምረዋል
+        'urban_m_ajsnoh', 'urban_f_ajsnoh', 'rural_m_ajsnoh', 'rural_f_ajsnoh'
+       
+
+       
+        ];
 
     $normalized = [];
     foreach ($expectedKeys as $key) {
