@@ -41,8 +41,56 @@ $report = $report1 ?? [
     'rural_m_phy' => 0,
     'rural_f_phy' => 0,
     
+    'urban_m_immg' => 0,
+    'urban_f_immg' => 0,
+    'rural_m_immg' => 0,
+    'rural_f_immg' => 0,
+
+    'urban_m_teff' => 0,
+    'urban_f_teff' => 0,
+    'rural_m_teff' => 0,
+    'rural_f_teff' => 0,
     
-];
+    'urban_m_noh' => 0,
+    'urban_f_noh' => 0,
+    'rural_m_noh' => 0,
+    'rural_f_noh' => 0,
+
+    'urban_m_ajs' => 0,
+    'urban_f_ajs' => 0,
+    'rural_m_ajs' => 0,
+    'rural_f_ajs' => 0,
+
+    'urban_m_ajs15_29' => 0,
+    'urban_f_ajs15_29' => 0,
+    'rural_m_ajs15_29' => 0,
+    'rural_f_ajs15_29' => 0,
+
+    'urban_m_ajsuni' => 0,
+    'urban_f_ajsuni' => 0,
+    'rural_m_ajsuni' => 0,
+    'rural_f_ajsuni' => 0,
+
+    'urban_m_ajstvt' => 0,
+    'urban_f_ajstvt' => 0,
+    'rural_m_ajstvt' => 0,
+    'rural_f_ajstvt' => 0,
+
+    'urban_m_ajsdis' => 0,
+    'urban_f_ajsdis' => 0,
+    'rural_m_ajsdis' => 0,
+    'rural_f_ajsdis' => 0,
+
+    'urban_m_ajsimmg' => 0,
+    'urban_f_ajsimmg' => 0,
+    'rural_m_ajsimmg' => 0,
+    'rural_f_ajsimmg' => 0,
+
+    'urban_m_ajsnoh' => 0,
+    'urban_f_ajsnoh' => 0,
+    'rural_m_ajsnoh' => 0,
+    'rural_f_ajsnoh' => 0,
+    ];
 
 $totalUrbanparents = $report['urban_m_parents'] + $report['urban_f_parents'];
 $totalRuralparents = $report['rural_m_parents'] + $report['rural_f_parents'];
@@ -91,6 +139,68 @@ $totalRuralphy = $report['rural_m_phy'] + $report['rural_f_phy'];
 $totalMalephy  = $report['urban_m_phy'] + $report['rural_m_phy'];
 $totalFemalephy = $report['urban_f_phy'] + $report['rural_f_phy'];
 $grandTotalphy = $totalUrbanphy + $totalRuralphy;
+
+$totalUrbanimmg = $report['urban_m_immg'] + $report['urban_f_immg'];
+$totalRuralimmg = $report['rural_m_immg'] + $report['rural_f_immg'];
+$totalMaleimmg  = $report['urban_m_immg'] + $report['rural_m_immg'];
+$totalFemaleimmg = $report['urban_f_immg'] + $report['rural_f_immg'];
+$grandTotalimmg = $totalUrbanimmg + $totalRuralimmg;
+
+$totalUrbanteff = $report['urban_m_teff'] + $report['urban_f_teff'];
+$totalRuralteff = $report['rural_m_teff'] + $report['rural_f_teff'];
+$totalMaleteff  = $report['urban_m_teff'] + $report['rural_m_teff'];
+$totalFemaleteff = $report['urban_f_teff'] + $report['rural_f_teff'];
+$grandTotalteff = $totalUrbanteff + $totalRuralteff;
+
+$totalUrbannoh = $report['urban_m_noh'] + $report['urban_f_noh'];
+$totalRuralnoh = $report['rural_m_noh'] + $report['rural_f_noh'];
+$totalMalenoh  = $report['urban_m_noh'] + $report['rural_m_noh'];
+$totalFemalenoh = $report['urban_f_noh'] + $report['rural_f_noh'];
+$grandTotalnoh = $totalUrbannoh + $totalRuralnoh;
+
+$totalUrbanajs = $report['urban_m_ajs'] + $report['urban_f_ajs'];
+$totalRuralajs = $report['rural_m_ajs'] + $report['rural_f_ajs'];
+$totalMaleajs  = $report['urban_m_ajs'] + $report['rural_m_ajs'];
+$totalFemaleajs = $report['urban_f_ajs'] + $report['rural_f_ajs'];
+$grandTotalajs = $totalUrbanajs + $totalRuralajs;
+
+$totalUrbanajs15_29 = $report['urban_m_ajs15_29'] + $report['urban_f_ajs15_29'];
+$totalRuralajs15_29 = $report['rural_m_ajs15_29'] + $report['rural_f_ajs15_29'];
+$totalMaleajs15_29  = $report['urban_m_ajs15_29'] + $report['rural_m_ajs15_29'];
+$totalFemaleajs15_29 = $report['urban_f_ajs15_29'] + $report['rural_f_ajs15_29'];
+$grandTotalajs15_29 = $totalUrbanajs15_29 + $totalRuralajs15_29;
+
+$totalUrbanajsuni = $report['urban_m_ajsuni'] + $report['urban_f_ajsuni'];
+$totalRuralajsuni = $report['rural_m_ajsuni'] + $report['rural_f_ajsuni'];
+$totalMaleajsuni  = $report['urban_m_ajsuni'] + $report['rural_m_ajsuni'];
+$totalFemaleajsuni = $report['urban_f_ajsuni'] + $report['rural_f_ajsuni'];
+$grandTotalajsuni = $totalUrbanajsuni + $totalRuralajsuni;
+
+$totalUrbanajstvt = $report['urban_m_ajstvt'] + $report['urban_f_ajstvt'];
+$totalRuralajstvt = $report['rural_m_ajstvt'] + $report['rural_f_ajstvt'];
+$totalMaleajstvt  = $report['urban_m_ajstvt'] + $report['rural_m_ajstvt'];
+$totalFemaleajstvt = $report['urban_f_ajstvt'] + $report['rural_f_ajstvt'];
+$grandTotalajstvt = $totalUrbanajstvt + $totalRuralajstvt;
+
+$totalUrbanajsdis = $report['urban_m_ajsdis'] + $report['urban_f_ajsdis'];
+$totalRuralajsdis = $report['rural_m_ajsdis'] + $report['rural_f_ajsdis'];
+$totalMaleajsdis  = $report['urban_m_ajsdis'] + $report['rural_m_ajsdis'];
+$totalFemaleajsdis = $report['urban_f_ajsdis'] + $report['rural_f_ajsdis'];
+$grandTotalajsdis = $totalUrbanajsdis + $totalRuralajsdis;
+
+$totalUrbanajsimmg = $report['urban_m_ajsimmg'] + $report['urban_f_ajsimmg'];
+$totalRuralajsimmg = $report['rural_m_ajsimmg'] + $report['rural_f_ajsimmg'];
+$totalMaleajsimmg  = $report['urban_m_ajsimmg'] + $report['rural_m_ajsimmg'];
+$totalFemaleajsimmg = $report['urban_f_ajsimmg'] + $report['rural_f_ajsimmg'];
+$grandTotalajsimmg = $totalUrbanajsimmg + $totalRuralajsimmg;
+
+$totalUrbanajsnoh = $report['urban_m_ajsnoh'] + $report['urban_f_ajsnoh'];
+$totalRuralajsnoh = $report['rural_m_ajsnoh'] + $report['rural_f_ajsnoh'];
+$totalMaleajsnoh  = $report['urban_m_ajsnoh'] + $report['rural_m_ajsnoh'];
+$totalFemaleajsnoh = $report['urban_f_ajsnoh'] + $report['rural_f_ajsnoh'];
+$grandTotalajsnoh = $totalUrbanajsnoh + $totalRuralajsnoh;
+
+
 ?>
 
 
@@ -226,7 +336,7 @@ $grandTotalphy = $totalUrbanphy + $totalRuralphy;
                 <td><strong><?= $grandTotaltvt; ?></strong></td>
             </tr>
 
-                <tr>
+            <tr>
                 <td class="text-left">
                     የተመዘገቡ አካል ጉዳተኞች
                 </td>
@@ -243,6 +353,97 @@ $grandTotalphy = $totalUrbanphy + $totalRuralphy;
                 <td><?= $totalMalephy; ?></td>
                 <td><?= $totalFemalephy; ?></td>
                 <td><strong><?= $grandTotalphy; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    የተመዘገቡ ከስደት ተመላሾች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_immg']; ?></td>
+                <td><?= $report['urban_f_immg']; ?></td>
+                <td><?= $totalUrbanimmg; ?></td>
+
+                <td><?= $report['rural_m_immg']; ?></td>
+                <td><?= $report['rural_f_immg']; ?></td>
+                <td><?= $totalRuralimmg; ?></td>
+
+                <td><?= $totalMaleimmg; ?></td>
+                <td><?= $totalFemaleimmg; ?></td>
+                <td><strong><?= $grandTotalimmg; ?></strong></td>
+            </tr>
+
+             <tr>
+                <td class="text-left">
+                    የተመዘገቡ የሀገር ውስጥ ተፈናቃዮች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_teff']; ?></td>
+                <td><?= $report['urban_f_teff']; ?></td>
+                <td><?= $totalUrbanteff; ?></td>
+
+                <td><?= $report['rural_m_teff']; ?></td>
+                <td><?= $report['rural_f_teff']; ?></td>
+                <td><?= $totalRuralteff; ?></td>
+
+                <td><?= $totalMaleteff; ?></td>
+                <td><?= $totalFemaleteff; ?></td>
+                <td><strong><?= $grandTotalteff; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    የተመዘገቡ መኖሪያቸው ጎዳና የሆኑ
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_noh']; ?></td>
+                <td><?= $report['urban_f_noh']; ?></td>
+                <td><?= $totalUrbannoh; ?></td>
+
+                <td><?= $report['rural_m_noh']; ?></td>
+                <td><?= $report['rural_f_noh']; ?></td>
+                <td><?= $totalRuralnoh; ?></td>
+
+                <td><?= $totalMalenoh; ?></td>
+                <td><?= $totalFemalenoh; ?></td>
+                <td><strong><?= $grandTotalnoh; ?></strong></td>
+            </tr>
+                        <tr>
+                <td class="text-left">
+                    ግንዛቤ ማስጨባጫ የወሰዱ ስራ ፈላጊዎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_ajs']; ?></td>
+                <td><?= $report['urban_f_ajs']; ?></td>
+                <td><?= $totalUrbanajs; ?></td>
+
+                <td><?= $report['rural_m_ajs']; ?></td>
+                <td><?= $report['rural_f_ajs']; ?></td>
+                <td><?= $totalRuralajs; ?></td>
+
+                <td><?= $totalMaleajs; ?></td>
+                <td><?= $totalFemaleajs; ?></td>
+                <td><strong><?= $grandTotalajs; ?></strong></td>
+            </tr>
+                                   <tr>
+                <td class="text-left">
+                    ግንዛቤ ማስጨባጫ የወሰዱ ወጣቶች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_ajs15_29']; ?></td>
+                <td><?= $report['urban_f_ajs15_29']; ?></td>
+                <td><?= $totalUrbanajs15_29; ?></td>
+
+                <td><?= $report['rural_m_ajs15_29']; ?></td>
+                <td><?= $report['rural_f_ajs15_29']; ?></td>
+                <td><?= $totalRuralajs15_29; ?></td>
+
+                <td><?= $totalMaleajs15_29; ?></td>
+                <td><?= $totalFemaleajs15_29; ?></td>
+                <td><strong><?= $grandTotalajs15_29; ?></strong></td>
             </tr>
 
             <tr>
@@ -280,6 +481,97 @@ $grandTotalphy = $totalUrbanphy + $totalRuralphy;
                 <td><?= $totalMaleothers; ?></td>
                 <td><?= $totalFemaleothers; ?></td>
                 <td><strong><?= $grandTotalothers; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    የግንዛቤ ማስጨበጫ የወሰዱ የዩኒቨርሲቲ ተመራቂዎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_ajsuni']; ?></td>
+                <td><?= $report['urban_f_ajsuni']; ?></td>
+                <td><?= $totalUrbanajsuni; ?></td>
+
+                <td><?= $report['rural_m_ajsuni']; ?></td>
+                <td><?= $report['rural_f_ajsuni']; ?></td>
+                <td><?= $totalRuralajsuni; ?></td>
+
+                <td><?= $totalMaleajsuni; ?></td>
+                <td><?= $totalFemaleajsuni; ?></td>
+                <td><strong><?= $grandTotalajsuni; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    የግንዛቤ ማስጨበጫ የወሰዱ የቴክኒክና ሙያ ኮሌጅ ተመራቂዎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_ajstvt']; ?></td>
+                <td><?= $report['urban_f_ajstvt']; ?></td>
+                <td><?= $totalUrbanajstvt; ?></td>
+
+                <td><?= $report['rural_m_ajstvt']; ?></td>
+                <td><?= $report['rural_f_ajstvt']; ?></td>
+                <td><?= $totalRuralajstvt; ?></td>
+
+                <td><?= $totalMaleajstvt; ?></td>
+                <td><?= $totalFemaleajstvt; ?></td>
+                <td><strong><?= $grandTotalajstvt; ?></strong></td>
+            </tr>
+                <tr>
+                <td class="text-left">
+                    የግንዛቤ ማስጨበጫ የወሰዱ አካል ጉዳተኞች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_ajsdis']; ?></td>
+                <td><?= $report['urban_f_ajsdis']; ?></td>
+                <td><?= $totalUrbanajsdis; ?></td>
+
+                <td><?= $report['rural_m_ajsdis']; ?></td>
+                <td><?= $report['rural_f_ajsdis']; ?></td>
+                <td><?= $totalRuralajsdis; ?></td>
+
+                <td><?= $totalMaleajsdis; ?></td>
+                <td><?= $totalFemaleajsdis; ?></td>
+                <td><strong><?= $grandTotalajsdis; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">
+                    የግንዛቤ ማስጨበጫ የወሰዱ ከስደት ተመላሾች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_ajsimmg']; ?></td>
+                <td><?= $report['urban_f_ajsimmg']; ?></td>
+                <td><?= $totalUrbanajsimmg; ?></td>
+
+                <td><?= $report['rural_m_ajsimmg']; ?></td>
+                <td><?= $report['rural_f_ajsimmg']; ?></td>
+                <td><?= $totalRuralajsimmg; ?></td>
+
+                <td><?= $totalMaleajsimmg; ?></td>
+                <td><?= $totalFemaleajsimmg; ?></td>
+                <td><strong><?= $grandTotalajsimmg; ?></strong></td>
+            </tr>
+
+                <tr>
+                <td class="text-left">
+                    የግንዛቤ ማስጨበጫ የወሰዱ መኖሪያቸው ጎዳና የሆኑ ዜጎች
+                </td>
+                <td>በቁጥር</td>
+
+                <td><?= $report['urban_m_ajsnoh']; ?></td>
+                <td><?= $report['urban_f_ajsnoh']; ?></td>
+                <td><?= $totalUrbanajsnoh; ?></td>
+
+                <td><?= $report['rural_m_ajsnoh']; ?></td>
+                <td><?= $report['rural_f_ajsnoh']; ?></td>
+                <td><?= $totalRuralajsnoh; ?></td>
+
+                <td><?= $totalMaleajsnoh; ?></td>
+                <td><?= $totalFemaleajsnoh; ?></td>
+                <td><strong><?= $grandTotalajsnoh; ?></strong></td>
             </tr>
             <tr>
                 <td class="text-left">
