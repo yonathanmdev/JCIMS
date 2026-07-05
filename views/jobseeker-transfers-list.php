@@ -162,7 +162,7 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label font-weight-bold"> የውሳኔ ዓይነት ይምረጡ፦</label>
+                        <label class="form-label font-weight-bold">የውሳኔ ዓይነት ይምረጡ፦</label>
                         <div class="d-flex gap-4 mt-2">
                             <div class="form-check mr-3 d-inline-block">
                                 <input class="form-check-input" type="radio" name="action_status" id="status_approve" value="1" checked>
