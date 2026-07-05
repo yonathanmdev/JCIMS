@@ -659,7 +659,7 @@ $jobSeekers  = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId);
 
          $this->render('jobseeker-transfer', $data);
     }
-    
+           
     public function getBranchesByHierarchyAjax() {
         header('Content-Type: application/json; charset=utf-8');
         
