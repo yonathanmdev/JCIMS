@@ -413,6 +413,14 @@ const state = {
             }
         }
     }
+    SECTOR_SELECT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+
+    el?.addEventListener('change', function () {
+        console.log(id, "changed to:", getSelectedText(this));
+        applyAgriStatusVisibility();
+    });
+});
 
     // Step 1: show/hide the agri STATUS field itself, based on sector selection
     function applyAgriStatusVisibility() {
