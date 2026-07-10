@@ -1,7 +1,3 @@
-const state = {
-    editMode: null
-};
-
 (function () {
     let currentStep = 1;
     const totalSteps = 3;
@@ -469,29 +465,41 @@ const state = {
     }
 
     function applyGenderDependentsVisibility() {
-        const genderSelect = document.getElementById('gender');
-        const genderValue = genderSelect?.value;
+    const genderSelect = document.getElementById('gender');
+    const genderValue = genderSelect?.value;
 
-        const dependentsField = document.querySelector('.field-has-dependents');
-        const dependentsSelect = document.getElementById('has_dependents');
+    const dependentsField = document.querySelector('.field-has-dependents');
+    const dependentsSelect = document.getElementById('has_dependents');
 
-        const shouldShow = genderValue === 'ሴት';
+    const housewifeField = document.querySelector('.field-housewife');
+    const housewifeSelect = document.getElementById('housewife');
 
-        if (shouldShow) {
-            dependentsField?.classList.remove('d-none');
-            dependentsSelect?.setAttribute('required', 'required');
-        } else {
-            dependentsField?.classList.add('d-none');
-            if (dependentsSelect) {
-                dependentsSelect.removeAttribute('required');
-                dependentsSelect.value = '';
-            }
+    const shouldShow = genderValue === 'ሴት';
+
+    if (shouldShow) {
+        dependentsField?.classList.remove('d-none');
+        dependentsSelect?.setAttribute('required', 'required');
+
+        housewifeField?.classList.remove('d-none');
+        housewifeSelect?.setAttribute('required', 'required');
+    } else {
+        dependentsField?.classList.add('d-none');
+        if (dependentsSelect) {
+            dependentsSelect.removeAttribute('required');
+            dependentsSelect.value = '';
         }
 
-        // If has_dependents just got hidden/reset (e.g. gender switched away from ሴት),
-        // the fields depending on ITS value must also collapse/clear.
-        applyDependentsLogic();
+        housewifeField?.classList.add('d-none');
+        if (housewifeSelect) {
+            housewifeSelect.removeAttribute('required');
+            housewifeSelect.value = '';
+        }
     }
+
+    // If has_dependents just got hidden/reset (e.g. gender switched away from ሴት),
+    // the fields depending on ITS value must also collapse/clear.
+    applyDependentsLogic();
+}
 
     function applyDependentsLogic() {
         const hasDependentsStatus = document.getElementById('has_dependents').value;
