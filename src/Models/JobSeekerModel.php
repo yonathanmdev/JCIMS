@@ -8,78 +8,59 @@ class JobSeekerModel {
         $this->db = $db;
     }
 
-
-    public function checkDuplicateJobSeeker(array $data, ?string $excludeJobseekerId = null): array
+public function getBranchHierarchy(int $branchId): string
 {
-    $excludeClause = $excludeJobseekerId
-        ? " AND js.id <> :exclude_id "
-        : "";
+    $sql = "
+        SELECT GROUP_CONCAT(bp.name ORDER BY LENGTH(bp.path) SEPARATOR ' → ') AS hierarchy
+        FROM branches b
+        INNER JOIN branches bp ON b.path LIKE CONCAT(bp.path, '%')
+        WHERE b.internal_id = :branch_id
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchColumn() ?: '';
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return '';
+    }
+}
+   public function checkDuplicateJobSeeker(array $data, ?string $excludeJobseekerId = null): array
+{
+    // Build a uniquely-named exclude clause per UNION arm, since PDO
+    // (with real prepared statements) rejects binding one value to
+    // multiple occurrences of the same named placeholder.
+    $exclude = function (string $suffix) use ($excludeJobseekerId): string {
+        return $excludeJobseekerId ? " AND id <> :exclude_id{$suffix} " : "";
+    };
 
     $sql = "
-        SELECT
-            js.job_seeker_id,
-            js.branch_id,
-
-            b.name AS branch_name,
-            b.level AS branch_level,
-            b.path,
-
-            (
-                SELECT GROUP_CONCAT(bp.name ORDER BY LENGTH(bp.path) SEPARATOR ' → ')
-                FROM branches bp
-                WHERE b.path LIKE CONCAT(bp.path, '%')
-            ) AS branch_hierarchy,
-
-            /* Duplicate Indicators */
-
-            (
-                js.branch_id = :branch_id1
-                AND js.kebele_id_no = :kebele_id_no1
-            ) AS kebele_duplicate,
-
-            (
-                :g8id1 <> ''
-                AND js.g8id = :g8id2
-            ) AS g8id_duplicate,
-
-            (
-                :labor_id1 <> ''
-                AND js.Labor_ID = :labor_id2
-            ) AS labor_duplicate,
-
-            (
-                :fan1 <> ''
-                AND js.FAN = :fan2
-            ) AS fan_duplicate,
-
-            (
-                :full_name1 <> ''
-                AND :phone1 <> ''
-                AND :mother1 <> ''
-                AND js.full_name_normalized = :full_name2
-                AND js.phone_number = :phone2
-                AND js.mothername = :mother2
-            ) AS identity_duplicate
-
-        FROM job_seekers js
-
-        INNER JOIN branches b
-            ON b.internal_id = js.branch_id
-
-        WHERE
-
-            WHERE (
-    (js.branch_id = :branch_id2 AND js.kebele_id_no = :kebele_id_no2)
-    OR (:g8id3 <> '' AND js.g8id = :g8id4)
-    OR (:labor_id3 <> '' AND js.Labor_ID = :labor_id4)
-    OR (:fan3 <> '' AND js.FAN = :fan4)
-    OR (:full_name3 <> '' AND :phone3 <> '' AND :mother3 <> '' 
-        AND js.full_name_normalized = :full_name4 
-        AND js.phone_number = :phone4 
-        AND js.mothername = :mother4)
-)
-{$excludeClause}
-
+        SELECT job_seeker_id, branch_id, match_type FROM (
+            (SELECT job_seeker_id, branch_id, 'kebele' AS match_type
+             FROM job_seekers
+             WHERE branch_id = :branch_id AND kebele_id_no = :kebele_id_no {$exclude('1')})
+            UNION ALL
+            (SELECT job_seeker_id, branch_id, 'g8id' AS match_type
+             FROM job_seekers
+             WHERE :g8id1 <> '' AND g8id = :g8id2 {$exclude('2')})
+            UNION ALL
+            (SELECT job_seeker_id, branch_id, 'labor' AS match_type
+             FROM job_seekers
+             WHERE :labor_id1 <> '' AND Labor_ID = :labor_id2 {$exclude('3')})
+            UNION ALL
+            (SELECT job_seeker_id, branch_id, 'fan' AS match_type
+             FROM job_seekers
+             WHERE :fan1 <> '' AND FAN = :fan2 {$exclude('4')})
+            UNION ALL
+            (SELECT job_seeker_id, branch_id, 'identity' AS match_type
+             FROM job_seekers
+             WHERE :full_name1 <> '' AND :phone1 <> '' AND :mother1 <> ''
+               AND full_name_normalized = :full_name2
+               AND phone_number = :phone2
+               AND mothername = :mother2 {$exclude('5')})
+        ) matches
         LIMIT 1
     ";
 
@@ -91,92 +72,68 @@ class JobSeekerModel {
         | Normalize Input
         |--------------------------------------------------------------------------
         */
-
-        $branchId  = (int) ($data['branch_id'] ?? 0);
-        $kebeleId  = trim($data['kebele_id_no'] ?? '');
-
-        $g8id      = trim($data['g8id'] ?? '');
-        $laborId   = trim($data['Labor_ID'] ?? '');
-        $fan       = trim($data['FAN'] ?? '');
-
-        $fullName  = trim($data['full_name_normalized'] ?? '');
-        $phone     = trim($data['phone_number'] ?? '');
-        $mother    = trim($data['mothername'] ?? '');
+        $branchId = (int) ($data['branch_id'] ?? 0);
+        $kebeleId = trim($data['kebele_id_no'] ?? '');
+        $g8id     = trim($data['g8id'] ?? '');
+        $laborId  = trim($data['Labor_ID'] ?? '');
+        $fan      = trim($data['FAN'] ?? '');
+        $fullName = trim($data['full_name_normalized'] ?? '');
+        $phone    = trim($data['phone_number'] ?? '');
+        $mother   = trim($data['mothername'] ?? '');
 
         /*
         |--------------------------------------------------------------------------
-        | Branch + Kebele
+        | Branch + Kebele (arm 1)
         |--------------------------------------------------------------------------
         */
-
-        $stmt->bindValue(':branch_id1', $branchId, PDO::PARAM_INT);
-        $stmt->bindValue(':branch_id2', $branchId, PDO::PARAM_INT);
-
-        $stmt->bindValue(':kebele_id_no1', $kebeleId);
-        $stmt->bindValue(':kebele_id_no2', $kebeleId);
+        $stmt->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+        $stmt->bindValue(':kebele_id_no', $kebeleId);
 
         /*
         |--------------------------------------------------------------------------
-        | G8 ID
+        | G8 ID (arm 2)
         |--------------------------------------------------------------------------
         */
-
         $stmt->bindValue(':g8id1', $g8id);
         $stmt->bindValue(':g8id2', $g8id);
-        $stmt->bindValue(':g8id3', $g8id);
-        $stmt->bindValue(':g8id4', $g8id);
 
         /*
         |--------------------------------------------------------------------------
-        | Labor ID
+        | Labor ID (arm 3)
         |--------------------------------------------------------------------------
         */
-
         $stmt->bindValue(':labor_id1', $laborId);
         $stmt->bindValue(':labor_id2', $laborId);
-        $stmt->bindValue(':labor_id3', $laborId);
-        $stmt->bindValue(':labor_id4', $laborId);
 
         /*
         |--------------------------------------------------------------------------
-        | FAN
+        | FAN (arm 4)
         |--------------------------------------------------------------------------
         */
-
         $stmt->bindValue(':fan1', $fan);
         $stmt->bindValue(':fan2', $fan);
-        $stmt->bindValue(':fan3', $fan);
-        $stmt->bindValue(':fan4', $fan);
 
         /*
         |--------------------------------------------------------------------------
-        | Identity
+        | Identity (arm 5)
         |--------------------------------------------------------------------------
         */
-
         $stmt->bindValue(':full_name1', $fullName);
         $stmt->bindValue(':full_name2', $fullName);
-        $stmt->bindValue(':full_name3', $fullName);
-        $stmt->bindValue(':full_name4', $fullName);
-
         $stmt->bindValue(':phone1', $phone);
         $stmt->bindValue(':phone2', $phone);
-        $stmt->bindValue(':phone3', $phone);
-        $stmt->bindValue(':phone4', $phone);
-
         $stmt->bindValue(':mother1', $mother);
         $stmt->bindValue(':mother2', $mother);
-        $stmt->bindValue(':mother3', $mother);
-        $stmt->bindValue(':mother4', $mother);
 
         /*
         |--------------------------------------------------------------------------
         | Exclude Current Job Seeker (Edit Mode)
         |--------------------------------------------------------------------------
         */
-
         if ($excludeJobseekerId !== null) {
-            $stmt->bindValue(':exclude_id', $excludeJobseekerId);
+            for ($i = 1; $i <= 5; $i++) {
+                $stmt->bindValue(":exclude_id{$i}", $excludeJobseekerId);
+            }
         }
 
         $stmt->execute();
@@ -184,9 +141,7 @@ class JobSeekerModel {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
     } catch (\PDOException $e) {
-
         error_log(__METHOD__ . ': ' . $e->getMessage());
-
         return [];
     }
 }
@@ -230,15 +185,15 @@ public function createJobseeker(array $data): bool {
         // Insert employee
         $sql = "INSERT INTO job_seekers (id, branch_id, first_name, father_name, last_name, gender, 
         age, education_level_category, educational_level, educated_dpt, education_trmnet_finsh_year, g8id, CGPA, school_type, 
-        physical_condition, physical_condition_desc, mender, kebele_id_no, phone_number, 
+        physical_condition, physical_condition_desc, kebele, mender, kebele_id_no, phone_number, 
         choice_sector1, sub_choose1, choice_sector2, sub_choose2, choice_sector3, sub_choose3, 
-        meteleya_huneta, residence_status, srafelagi_huneta, graguation_catagory, maritalstatus, 
+        meteleya_huneta, residence_status, srafelagi_huneta, housewife, graguation_catagory, maritalstatus, 
        haveexp, workplace, experience, profession, nameofcountry, language,
          wageorself, regstration_level, mothername, Labor_ID, 
          FAN, kebele_id_photo, jsphoto, fiscal_year, agri_business_experience, has_dependents, 
          number_of_dependents, children_under_five, full_name_normalized, registered_by) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->db->prepare($sql);
         $result1 = $stmt->execute([
@@ -258,6 +213,7 @@ public function createJobseeker(array $data): bool {
             $data['school_type'],
             $data['physical_condition'],
             $data['physical_condition_desc'],
+            $data['kebele'],
             $data['mender'],
             $data['kebele_id_no'],
             $data['phone_number'],
@@ -270,6 +226,7 @@ public function createJobseeker(array $data): bool {
             $data['meteleya_huneta'],
             $data['residence_status'],
             $data['srafelagi_huneta'],
+            $data['housewife'],
             $data['graguation_catagory'],
             $data['maritalstatus'],
             $data['haveexp'],
@@ -460,10 +417,10 @@ public function updateJobseeker(array $data): bool
         $sql = "UPDATE job_seekers SET first_name = ?, father_name = ?, last_name = ?, gender = ?,
                     age = ?, education_level_category = ?, educational_level = ?, educated_dpt = ?,
                     education_trmnet_finsh_year = ?, g8id = ?, CGPA = ?, school_type = ?,
-                    physical_condition = ?, physical_condition_desc = ?, mender = ?,
+                    physical_condition = ?, physical_condition_desc = ?, kebele = ?, mender = ?,
                     kebele_id_no = ?, phone_number = ?, choice_sector1 = ?, sub_choose1 = ?,
                     choice_sector2 = ?, sub_choose2 = ?, choice_sector3 = ?, sub_choose3 = ?,
-                    meteleya_huneta = ?, residence_status = ?, srafelagi_huneta = ?,
+                    meteleya_huneta = ?, residence_status = ?, srafelagi_huneta = ?, housewife = ?,
                     graguation_catagory = ?, maritalstatus = ?, haveexp = ?, workplace = ?,
                     experience = ?, profession = ?, nameofcountry = ?, language = ?,
                     wageorself = ?, regstration_level = ?, mothername = ?, Labor_ID = ?,
@@ -476,10 +433,10 @@ public function updateJobseeker(array $data): bool
             $data['gender'], $data['age'], $data['education_level_catagory'], $data['educational_level'],
             $data['educated_dpt'], $data['education_trmnet_finsh_year'], $data['g8id'], $data['CGPA'],
             $data['school_type'], $data['physical_condition'], $data['physical_condition_desc'],
-            $data['mender'], $data['kebele_id_no'], $data['phone_number'], $data['choice_sector1'],
+            $data['kebele'], $data['mender'], $data['kebele_id_no'], $data['phone_number'], $data['choice_sector1'],
             $data['sub_choose1'], $data['choice_sector2'], $data['sub_choose2'], $data['choice_sector3'],
             $data['sub_choose3'], $data['meteleya_huneta'], $data['residence_status'],
-            $data['srafelagi_huneta'], $data['graguation_catagory'], $data['maritalstatus'],
+            $data['srafelagi_huneta'], $data['housewife'], $data['graguation_catagory'], $data['maritalstatus'],
             $data['haveexp'], $data['workplace'], $data['experience'], $data['profession'],
             $data['nameofcountry'], $data['language'], $data['wageorself'], $data['regstration_level'],
             $data['mothername'], $data['Labor_ID'], $data['FAN'], $data['fiscal_year'],

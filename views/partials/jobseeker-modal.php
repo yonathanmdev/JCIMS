@@ -73,8 +73,6 @@
                     <option value="ስራ ፈላጊ">ስራ ፈላጊ</option>
                     <option value="ተፈናቃይ">ተፈናቃይ</option>
                     <option value="ከስደት ተመላሽ">ከስደት ተመላሽ</option>
-                    <option value="የቤት እመቤት">የቤት እመቤት</option>
-                    <option value="አካል ጉዳተኛ">አካል ጉዳተኛ</option>
                     <option value="ዓለም አቀፍ ፍልሰተኛ">ዓለም አቀፍ ፍልሰተኛ</option>
                   </select>
                 </div>
@@ -99,10 +97,26 @@
               </div>
             </div>
             <div class="row">
+ <div class="col-12 col-sm-6 col-md-3 field-housewife d-none">
+  <div class="form-group mb-2">
+    <label class="mb-1" for="housewife"><small class="font-weight-bold">የቤት እመቤት <span class="text-danger">*</span></small></label>
+    <select class="form-control form-control-sm" id="housewife" name="housewife" data-validate="numeric-only" data-length="1">
+      <option value="" selected disabled>ይምረጡ</option>
+      <option value="1">ነች</option>
+      <option value="0">አየደለችም</option>
+    </select>
+  </div>
+</div>
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="age"><small class="font-weight-bold">FAN <span class="text-danger">*</span></small></label>
                   <input type="text" class="form-control form-control-sm" id="FAN" name="FAN"  data-validate="numeric-only" data-length="16">
+                </div>
+              </div>
+               <div class="col-12 col-sm-6 col-md-3">
+                <div class="form-group mb-2">
+                  <label class="mb-1" for="kebele"><small class="font-weight-bold">ቀበሌ <span class="text-danger">*</span></small></label>
+                  <input type="text" class="form-control form-control-sm" id="kebele" name="kebele" data-validate="general-safe" required>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
