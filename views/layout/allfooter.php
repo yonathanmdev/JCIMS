@@ -215,7 +215,6 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-     <script src="<?= myAsset('js/report-page.js') ?>"></script>
     <?php endif; ?>
 
  <?php if (isset($is_report_view_page) && $is_report_view_page === true): ?>

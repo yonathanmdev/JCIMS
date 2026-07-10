@@ -132,12 +132,17 @@ public function handleRegistration() {
 
 if (!empty($duplicate)) {
 
-    $triggerType = 'identity'; // default fallback
-    if (!empty($duplicate['kebele_duplicate']))  $triggerType = 'kebele_id';
-    elseif (!empty($duplicate['g8id_duplicate']))  $triggerType = 'g8id';
-    elseif (!empty($duplicate['labor_duplicate'])) $triggerType = 'labor_id';
-    elseif (!empty($duplicate['fan_duplicate']))   $triggerType = 'fan';
-    elseif (!empty($duplicate['identity_duplicate'])) $triggerType = 'identity';
+    $triggerType = $duplicate['match_type'] ?? 'identity';
+
+    // normalize to match your ENUM: 'kebele_id','g8id','labor_id','fan','identity'
+    $triggerTypeMap = [
+        'kebele' => 'kebele_id',
+        'g8id'   => 'g8id',
+        'labor'  => 'labor_id',
+        'fan'    => 'fan',
+        'identity' => 'identity',
+    ];
+    $triggerType = $triggerTypeMap[$triggerType] ?? 'identity';
 
     $jobSeekerModel->logDuplicateAttempt([
         'id'                     => Uuid::uuid7()->toString(),
@@ -155,8 +160,10 @@ if (!empty($duplicate)) {
         'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
     ]);
 
+    $branchHierarchy = $jobSeekerModel->getBranchHierarchy($duplicate['branch_id']);
+
     $_SESSION['error'] =
-        "ስራ ፈላጊው ከዚህ በፊት <strong>{$duplicate['branch_hierarchy']}</strong> ተመዝግቧል።".$mode;
+        "ስራ ፈላጊው ከዚህ በፊት <strong>{$branchHierarchy}</strong> ተመዝግቧል።" . $mode;
 
     header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
     exit();
@@ -253,6 +260,7 @@ if (!empty($duplicate)) {
             'sub_choose2'    => $resolvedSectors[2]['subsector_id'],
             'choice_sector3' => $resolvedSectors[3]['sector_id'],
             'sub_choose3'    => $resolvedSectors[3]['subsector_id'],
+            'housewife'        => (int) ($_POST['housewife'] ?? 0),
         ];
 
        if ($mode === 'edit') {
@@ -322,6 +330,7 @@ private function validateJobseekerData(array $post): array
         'educational_level'  => 'የት/ት ደረጃ',
         'wageorself'         => 'አሁን መስራት የሚፈልጉት',
         'physical_condition' => 'የጉዳት ሁኔታ',
+        'kebele'             => 'የቀበሌ ስም',
         'kebele_id_no'       => 'የቀበሌ መ/ቁጥር',
         'choice_sector1'     => '1ኛ የዘርፍ ምርጭ',
         'sub_choose1'        => '1ኛ ንዑስ ዘርፍ ምርጭ',

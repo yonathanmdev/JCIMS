@@ -1,70 +1,130 @@
+<?php $is_report_page = true; ?>
 <section class="content">
-  <div class="container-fluid">
-    <div class="card card-primary card-outline">
-      <!-- action መነሻው report-registration ቢሆንም በጃቫስክሪፕት ይቀየራል -->
-      <form action="" method="POST" target="_blank" id="reportForm">
-        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-        
-        <div class="card-header bg-white">
-          <!-- 💡 ማሻሻያ፦ አሰላለፉን በ Row እና በምንጭነት በመጠቀም ወደ ጎን አደረግነው -->
-          <div class="row align-items-end">
-            
-            <!-- 🟢 አዲስ የተጨመረ፦ የቅርንጫፍ/መዋቅር መምረጫ -->
-            <div class="col-md-5 form-group mb-2 mb-md-0">
-              <label for="branchSelect" class="mb-1">
-                <small class="font-weight-bold">የመዋቅር/ቅርንጫፍ ደረጃ ይምረጡ</small>
-              </label>
-             <select class="form-control select2-branch" id="branchSelect" name="branch_id" required style="width: 100%;">
-    <?php if (empty($branches)): ?>
-        <option value="" disabled selected>ምንም የመዋቅር ስም ዝርዝር አልተገኘም</option>
-    <?php else: ?>
-        <option value="" disabled selected>-- ቅርንጫፍ ይምረጡ --</option>
-        <?php foreach ($branches as $b): ?>
-            <option value="<?= $b['internal_id']; ?>" data-level="<?= (int)$b['level']; ?>">
-                <?= htmlspecialchars($b['name']); ?>
-            </option>
-        <?php endforeach; ?>
-    <?php endif; ?>
-</select>
-            </div>
+    <div class="container-fluid">
+        <div class="card card-primary card-outline shadow-sm">
+            <!-- action is set dynamically via JavaScript -->
+            <form action="" method="POST" target="_blank" id="reportForm">
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
 
-            <!-- የሪፖርት መምረጫ -->
-            <div class="col-md-5 form-group mb-2 mb-md-0">
-              <label for="reportSelect" class="mb-1">
-                <small class="font-weight-bold">የምትፈልጉትን ሪፖርት ዓይነት ይምረጡ</small>
-              </label>
-              <select class="form-control primary" id="reportSelect" name="report_type" required>
-                <option value="" selected="selected" disabled="disabled">-- ይምረጡ --</option>   
-                <option value="ሠ1">የስራ ፈላጊዎች ምዝገባና ግንዛቤ ፈጠራ ሪፖርት  (ሠ1)</option>
-                <option value="ሠ2">በከተማ አዲስ የተመሰረቱ ኢንተርፕራይዝ ሪፖርት (ሠ2)</option>
-                <option value="ሠ3">በገጠር አዲስ የተመሰረቱ ኢንተርፕራይዝ ሪፖርት (ሠ3)</option>
-                <option value="ሠ4">አጠቃላይ በከተማ የተፈጠረ የስራ እድል ሪፖርት (ሠ4)</option>
-                <option value="ሠ5">አጠቃላይ በገጠር የተፈጠረ የስራ እድል ሪፖርት (ሠ5)</option>
-                <option value="ሠ6">የከተማ የስራ እድል ሪፖርት በአንቀሳቃሾች (ሠ6)</option>
-                <option value="ሠ7">የገጠር የስራ እድል ሪፖርት በአንቀሳቃሾች (ሠ7)</option>
-                <option value="ሠ8">የከተማ የስራ እድል ሪፖርት በስራ ዓይነት (ሠ8)</option>
-                <option value="ሠ9">የገጠር የስራ እድል ሪፖርት በስራ ዓይነት (ሠ9)</option>
-                <option value="ሠ10">የስራ እድል ፈጠራ አካታችነት ሪፖርት በከተማና ገጠር (ሠ10)</option>
-              </select>
-            </div>
+                <div class="card-header bg-white py-3">
+                    <div class="row align-items-end">
+                        
+                        <!-- Branch Selection -->
+                        <div class="col-md-3">
+                            <div class="form-group mb-0">
+                                <label for="branchSearchInput" class="mb-1 text-dark">
+                                    <small class="font-weight-bold"><i class="fas fa-code-branch mr-1"></i> መዋቅር/ቅርንጫፍ ይምረጡ</small>
+                                </label>
+                                <div class="branch-select-wrapper" style="position: relative;">
+                                    <input type="text"
+                                           class="form-control"
+                                           id="branchSearchInput"
+                                           placeholder="-- ፈልገው ይምረጡ --"
+                                           autocomplete="off">
+                                    <input type="hidden" id="branchSelect" name="branch_id">
+                                    
+                                    <div id="branchDropdownList"
+                                         class="list-group shadow"
+                                         style="position: absolute; z-index: 1050; width: 100%; max-height: 250px; overflow-y: auto; display: none; background: #fff; border: 1px solid #ced4da; border-radius: 4px; margin-top: 2px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-            <!-- አሳይ ቁልፍ -->
-            <div class="col-md-2 form-group mb-0">
-              <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
-                <i class="fas fa-eye"></i> አሳይ
-              </button>
-            </div>
+                        
 
-          </div>
+                        <!-- Date Range: From -->
+                        <div class="col-md-2">
+                            <div class="form-group mb-0">
+                                <label for="eth_start_date" class="mb-1 text-dark">
+                                    <small class="font-weight-bold"><i class="fas fa-calendar-alt mr-1"></i> ከቀን</small>
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" 
+                                           class="ethiopian-date form-control" 
+                                           name="eth_start_date"
+                                           id="eth_start_date" 
+                                           data-rule="past"  
+                                           data-gregorian="#start_date" 
+                                           placeholder="ቀን/ወር/ዓ.ም" 
+                                           readonly 
+                                           style="background-color: #fff; cursor: pointer;">
+                                    <input type="date" class="d-none" id="start_date" name="start_date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date Range: To -->
+                        <div class="col-md-2">
+                            <div class="form-group mb-0">
+                                <label for="eth_end_date" class="mb-1 text-dark">
+                                    <small class="font-weight-bold"><i class="fas fa-calendar-alt mr-1"></i> እስከ ቀን</small>
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" 
+                                           class="ethiopian-date form-control" 
+                                           name="eth_end_date"
+                                           id="eth_end_date" 
+                                           data-rule="past"  
+                                           data-gregorian="#end_date" 
+                                           placeholder="ቀን/ወር/ዓ.ም" 
+                                           readonly 
+                                           style="background-color: #fff; cursor: pointer;">
+                                    <input type="date" class="d-none" id="end_date" name="end_date">
+                                </div>
+                            </div>
+                        </div>
+<!-- Report Type Selection -->
+                        <div class="col-md-4">
+                            <div class="form-group mb-0">
+                                <label for="reportSelect" class="mb-1 text-dark">
+                                    <small class="font-weight-bold"><i class="fas fa-file-alt mr-1"></i> የሪፖርት ዓይነት ይምረጡ</small>
+                                </label>
+                                <select class="form-control custom-select" id="reportSelect" name="report_type" required>
+                                    <option value="" selected disabled>-- የሪፖርት ዓይነት ይምረጡ --</option>
+                                    <option value="ሠ1">የስራ ፈላጊዎች ምዝገባና ግንዛቤ ፈጠራ ሪፖርት (ሠ1)</option>
+                                    <option value="ሠ2">በከተማ አዲስ የተመሰረቱ ኢንተርፕራይዝ ሪፖርት (ሠ2)</option>
+                                    <option value="ሠ3">በገጠር አዲስ የተመሰረቱ ኢንተርፕራይዝ ሪፖርት (ሠ3)</option>
+                                    <option value="ሠ4">አጠቃላይ በከተማ የተፈጠረ የስራ እድል ሪፖርት (ሠ4)</option>
+                                    <option value="ሠ5">አጠቃላይ በገጠር የተፈጠረ የስራ እድል ሪፖርት (ሠ5)</option>
+                                    <option value="ሠ6">የከተማ የስራ እድል ሪፖርት በአንቀሳቃሾች (ሠ6)</option>
+                                    <option value="ሠ7">የገጠር የስራ እድል ሪፖርት በአንቀሳቃሾች (ሠ7)</option>
+                                    <option value="ሠ8">የከተማ የስራ እድል ሪፖርት በስራ ዓይነት (ሠ8)</option>
+                                    <option value="ሠ9">የገጠር የስራ እድል ሪፖርት በስራ ዓይነት (ሠ9)</option>
+                                    <option value="ሠ10">የስራ እድል ፈጠራ አካታችነት ሪፖርት በከተማና ገጠር (ሠ10)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Action Button -->
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-block shadow-sm" id="submitBtn">
+                                አሳይ
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </form>
+
+            <div class="card-body bg-light border-top">
+                <div class="d-flex align-items-center justify-content-center">
+                    <i class="fas fa-info-circle text-muted mr-2"></i>
+                    <p class="text-muted mb-0 small">የሚፈልጉትን መዋቅር፣ የሪፖርት ዓይነት እና የጊዜ ገደብ መርጠው "አሳይ" የሚለውን ቁልፍ ሲጫኑ ሪፖርቱ በአዲስ ታብ ላይ ይከፈታል።</p>
+                </div>
+            </div>
         </div>
-      </form>
-      
-      <div class="card-body">
-         <p class="text-center text-muted">የሚፈልጉትን መዋቅር እና የሪፖርት ዓይነት መርጠው "አሳይ" የሚለውን ቁልፍ ሲጫኑ ሪፖርቱ በአዲስ ታብ ላይ ይከፈታል።</p>
-      </div>
     </div>
-  </div>
 </section>
+
+<?php if (!empty($branches)): ?>
+<script nonce="<?php echo $GLOBALS['nonce']; ?>">
+    window.ALL_BRANCHES = <?= json_encode(array_map(fn($b) => [
+        'id'    => $b['internal_id'],
+        'name'  => $b['name'],
+        'level' => (int)$b['level'],
+    ], $branches)) ?>;
+</script>
+<?php endif; ?>
 
 <script nonce="<?php echo $GLOBALS['nonce']; ?>">
 document.addEventListener('DOMContentLoaded', function() {
@@ -86,47 +146,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 3. የፎርሙን መሄጃ አድራሻ (action) በቁጥሩ መሠረት በዲናሚክ መቀየር
         reportForm.action = `${BASE_URL}/report-${reportNumber}`;
-        
+        location.reload();
         // ፎርሙ በ POST እና በ target="_blank" መሠረት ሁለቱንም (branch_id እና report_type) ይዞ በአዲስ ታብ ይከፈታል
     });
 });
-function initBranchSelect2() {
-    if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
-        // jQuery or select2 not loaded yet — try again shortly
-        setTimeout(initBranchSelect2, 50);
-        return;
+(function () {
+    const searchInput = document.getElementById('branchSearchInput');
+    const hiddenInput = document.getElementById('branchSelect');
+    const dropdownList = document.getElementById('branchDropdownList');
+    const branches = window.ALL_BRANCHES || [];
+
+    function renderList(filterText) {
+        const term = filterText.trim().toLowerCase();
+        const filtered = term === ''
+            ? branches
+            : branches.filter(b => b.name.toLowerCase().includes(term));
+
+        if (!filtered.length) {
+            dropdownList.innerHTML = '<div class="list-group-item text-muted">ምንም አልተገኘም</div>';
+            dropdownList.style.display = 'block';
+            return;
+        }
+
+        dropdownList.innerHTML = filtered.map(b => {
+            const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(b.level);
+            const bullet = b.level > 0 ? '▪ ' : '';
+            return `<button type="button" class="list-group-item list-group-item-action branch-option"
+                        data-id="${b.id}" data-name="${b.name.replace(/"/g, '&quot;')}">
+                        ${indent}${bullet}${b.name}
+                    </button>`;
+        }).join('');
+
+        dropdownList.style.display = 'block';
     }
 
-    $('.select2-branch').select2({
-        placeholder: '-- ቅርንጫፍ ይምረጡ --',
-        allowClear: false,
-        width: '100%',
-        templateResult: formatBranchOption,
-        templateSelection: formatBranchSelection,
-        matcher: branchMatcher
+    searchInput.addEventListener('focus', function () {
+        renderList(searchInput.value);
     });
 
-    function formatBranchOption(option) {
-        if (!option.id) return option.text;
-        const level = $(option.element).data('level') || 0;
-        const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(level);
-        const bullet = level > 0 ? '▪ ' : '';
-        return $(`<span>${indent}${bullet}${$('<div>').text(option.text).html()}</span>`);
-    }
+    searchInput.addEventListener('input', function () {
+        hiddenInput.value = ''; // clear selection while typing a new search
+        renderList(searchInput.value);
+    });
 
-    function formatBranchSelection(option) {
-        return option.text;
-    }
+    dropdownList.addEventListener('click', function (e) {
+        const btn = e.target.closest('.branch-option');
+        if (!btn) return;
 
-    function branchMatcher(params, data) {
-        if ($.trim(params.term) === '') return data;
-        if (typeof data.text === 'undefined') return null;
-        if (data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1) {
-            return data;
+        searchInput.value = btn.dataset.name;
+        hiddenInput.value = btn.dataset.id;
+        dropdownList.style.display = 'none';
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.branch-select-wrapper')) {
+            dropdownList.style.display = 'none';
         }
-        return null;
-    }
-}
-
-initBranchSelect2();
+    });
+})();
 </script>
