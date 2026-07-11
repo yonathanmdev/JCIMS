@@ -6,6 +6,11 @@ use App\Models\JobSeekerModel;
 use App\Models\SectorModel;
 use Ramsey\Uuid\Uuid;
 use Exception;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+
 class JobseekerController extends BaseController {
    
     public function showRegisterForm() {
@@ -145,20 +150,21 @@ if (!empty($duplicate)) {
     $triggerType = $triggerTypeMap[$triggerType] ?? 'identity';
 
     $jobSeekerModel->logDuplicateAttempt([
-        'id'                     => Uuid::uuid7()->toString(),
-        'attempted_by'           => $user['id'],
-        'branch_id'              => $branchId,
-        'trigger_type'           => $triggerType,
-        'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
-        'attempted_kebele_id_no' => trim($_POST['kebele_id_no']),
-        'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
-        'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
-        'attempted_fan'          => trim($_POST['FAN'] ?? ''),
-        'attempted_full_name'    => $normalizedFullName,
-        'attempted_phone_number' => trim($_POST['phone_number']),
-        'attempted_mothername'   => trim($_POST['mothername']),
-        'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
-    ]);
+    'id'                     => Uuid::uuid7()->toString(),
+    'attempted_by'           => $user['id'],
+    'branch_id'              => $branchId,
+    'trigger_type'           => $triggerType,
+    'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
+    'matched_source_table'   => $duplicate['source_table'] ?? 'active',
+    'attempted_kebele_id_no' => trim($_POST['kebele_id_no']),
+    'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
+    'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
+    'attempted_fan'          => trim($_POST['FAN'] ?? ''),
+    'attempted_full_name'    => $normalizedFullName,
+    'attempted_phone_number' => trim($_POST['phone_number']),
+    'attempted_mothername'   => trim($_POST['mothername']),
+    'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
+]);
 
     $branchHierarchy = $jobSeekerModel->getBranchHierarchy($duplicate['branch_id']);
 
@@ -556,7 +562,7 @@ private function validateJobseekerData(array $post): array
         'መሰረተ ትምህርት',
         'ማንበብና መፃፍ የማይችሉ',
         'ከ1-7ኛ',
-        '8ኛ ያጠናቀቀ/ች',
+        '8ኛ ያጠናቀቁ',
         'ከ9-10ኛ',
         'ከ11-12ኛ',
         'ደረጃ 2',
@@ -654,5 +660,157 @@ private function validateJobseekerData(array $post): array
     ];
 
     $this->render('jobseekers-list', $data);
+}
+public function liveSearch(): void
+{
+    AuthHelper::checkRole(['team_leader', 'officer']);
+
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null;
+    if (!$myBranchId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Unauthorized']);
+        exit;
+    }
+
+    $query = $_GET['q'] ?? '';
+    $query = trim($query);
+
+    header('Content-Type: application/json; charset=utf-8');
+
+    if (mb_strlen($query) < 2) {
+        echo json_encode(['results' => []]);
+        exit;
+    }
+
+    $searchModel = new JobSeekerModel($this->db);
+    $results = $searchModel->search($query, $myBranchId, 20);
+
+    echo json_encode([
+        'results' => $results,
+        'query' => $query,
+        'count' => count($results),
+    ]);
+    exit;
+}
+ public function exportJobSeekersExcel(): void
+    {
+        AuthHelper::checkRole(['team_leader', 'officer']);
+
+        $myBranchId = $_SESSION['user']['branch_id'] ?? null;
+        if (!$myBranchId) {
+            http_response_code(403);
+            exit('Unauthorized');
+        }
+
+        ini_set('memory_limit', '512M');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Job Seekers');
+
+        $headers = [
+            'ስራ ፈላጊ መ/ቁ', 'የተመዘገበበት', 'ስም', 'የአባት ስም', 'የአያት ስም',
+            'ጾታ', 'እድሜ', 'የት/ት ደረጃ',
+            'የተመረቀበት ሙያ', 'የተመረቁበት ዓመት', 'CGPA', 'የተቋሙ ዓይነት',
+            'የጉዳቱ ዓይነት', 'ቀበሌ', 'መንደር', 'የመታወቂያ ቁጥር',
+            'ስቁ', 'መጠለያ ሁኔታ', 'የሚኖሩበት አካባቢ',
+            'የስራ ፈላጊ ሁኔታ', 'የቤት እመቤት', 'የተመረቁበት ዘርፍ', 'የጋብቻ ሁኔታ', 'የሰሩበት ቦታ', 'የስራ ልምድ', 
+            'የሙያ መስክ', 'የሰሩበት ሀገር', 'ቋንቋ',
+            'መስራት የሚፈልጉበት', 'Labor ID', 'በጀት ዓመት',
+            'የስራ እድል', 'ግንዛቤ', 'የግብርና የስራ ልምድ', 'የሚያስተዳድሩት ቤተሰብ ብዛት',
+            'ከ5 ዓመት በታች', 'የተመዘገበበት ቀን',
+        ];
+
+        $totalCols = count($headers);
+        $lastCol = Coordinate::stringFromColumnIndex($totalCols);
+
+        $sheet->fromArray($headers, null, 'A1');
+
+        $sheet->getStyle("A1:{$lastCol}1")->getFont()->setBold(true);
+        $sheet->getStyle("A1:{$lastCol}1")->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('D9E1F2');
+
+        $columnOrder = [
+            'job_seeker_id', 'branch_name', 'first_name', 'father_name', 'last_name',
+            'gender', 'age', 'educational_level',
+            'educated_dpt', 'education_trmnet_finsh_year', 'CGPA', 'school_type',
+             'physical_condition_desc', 'kebele', 'mender', 'kebele_id_no',
+            'phone_number', 'meteleya_huneta', 'residence_status',
+            'srafelagi_huneta', 'housewife', 'graguation_catagory', 'maritalstatus',
+             'workplace', 'experience', 'profession', 'nameofcountry', 'language',
+            'wageorself', 'Labor_ID', 'fiscal_year',
+            'employment_status', 'awareness',
+            'agri_business_experience', 'number_of_dependents',
+            'children_under_five', 'created_at',
+        ];
+
+        $model = new JobSeekerModel($this->db);
+        $rowNum = 2;
+        $count = 0;
+
+        foreach ($model->streamJobSeekersByHierarchy($myBranchId) as $row) {
+    $row = $this->formatRowForExport($row); // <-- added
+
+    $values = array_map(fn($col) => $row[$col] ?? '', $columnOrder);
+    $sheet->fromArray($values, null, 'A' . $rowNum);
+    $rowNum++;
+    $count++;
+}
+        if ($count < 5000) {
+            for ($i = 1; $i <= $totalCols; $i++) {
+                $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i))->setAutoSize(true);
+            }
+        } else {
+            for ($i = 1; $i <= $totalCols; $i++) {
+                $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i))->setWidth(16);
+            }
+        }
+
+        $sheet->freezePane('A2');
+
+        $filename = 'job_seekers_export_' . date('Y-m-d_His') . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
+        \App\Helpers\AuditHelper::log(
+            action: 'job_seekers_exported',
+            entityType: 'job_seeker',
+            entityId: null,
+            oldValues: null,
+            newValues: null,
+            metadata: ['branch_id' => $myBranchId, 'row_count' => $count, 'format' => 'xlsx']
+        );
+
+        exit;
+    }
+    private function formatRowForExport(array $row): array
+{
+    if (isset($row['employment_status'])) {
+        $row['employment_status'] = match ((string) $row['employment_status']) {
+            '1' => 'ቋሚ',
+            '0' => 'ያልተፈጠረለት',
+            '2' => 'ጊዜያዊ',
+            default => $row['employment_status'],
+        };
+    }
+
+    if (isset($row['awareness'])) {
+        $row['awareness'] = match ((string) $row['awareness']) {
+            '1' => 'የተፈጠረላቸው',
+            '0' => 'ያልተፈጠረላቸው',
+            default => $row['awareness'],
+        };
+    }
+
+    return $row;
 }
     }

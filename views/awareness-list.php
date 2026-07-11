@@ -43,7 +43,9 @@ $searchName = isset($_GET['search_name']) ? htmlspecialchars($_GET['search_name'
             </div>
         </form>
     </div>
+    
 </div>
+
 <table id="example1" data-empty-msg="ምንም መረጃ የለም。" class="table table-bordered table-hover dataTable dtr-inline small" style="color: #000;" aria-describedby="example2_info">
     <thead class="thead-light">
         <tr>

@@ -1,7 +1,7 @@
     <!-- /.content -->
   </div>
   <!-- /.content-wrapper -->
-   <?php include_once __DIR__ . '/../partials/employee_search_modal.php'; ?>
+   
     <?php include_once 'footer.php'; ?>
 
   <!-- Control Sidebar -->
@@ -78,7 +78,6 @@ function myAsset($path) {
     return $path . '?v=' . $version;
 }
 ?>
-<script src="<?= myAsset('js/employee_search.js') ?>"></script>
 <script src="<?= myAsset('js/confirm-delete.js') ?>"></script>
 <?php if (isset($is_organization_page) && $is_organization_page === true): ?>
     
@@ -149,6 +148,7 @@ function myAsset($path) {
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
      <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
      <script src="<?= myAsset('js/jobseeker.views.js') ?>"></script>
+     <script src="<?= myAsset('js/jobseeker-search.js') ?>"></script>
     <?php endif; ?>
    
  <?php if (isset($is_deleteawarness) && $is_deleteawarness === true): ?>

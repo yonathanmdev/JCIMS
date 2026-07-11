@@ -34,7 +34,7 @@
   <!-- Theme style -->
   <link rel="stylesheet" href="dist/css/adminlte.min.css">
    <link rel="stylesheet" href="css/delete.css">
-   <link rel="stylesheet" href="css/position-toggles.css">
+   <link rel="stylesheet" href="css/custom-search.css">
    <script nonce="<?php echo $GLOBALS['nonce']; ?>">
     window.BASE_URL = "<?= rtrim($_ENV['BASE_URL'], '/') ?>";
 </script>
