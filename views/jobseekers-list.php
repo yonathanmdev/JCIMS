@@ -17,6 +17,28 @@ $is_jobseeker_list_page = true;
         <?= $totalCount ?>
   </span>
    </small>
+   <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="search-controls position-relative">
+        <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text"
+                   id="jobSeekerSearchInput"
+                   class="form-control search-input"
+                   placeholder="ስም ወይም መ/ቁ ይፈልጉ... (Search by name or ID)"
+                   autocomplete="off">
+            <span id="searchSpinner" class="search-spinner d-none">
+                <i class="fas fa-spinner fa-spin"></i>
+            </span>
+        </div>
+        <div id="jobSeekerSearchResults" class="search-results-dropdown d-none"></div>
+    </div>
+
+    <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/jobseekers-list-export-excel"
+       class="btn btn-secondary shadow-sm"
+       id="exportBtn">
+        <i class="fas fa-file-excel mr-1"></i> Export to Excel
+    </a>
+</div>
         <!-- Example Table (optional) -->
       <table id="example1" data-empty-msg="ምንም ስራ ፈላጊ የለም።" class="table table-bordered table-hover small">
     <thead class="thead-light">

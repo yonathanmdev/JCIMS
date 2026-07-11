@@ -27,7 +27,7 @@ public function getBranchHierarchy(int $branchId): string
         return '';
     }
 }
-   public function checkDuplicateJobSeeker(array $data, ?string $excludeJobseekerId = null): array
+  public function checkDuplicateJobSeeker(array $data, ?string $excludeJobseekerId = null): array
 {
     // Build a uniquely-named exclude clause per UNION arm, since PDO
     // (with real prepared statements) rejects binding one value to
@@ -36,26 +36,43 @@ public function getBranchHierarchy(int $branchId): string
         return $excludeJobseekerId ? " AND id <> :exclude_id{$suffix} " : "";
     };
 
+    // NOTE: exclude clause now applies to `source.id` -- the combined
+    // CTE below carries the `id` column through from both tables so
+    // the same bound param works whether the match lands in the live
+    // table or the archive.
     $sql = "
-        SELECT job_seeker_id, branch_id, match_type FROM (
-            (SELECT job_seeker_id, branch_id, 'kebele' AS match_type
-             FROM job_seekers
+        WITH source AS (
+            SELECT
+                id, job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
+                full_name_normalized, phone_number, mothername,
+                'active' AS source_table
+            FROM job_seekers
+            UNION ALL
+            SELECT
+                id, job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
+                full_name_normalized, phone_number, mothername,
+                'archive' AS source_table
+            FROM job_seekers_archive
+        )
+        SELECT job_seeker_id, branch_id, match_type, source_table FROM (
+            (SELECT job_seeker_id, branch_id, source_table, 'kebele' AS match_type
+             FROM source
              WHERE branch_id = :branch_id AND kebele_id_no = :kebele_id_no {$exclude('1')})
             UNION ALL
-            (SELECT job_seeker_id, branch_id, 'g8id' AS match_type
-             FROM job_seekers
+            (SELECT job_seeker_id, branch_id, source_table, 'g8id' AS match_type
+             FROM source
              WHERE :g8id1 <> '' AND g8id = :g8id2 {$exclude('2')})
             UNION ALL
-            (SELECT job_seeker_id, branch_id, 'labor' AS match_type
-             FROM job_seekers
+            (SELECT job_seeker_id, branch_id, source_table, 'labor' AS match_type
+             FROM source
              WHERE :labor_id1 <> '' AND Labor_ID = :labor_id2 {$exclude('3')})
             UNION ALL
-            (SELECT job_seeker_id, branch_id, 'fan' AS match_type
-             FROM job_seekers
+            (SELECT job_seeker_id, branch_id, source_table, 'fan' AS match_type
+             FROM source
              WHERE :fan1 <> '' AND FAN = :fan2 {$exclude('4')})
             UNION ALL
-            (SELECT job_seeker_id, branch_id, 'identity' AS match_type
-             FROM job_seekers
+            (SELECT job_seeker_id, branch_id, source_table, 'identity' AS match_type
+             FROM source
              WHERE :full_name1 <> '' AND :phone1 <> '' AND :mother1 <> ''
                AND full_name_normalized = :full_name2
                AND phone_number = :phone2
@@ -81,43 +98,18 @@ public function getBranchHierarchy(int $branchId): string
         $phone    = trim($data['phone_number'] ?? '');
         $mother   = trim($data['mothername'] ?? '');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Branch + Kebele (arm 1)
-        |--------------------------------------------------------------------------
-        */
         $stmt->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
         $stmt->bindValue(':kebele_id_no', $kebeleId);
 
-        /*
-        |--------------------------------------------------------------------------
-        | G8 ID (arm 2)
-        |--------------------------------------------------------------------------
-        */
         $stmt->bindValue(':g8id1', $g8id);
         $stmt->bindValue(':g8id2', $g8id);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Labor ID (arm 3)
-        |--------------------------------------------------------------------------
-        */
         $stmt->bindValue(':labor_id1', $laborId);
         $stmt->bindValue(':labor_id2', $laborId);
 
-        /*
-        |--------------------------------------------------------------------------
-        | FAN (arm 4)
-        |--------------------------------------------------------------------------
-        */
         $stmt->bindValue(':fan1', $fan);
         $stmt->bindValue(':fan2', $fan);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Identity (arm 5)
-        |--------------------------------------------------------------------------
-        */
         $stmt->bindValue(':full_name1', $fullName);
         $stmt->bindValue(':full_name2', $fullName);
         $stmt->bindValue(':phone1', $phone);
@@ -151,10 +143,11 @@ public function logDuplicateAttempt(array $data): void
     try {
         $sql = "INSERT INTO jobseeker_duplicate_attempts (
                     id, attempted_by, branch_id, trigger_type, matched_jobseeker_id,
+                    matched_source_table,
                     attempted_kebele_id_no, attempted_g8id, attempted_labor_id, attempted_fan,
                     attempted_full_name, attempted_phone_number, attempted_mothername,
                     ip_address
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -163,6 +156,7 @@ public function logDuplicateAttempt(array $data): void
             $data['branch_id'],
             $data['trigger_type'],
             $data['matched_jobseeker_id'],
+            $data['matched_source_table'],
             $data['attempted_kebele_id_no'],
             $data['attempted_g8id'],
             $data['attempted_labor_id'],
@@ -173,7 +167,6 @@ public function logDuplicateAttempt(array $data): void
             $data['ip_address'],
         ]);
     } catch (\PDOException $e) {
-        // Never let logging failure block the actual registration flow
         error_log(__METHOD__ . ': ' . $e->getMessage());
     }
 }
@@ -183,17 +176,20 @@ public function createJobseeker(array $data): bool {
         // Start transaction
         $this->db->beginTransaction();
         // Insert employee
-        $sql = "INSERT INTO job_seekers (id, branch_id, first_name, father_name, last_name, gender, 
-        age, education_level_category, educational_level, educated_dpt, education_trmnet_finsh_year, g8id, CGPA, school_type, 
-        physical_condition, physical_condition_desc, kebele, mender, kebele_id_no, phone_number, 
-        choice_sector1, sub_choose1, choice_sector2, sub_choose2, choice_sector3, sub_choose3, 
-        meteleya_huneta, residence_status, srafelagi_huneta, housewife, graguation_catagory, maritalstatus, 
+        $sql = "INSERT INTO job_seekers (id, branch_id, first_name, father_name, 
+        last_name, gender, age, education_level_category, educational_level, 
+        educated_dpt, education_trmnet_finsh_year, g8id, CGPA, school_type, 
+        physical_condition, physical_condition_desc, kebele, mender, kebele_id_no, 
+        phone_number, choice_sector1, sub_choose1, choice_sector2, sub_choose2, 
+        choice_sector3, sub_choose3, meteleya_huneta, residence_status, 
+        srafelagi_huneta, housewife, graguation_catagory, maritalstatus, 
        haveexp, workplace, experience, profession, nameofcountry, language,
          wageorself, regstration_level, mothername, Labor_ID, 
-         FAN, kebele_id_photo, jsphoto, fiscal_year, agri_business_experience, has_dependents, 
-         number_of_dependents, children_under_five, full_name_normalized, registered_by) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+         FAN, fiscal_year, agri_business_experience, has_dependents, 
+         number_of_dependents, children_under_five, full_name_normalized, 
+         registered_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                     ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->db->prepare($sql);
         $result1 = $stmt->execute([
@@ -240,8 +236,6 @@ public function createJobseeker(array $data): bool {
             $data['mothername'],
             $data['Labor_ID'],
             $data['FAN'],
-            $data['kebele_id_photo'],
-            $data['jsphoto'],
             $data['fiscal_year'],
             $data['agri_business_experience'],
             $data['has_dependents'],
@@ -467,5 +461,153 @@ public function updateJobseeker(array $data): bool
         return false;
     }
 }
+/**
+ * Streams ALL job seekers under a branch hierarchy for export.
+ * Uses an unbuffered query so rows are pulled from MySQL one at a time
+ * instead of being materialized fully in PHP memory.
+ */
+public function streamJobSeekersByHierarchy(string $myBranchId): \Generator
+{
+    $this->db->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+
+    $sql = "SELECT js.job_seeker_id, b.name AS branch_name,js.branch_id, js.first_name, js.father_name, js.last_name,
+                   js.gender, js.age, js.education_level_category, js.educational_level,
+                   js.educated_dpt, js.education_trmnet_finsh_year, js.CGPA, js.school_type,
+                   js.physical_condition, js.physical_condition_desc, js.kebele, js.mender, js.kebele_id_no,
+                   js.phone_number, js.meteleya_huneta, js.residence_status,
+                   js.srafelagi_huneta, js.housewife, js.graguation_catagory, js.maritalstatus,
+                   js.haveexp, js.workplace, js.experience, js.profession, js.nameofcountry, js.language,
+                   js.wageorself, js.orgstatus, js.mothername, js.Labor_ID, js.fiscal_year,
+                   js.employment_status, js.awareness, js.agri_business_experience_status,
+                   js.agri_business_experience, js.has_dependents, js.number_of_dependents,
+                   js.children_under_five, js.created_at,
+                    b.level AS branch_level
+            FROM job_seekers js
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+            ORDER BY js.created_at DESC";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId);
+        $stmt->execute();
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            yield $row;
+        }
+
+        $stmt->closeCursor();
+    } catch (\PDOException $e) {
+        error_log("Stream job seekers by hierarchy error: " . $e->getMessage());
+    } finally {
+        $this->db->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+    }
+}
+
+/**
+     * Searches job seekers by job_seeker_id (exact/LIKE) or full_name_normalized (FULLTEXT),
+     * scoped to the user's branch hierarchy.
+     */
+    public function search(string $query, string $myBranchId, int $limit = 20): array
+    {
+        $query = trim($query);
+        if ($query === '') {
+            return [];
+        }
+
+        // job_seeker_id lookups tend to be alphanumeric codes (e.g. "JS-2024-001234")
+        $looksLikeId = (bool) preg_match('/^[A-Za-z0-9\-\/]+$/', $query);
+
+        if ($looksLikeId) {
+            return $this->searchById($query, $myBranchId, $limit);
+        }
+
+        return $this->searchByName($query, $myBranchId, $limit);
+    }
+
+    private function searchById(string $query, string $myBranchId, int $limit): array
+    {
+        $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name,
+                       js.gender, js.phone_number, b.name AS branch_name
+                FROM job_seekers js
+                INNER JOIN branches b ON js.branch_id = b.internal_id
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+                  AND js.job_seeker_id LIKE :query
+                ORDER BY js.created_at DESC
+                LIMIT :limit";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':my_branch', $myBranchId);
+            $stmt->bindValue(':query', $query . '%'); // prefix match on the ID
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Job seeker search by ID error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function searchByName(string $query, int $myBranchId, int $limit): array
+    {
+        $normalized = \App\Helpers\AmharicNormalizer::normalize($query);
+        $booleanQuery = $this->buildBooleanQuery($normalized);
+
+        $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name,
+                       js.gender, js.phone_number, b.name AS branch_name,
+                       MATCH(js.full_name_normalized) AGAINST(:boolean_query IN BOOLEAN MODE) AS relevance
+                FROM job_seekers js
+                INNER JOIN branches b ON js.branch_id = b.internal_id
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+                  AND MATCH(js.full_name_normalized) AGAINST(:boolean_query2 IN BOOLEAN MODE)
+                ORDER BY relevance DESC, js.created_at DESC
+                LIMIT :limit";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':my_branch', $myBranchId);
+            $stmt->bindValue(':boolean_query', $booleanQuery);
+            $stmt->bindValue(':boolean_query2', $booleanQuery);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Fallback: FULLTEXT can return nothing for very short or stop-word-only
+            // queries (MySQL's default ft_min_word_len is often 3-4 chars). Try a
+            // LIKE fallback on job_seeker_id in case the "name" was actually an ID
+            // that didn't match the earlier regex (e.g. contains Amharic digits).
+            if (empty($results) && mb_strlen($normalized) < 4) {
+                return $this->searchById($query, $myBranchId, $limit);
+            }
+
+            return $results;
+        } catch (\PDOException $e) {
+            error_log("Job seeker search by name error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Converts a normalized search string into FULLTEXT boolean mode syntax,
+     * requiring each word (prefix match with *) rather than OR-ing them.
+     */
+    private function buildBooleanQuery(string $normalized): string
+    {
+        $words = preg_split('/\s+/', trim($normalized), -1, PREG_SPLIT_NO_EMPTY);
+
+        $terms = array_map(function ($word) {
+            // Escape FULLTEXT boolean operators that could break the query
+            $word = str_replace(['+', '-', '<', '>', '(', ')', '~', '*', '"'], '', $word);
+            return '+' . $word . '*';
+        }, $words);
+
+        return implode(' ', $terms);
+    }
     }
 
