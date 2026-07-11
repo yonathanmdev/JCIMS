@@ -85,6 +85,7 @@ class MenuConfig
                 'label' => 'መከላከያ',
                 'icon'  => 'fas fa-users',
                 'roles' => ['team_leader', 'officer'],
+                'levels' => [1, 2, 3],
                 'children' => [
                     [
                         'label' => 'መከላከያ መመዝገብ',
@@ -95,7 +96,8 @@ class MenuConfig
                     [
                         'label' => 'ዝርዝር',
                         'url'   => '/solgure-registration',
-                        'roles' => ['team_leader', 'officer']
+                        'roles' => ['team_leader', 'officer'],
+                        'levels' => [1, 2, 3]
                     ]
                 ]
             ],

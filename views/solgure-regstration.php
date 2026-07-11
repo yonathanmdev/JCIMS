@@ -24,7 +24,7 @@ $totalPages =1;
     </div>
      <div class="card-body">
       <small class="text-muted">
-        ጠቅላላ የመዘገቡት መከላከያ ምልመላ ብዛት፦
+        <!-- ጠቅላላ የመዘገቡት መከላከያ ምልመላ ብዛት፦ -->
      <span class="badge badge-primary"> 
         <?= $totalCount ?>
   </span>
