@@ -151,5 +151,72 @@ public function insertTransferLog($data) {
             throw new \Exception("የመከታተያ ዳታ ማምጣት አልተቻለም፦ " . $e->getMessage());
         }
     }
+    /**
+     * የዝውውር ውሳኔን መዝግቦ የሥራ ፈላጊውን ቅርንጫፍ መለያ ማሻሻያ (Transaction)
+     */
+    public function updateTransferDecision($transferLogId, $status, $userId, $currentBranchId) {
+        try {
+            // የዳታቤዝ ትራንዛክሽን መጀመር (ደህንነትን አስተማማኝ ለማድረግ)
+            $this->db->beginTransaction();
+
+            // 1. መጀመሪያ የዝውውር መዝገቡን (Transfer Log) ማምጣት (የሥራ ፈላጊውን ID ለማወቅ)
+            $stmtFetch = $this->db->prepare("
+                SELECT `job_seeker_id`, `recver_branch_id`, `transfer_status` 
+                FROM `transfer_logs` 
+                WHERE `id` = :id 
+                LIMIT 1
+            ");
+            $stmtFetch->execute(['id' => $transferLogId]);
+            $transfer = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+
+            if (!$transfer) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'የዝውውር መረጃው አልተገኘም።'];
+            }
+
+            // ዝውውሩ ቀድሞውኑ ውሳኔ ካገኘ በድጋሚ እንዳይቀየር መከላከል
+            if ((int)$transfer['transfer_status'] !== 0) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'ይህ ዝውውር ቀድሞውኑ ውሳኔ አግኝቷል።'];
+            }
+
+            // 2. የዝውውር ታሪኩን ማሻሻል (Status, Acceptor ID, Date)
+            $sqlLog = "UPDATE `transfer_logs` 
+                       SET `transfer_status` = :status,
+                           `acceptorrejectby` = :user_id,
+                           `accentrejectdate` = NOW(),
+                           `reciver_view_status` = 1
+                       WHERE `id` = :id";
+            
+            $stmtLog = $this->db->prepare($sqlLog);
+            $stmtLog->execute([
+                'status'  => (int)$status,
+                'user_id' => (int)$userId,
+                'id'      => $transferLogId
+            ]);
+
+            // 3. ውሳኔው "የጸደቀ" (1) ከሆነ ብቻ የሥራ ፈላጊውን branch_id ማሻሻል
+            if ((int)$status === 1) {
+                $sqlSeeker = "UPDATE `job_seekers` 
+                              SET `branch_id` = :new_branch_id 
+                              WHERE `job_seeker_id` = :job_seeker_id"; // ማስታወሻ፦ ከ getTransferTrackingList ጋር ለማጣጣም job_seeker_id ተጠቅሟል
+                
+                $stmtSeeker = $this->db->prepare($sqlSeeker);
+                $stmtSeeker->execute([
+                    'new_branch_id' => (int)$currentBranchId,
+                    'job_seeker_id' => $transfer['job_seeker_id']
+                ]);
+            }
+
+            // ሁሉም በተሳካ ሁኔታ ከተከናወነ ማጽደቅ
+            $this->db->commit();
+            return ['success' => true, 'message' => 'ውሳኔው በተሳካ ሁኔታ ተመዝግቧል።'];
+
+        } catch (\PDOException $e) {
+            // ስህተት ካለ ወደ ነበረበት መመለስ (Rollback)
+            $this->db->rollBack();
+            throw new \Exception("የውሳኔ ምዝገባ ስህተት፦ " . $e->getMessage());
+        }
+    }
     }
 

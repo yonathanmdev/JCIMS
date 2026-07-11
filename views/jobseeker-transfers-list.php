@@ -32,7 +32,9 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
             </thead>
             <tbody>
               <?php if (!empty($transfers) && is_array($transfers)): ?>
-                <?php $count = 1; ?>
+                <?php $count = 1;
+                $current_branch_id=(int)($_SESSION['user']['branch_id'] ?? 0); // የሎግኢን ቅርንጫፍ መለያ እንደ ቁጥር ማድረግ
+                ?>
                 <?php foreach ($transfers as $row): ?>
                   <?php 
                     // የላኪ እና የተቀባይ ቅርንጫፍ መለያዎችን ለቀላል ማወዳደሪያ ማዘጋጀት
@@ -101,13 +103,17 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
                           
                           <?php if ($receiver_id === $current_branch_id): ?>
                             <!-- 🎯 ሁኔታ 1፦ ሎግኢን ያደረገው ሰው ተቀባዩ ቅርንጫፍ ከሆነ ውሳኔ መስጠት ይችላል -->
-                            <button type="button" 
-                                    class="btn btn-sm btn-primary btn-transfer-action font-weight-bold" 
-                                    data-id="<?= htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                    data-name="<?= htmlspecialchars(($row['first_name'] ?? '') . ' ' . ($row['father_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    title="ውሳኔ ስጥ">
-                              <i class="fas fa-gavel mr-1"></i> ውሳኔ ስጥ
-                            </button>
+                         <!-- 1. የሰንጠረዡ አዝራር -->
+<!-- 1. የሰንጠረዡ አዝራር (HTML ባህሪያት ተጨምረውበታል) -->
+<button type="button" 
+        class="btn btn-sm btn-primary btn-transfer-action font-weight-bold" 
+        data-toggle="modal" 
+        data-target="#transferActionModal"
+        data-id="<?= htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+        data-name="<?= htmlspecialchars(($row['first_name'] ?? '') . ' ' . ($row['father_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+        title="ውሳኔ ስጥ">
+    <i class="fas fa-gavel mr-1"></i> ውሳኔ ስጥ
+</button>
                           
                           <?php elseif ($sender_id === $current_branch_id): ?>
                             <!-- 📤 ሁኔታ 2፦ ሎግኢን ያደረገው ሰው ራሱ የላከው (Sender) ከሆነ መከታተል ብቻ ነው የሚችለው -->
@@ -123,6 +129,7 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
                           <span class="text-muted small"><i class="fas fa-check-double mr-1"></i> ተጠናቋል</span>
                         <?php endif; ?>
                       </div>
+                      
                     </td>
 
                   </tr>
@@ -141,18 +148,18 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
 
   </div>
 </section>
-
-<!-- 🔔 ውሳኔ መስጫ ፖፕ-አፕ (Bootstrap Modal) -->
-<div class="modal fade" id="transferActionModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+<!-- 2. 🔔 ውሳኔ መስጫ ፖፕ-አፕ (ለ Bootstrap 4 የተስተካከለ HTML) -->
+<div class="modal fade" id="transferActionModal" data-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title font-weight-bold"><i class="fas fa-user-check mr-2"></i> የዝውውር ውሳኔ መስጫ ሳጥን</h5>
-                <button type="button" class="close text-white" data-bs-dismiss="modal" aria-label="Close">
+                <!-- 💡 ለ Bootstrap 4 ተኳሃኝ የሆነ መዝጊያ -->
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="transferActionForm">
+            <form id="transferActionForm" autocomplete="off">
                 <div class="modal-body">
                     <input type="hidden" name="transfer_log_id" id="action_transfer_id">
                     
@@ -165,13 +172,13 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
                         <label class="form-label font-weight-bold"> የውሳኔ ዓይነት ይምረጡ፦</label>
                         <div class="d-flex gap-4 mt-2">
                             <div class="form-check mr-3 d-inline-block">
-                                <input class="form-check-input" type="radio" name="action_status" id="status_approve" value="1" checked>
+                                <input class="form-check-input" type="radio" name="action_status" id="status_approve" value="1" required>
                                 <label class="form-check-label text-success font-weight-bold" for="status_approve" style="cursor: pointer;">
                                     <i class="fas fa-check-circle"></i> ዝውውሩን አጽድቅ
                                 </label>
                             </div>
                             <div class="form-check d-inline-block">
-                                <input class="form-check-input" type="radio" name="action_status" id="status_reject" value="2">
+                                <input class="form-check-input" type="radio" name="action_status" id="status_reject" value="2" required>
                                 <label class="form-check-label text-danger font-weight-bold" for="status_reject" style="cursor: pointer;">
                                     <i class="fas fa-times-circle"></i> ውድቅ አድርግ
                                 </label>
@@ -180,7 +187,7 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ዝጋ</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ዝጋ</button>
                     <button type="submit" class="btn btn-primary font-weight-bold"><i class="fas fa-save mr-1"></i> ውሳኔውን መዝግብ</button>
                 </div>
             </form>
@@ -188,42 +195,50 @@ $current_branch_id = isset($_SESSION['user']['internal_id']) ? (int)$_SESSION['u
     </div>
 </div>
 <script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-    
- 
-$(document).ready(function() {
-    // 1. "ውሳኔ ስጥ" ቁልፍ ሲጫን ሞዳሉን መክፈት
-    $(document).on('click', '.btn-transfer-action', function() {
-        var transferId = $(this).data('id');
-        var seekerName = $(this).data('name');
-
-        $('#action_transfer_id').val(transferId);
-        $('#action_job_seeker_name').text(seekerName);
-        $('#transferActionModal').modal('show');
+document.addEventListener('DOMContentLoaded', function () {
+    // አዝራሩ ሲጫን ፖፕ-አፑን HTML ራሱ ይከፍተዋል፤ ይህ ስክሪፕት ግን ስሙንና መለያውን ብቻ ይተካል
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('.btn-transfer-action');
+        
+        if (button) {
+            // ዳታዎችን መውሰድ
+            var transferId = button.getAttribute('data-id');
+            var seekerName = button.getAttribute('data-name');
+            
+            // ወደ ፎርሙ መውጋት
+            var idInput = document.getElementById('action_transfer_id');
+            var nameDiv = document.getElementById('action_job_seeker_name');
+            var approveRadio = document.getElementById('status_approve');
+            
+            if (idInput) idInput.value = transferId;
+            if (nameDiv) nameDiv.textContent = seekerName;
+            if (approveRadio) approveRadio.checked = false;
+        }
     });
-
-    // 2. ፎርሙ በአጃክስ ሲላክ
-    $('#transferActionForm').on('submit', function(e) {
-        e.preventDefault();
-        var formData = $(this).serialize();
-
-        $.ajax({
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    alert(response.message);
-                    $('#transferActionModal').modal('hide');
-                    location.reload();
-                } else {
-                    alert(response.message);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error(xhr.responseText);
-                alert('የስርዓት ስህተት ተፈጥሯል። እባክዎ በኮንትሮለር ላይ የሁኔታ ማዘመኛውን (Update Method) መኖሩን ያረጋግጡ።');
-            }
-        });
+});
+// በቪው ላይ ካለው የድሮ ስክሪፕት ቀጥሎ የሚታከል
+document.getElementById('transferActionForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    
+    var formData = new FormData(this);
+    
+    // ማሳሰቢያ፦ የ route ዩአርኤልን እንደ ሲስተምህ አወቃቀር (ለምሳሌ /jobseeker-transfer/decision) ቀይረው
+fetch('/jobseeker-transfer-decision', { 
+    method: 'POST',
+    body: formData
+})
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload(); // ሰንጠረዡን በራስ-ሰር ለማደስ
+        } else {
+            alert('ስህተት፦ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('የኔትወርክ ስህተት አጋጥሟል።');
     });
 });
 </script>
