@@ -45,7 +45,8 @@ return [
     'jobseeker-registration-process'         => ['JobseekerController', 'handleRegistration', true],
     'jobseekers-list'                        => ['JobseekerController', 'listofJobseekers', true],
     'retrieve-jobseeker'                     => ['JobseekerController', 'getJobseekerById', true],
-    
+    'job-seekers-search'             => ['JobseekerController', 'liveSearch', true],
+    'jobseekers-list-export-excel'            => ['JobseekerController', 'exportJobSeekersExcel', true],
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs
