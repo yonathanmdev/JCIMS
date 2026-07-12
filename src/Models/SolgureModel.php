@@ -115,4 +115,28 @@ public function getDefenseRecordById($id) {
     
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
+public function updateRecruitment(array $data): bool {
+        $sql = "UPDATE `defense_recruitment` 
+                SET `fullname` = ?, `national_id` = ?, `sex` = ?, `age` = ?, `phone` = ?, 
+                    `education_level` = ?, `educated_study` = ?, `additional_skill` = ?, 
+                    `sector` = ?, `kebele` = ?
+                WHERE `id` = ? AND `branch_id` = ?";
+                
+        $stmt = $this->db->prepare($sql);
+        
+        return $stmt->execute([
+            $data['fullname'],
+            !empty($data['national_id']) ? $data['national_id'] : null,
+            $data['sex'],
+            (int)$data['age'],
+            $data['phone'],
+            $data['education_level'],
+            !empty($data['educated_study']) ? $data['educated_study'] : null,
+            !empty($data['additional_skill']) ? $data['additional_skill'] : null,
+            $data['sector'],
+            $data['kebele'],
+            (int)$data['id'],
+            (int)$data['branch_id'] // ለደህንነት ሲባል ተጠቃሚው የገዛ ቅርንጫፉን ብቻ እንዲያስተካክል
+        ]);
+    }
 }

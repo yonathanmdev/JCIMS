@@ -2,12 +2,13 @@
 use App\Helpers\EthiopianDateHelper; 
 use App\Helpers\AuthHelper;
 $fiscal_year = AuthHelper::checkFiscalYear();
-$is_jobseeker_list_page = true; 
+ 
 $totalCount =0;
 $offset = 0;
 $currentPage =1;
 $totalPages =1;
 ?>
+ 
 <section class="content">
   <div class="container-fluid">
     <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center card-primary card-outline">
@@ -31,35 +32,65 @@ $totalPages =1;
    </small>
         <!-- Example Table (optional) -->
       <table id="example1" data-empty-msg="ምንም መከላከያ ምልመላ የለም።" class="table table-bordered table-hover small">
-    <thead class="thead-light">
-        <tr>
-            <th>#</th>
-            <th>ስም</th>
-            <th>ጾታ</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php if (!empty($jobSeekers)): ?>
-            <?php foreach ($jobSeekers as $index => $js): ?>
-                <tr id="row-<?= $js['id'] ?>">
-                    <td><?= $offset + $index + 1 ?></td>
-                    <td><?= htmlspecialchars($js['fullname']) ?></td>
-                    <td><?= htmlspecialchars($js['sex']) ?></td>
-                    <td class="text-center align-middle">
+   <thead class="thead-light">
+    <tr>
+        <th>Action</th>
+        <th>#</th>
+        <th>ስም</th>
+          <th>የተመዘገበበት ከተማ/ወረዳ</th>
+         <th>ቀበሌ</th>
+      
+        <th>ጾታ</th>
+        <th>እድሜ</th>
+        <th>ስልክ ቁጥር</th>
+        <th>የትምህርት ደረጃ</th>
+        <th>የትምህርት መስክ</th>
+        <th>ሴክተር/ምድብ</th>
+        <th>ተጨማሪ ክህሎት</th>
+      
+        
+         <th>ብሄራዊ መለያ (ID)</th>
+         
+        <th>የተመዘገበበት ቀን</th>
+      
+    </tr>
+</thead>
+<tbody>
+    <?php if (!empty($jobSeekers)): ?>
+        <?php foreach ($jobSeekers as $index => $js): ?>
+            <tr id="row-<?= $js['id'] ?>">
+             <td >
     <button class="btn btn-outline-primary btn-sm view-defense-btn"
             data-id="<?= htmlspecialchars($js['id']) ?>"
             title="ሙሉ መረጃ ይመልከቱ">
         <i class="fas fa-eye"></i>
     </button>
     <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4])): ?>
-        <button class="btn btn-outline-warning btn-sm edit-defense-btn"
-                data-id="<?= htmlspecialchars($js['id']) ?>"
-                title="አስተካክል">
-            <i class="fas fa-edit"></i>
-        </button>
+     <button class="btn btn-outline-warning btn-sm edit-defense-btn"
+            data-info="<?= htmlspecialchars(json_encode($js), ENT_QUOTES, 'UTF-8') ?>"
+            title="አስተካክል">
+        <i class="fas fa-edit"></i>
+    </button>
     <?php endif; ?>
 </td>
+              
+                <td><?= $offset + $index + 1 ?></td>
+                <td><?= htmlspecialchars($js['fullname']) ?></td>
+                <td><?= htmlspecialchars($js['branch_name'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($js['kebele'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($js['sex']) ?></td>
+                <td><?= htmlspecialchars($js['age'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($js['phone'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($js['education_level'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($js['educated_study'] ?? '-') ?></td>
+                  <td><?= htmlspecialchars($js['sector'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($js['additional_skill'] ?? '-') ?></td>
+              
+              
+                
+                <td><?= htmlspecialchars($js['national_id'] ?? '-') ?></td>
+                <td><?= htmlspecialchars(date('d/m/Y', strtotime($js['created_at']))) ?></td>
+                   
                 </tr>
             <?php endforeach; ?>
         <?php else: ?>
@@ -70,7 +101,7 @@ $totalPages =1;
     </tbody>
 </table>
 <?php
-$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual working route
+$basePath = rtrim($_ENV['BASE_URL'], '/') . '/solgure-registration'; // your actual working route
 ?>
 
 <?php if ($totalPages > 1): ?>
@@ -182,17 +213,15 @@ $basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual w
           <div class="modal-footer py-2 d-flex justify-content-between">
     <!-- በስተግራ በኩል መረጃውን ማተሚያ አዝራር (የአማራጭ) -->
     <div>
-        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="window.print();" title="ይህንን ገጽ አትም">
-            <i class="fas fa-print me-1"></i> አትም
-        </button>
+ <!--    <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="printDetailsBtn" title="ይህንን ገጽ አትም">
+    <i class="fas fa-print me-1"></i> አትም
+</button> -->
     </div>
 
     <!-- በስተቀኝ በኩል ማስተካከያ እና መዝጊያ አዝራሮች -->
     <div>
         <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4])): ?>
-            <button type="button" class="btn btn-warning btn-sm me-2 edit-defense-modal-btn" id="modal_edit_btn" data-id="">
-                <i class="fas fa-edit me-1"></i> አስተካክል
-            </button>
+           
         <?php endif; ?>
         <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
             <i class="fas fa-times me-1"></i> ዝጋ
@@ -204,7 +233,7 @@ $basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual w
 </div>
 <script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
 // ዳታው መጥቶ ፎርሙ ላይ ከሚሞላበት ኮድ በታች ይህንን አስቀምጥ፡
-
+ 
 document.addEventListener('DOMContentLoaded', function () {
     // አዝራሮቹን በክላስ መምረጥ
     const viewButtons = document.querySelectorAll('.view-defense-btn');
@@ -265,5 +294,152 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 }); 
+document.addEventListener('DOMContentLoaded', function () {
+    
+    // ==========================================
+    // 1. የ Edit Button Click Event & Data Population
+    // ==========================================
+    const editButtons = document.querySelectorAll('.edit-defense-btn');
+    
+    // የ Edit ፎርም ኤለመንቶች
+    const editForm = document.getElementById('editDefenseForm');
+    const editEduLevelSelect = document.getElementById('edit_education_level');
+    const editEducatedStudy = document.getElementById('edit_educated_study');
+    const editStudyFieldWrapper = document.getElementById('edit_study_field_wrapper');
+    const editPhoneInput = document.getElementById('edit_phone');
+    const editFullnameInput = document.getElementById('edit_fullname');
+    const editAgeInput = document.getElementById('edit_age');
+    const editNationalIdInput = document.getElementById('edit_national_id');
+
+    // የትምህርት መስክን የማሳየት/መደበቅ ፈንክሽን ለ Edit Modal
+    function toggleEditStudyField() {
+        if (!editEduLevelSelect || !editEducatedStudy || !editStudyFieldWrapper) return;
+        const selectedValue = editEduLevelSelect.value;
+        const requiredLevels = ["ሰርተፊኬት (Level I/II)", "ዲፕሎማ (Level III/IV)", "የመጀመሪያ ዲግሪ", "ከዛ በላይ"];
+
+        if (requiredLevels.includes(selectedValue)) {
+            editStudyFieldWrapper.style.display = 'block';
+            editEducatedStudy.setAttribute('required', 'required');
+        } else {
+            editStudyFieldWrapper.style.display = 'none';
+            editEducatedStudy.removeAttribute('required');
+            editEducatedStudy.value = ''; 
+            editEducatedStudy.setCustomValidity(''); 
+        }
+    }
+
+    if (editEduLevelSelect) {
+        editEduLevelSelect.addEventListener('change', toggleEditStudyField);
+    }
+
+    // ዳታውን ከ button ላይ በማንበብ ሞዳሉ ላይ መሙላት (Populate Modal)
+    editButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // በ JSON የተቀመጠውን ዳታ ማንበብ
+            const dataStr = this.getAttribute('data-info');
+            if(!dataStr) return;
+            
+            const data = JSON.parse(dataStr);
+
+            // ዳታዎቹን በየቦታቸው ማሳረፍ
+            document.getElementById('edit_defense_id').value = data.id;
+            document.getElementById('edit_fullname').value = data.fullname || '';
+            document.getElementById('edit_national_id').value = data.national_id || '';
+            document.getElementById('edit_sex').value = data.sex || '';
+            document.getElementById('edit_age').value = data.age || '';
+            document.getElementById('edit_phone').value = data.phone || '';
+            document.getElementById('edit_education_level').value = data.education_level || '';
+            document.getElementById('edit_additional_skill').value = data.additional_skill || '';
+            document.getElementById('edit_sector').value = data.sector || '';
+            document.getElementById('edit_kebele').value = data.kebele || '';
+            
+            if(data.educated_study) {
+                editEducatedStudy.value = data.educated_study;
+            }
+
+            // ትምህርት ደረጃን መሰረት አድርጎ መስኩን ማስተካከል
+            toggleEditStudyField();
+
+            // Bootstrap Modal መክፈት
+            $('#editDefenseModal').modal('show');
+        });
+    });
+
+    // ==========================================
+    // 2. የማስተካከያ (Edit) ፎርም Validation
+    // ==========================================
+    if (editPhoneInput) {
+        editPhoneInput.addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, ''); 
+            if (this.value.length > 0 && this.value[0] !== '0') this.value = '';
+            if (this.value.length > 1 && !['9', '7', '1'].includes(this.value[1])) this.value = this.value[0];
+        });
+    }
+
+    if (editFullnameInput) {
+        editFullnameInput.addEventListener('input', function () {
+            this.value = this.value.replace(/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/g, '');
+        });
+    }
+
+    if (editAgeInput) {
+        editAgeInput.addEventListener('input', function () {
+            let val = parseInt(this.value, 10);
+            if (val > 30) this.value = 30;
+            else if (val < 0) this.value = '';
+        });
+    }
+
+    if (editNationalIdInput) {
+        editNationalIdInput.addEventListener('input', function () {
+            this.value = this.value.replace(/[^a-zA-Z0-9\s\-]/g, '');
+        });
+    }
+
+    if (editForm) {
+        editForm.addEventListener('submit', function (event) {
+            let isValid = true;
+
+            if (editPhoneInput && editPhoneInput.value.trim().length !== 10) {
+                editPhoneInput.setCustomValidity('የስልክ ቁጥር 10 አሃዝ መሆን አለበት።');
+                isValid = false;
+            } else if (editPhoneInput) {
+                editPhoneInput.setCustomValidity('');
+            }
+
+            if (editAgeInput) {
+                let ageVal = parseInt(editAgeInput.value, 10);
+                if (isNaN(ageVal) || ageVal < 18 || ageVal > 30) {
+                    editAgeInput.setCustomValidity('እድሜ ከ18 እስከ 30 መሆን አለበት።');
+                    isValid = false;
+                } else {
+                    editAgeInput.setCustomValidity('');
+                }
+            }
+
+            if (editFullnameInput) {
+                const nameParts = editFullnameInput.value.trim().split(/\s+/);
+                if (nameParts.length < 2 || nameParts[0].length < 2) {
+                    editFullnameInput.setCustomValidity('እባክዎ ቢያንስ ስም እና የአባት ስም በትክክል ያስገቡ።');
+                    isValid = false;
+                } else {
+                    editFullnameInput.setCustomValidity('');
+                }
+            }
+
+            if (editEducatedStudy && !editEducatedStudy.hasAttribute('required')) {
+                editEducatedStudy.setCustomValidity('');
+            }
+
+            if (!editForm.checkValidity() || !isValid) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            editForm.classList.add('was-validated');
+        }, false);
+    }
+});
 </script> 
 <?php include 'partials/register-defense-modal.php'; ?>
+<?php include 'partials/edit-defense-modal.php'; ?>
