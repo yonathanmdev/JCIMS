@@ -7,6 +7,7 @@
            <form action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/defense-direct-registration-process"
       method="POST"
       data-client-validate="true"
+        id="defenseForm"
       novalidate>
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
 
@@ -116,7 +117,7 @@
                 <option value="ሰርተፊኬት (Level I/II)">ሰርተፊኬት (Level I/II)</option>
                 <option value="ዲፕሎማ (Level III/IV)">ዲፕሎማ (Level III/IV)</option>
                 <option value="የመጀመሪያ ዲግሪ">የመጀመሪያ ዲግሪ</option>
-                <option value="ከዛ በላይ">ከዛ በላይ</option>
+                <option value="ከዛ በላይ">ከመጀመሪያ ዲግሪ በላይ</option>
             </select>
             <div class="invalid-feedback">እባክዎ የትምህርት ደረጃ ይምረጡ።</div>
         </div>
@@ -160,9 +161,16 @@
                     </label>
                     <select class="form-control form-control-sm" id="sector" name="sector" required>
                         <option value="">-- ይምረጡ --</option>
-                        <option value="መደበኛ ሰራዊት">መደበኛ ሰራዊት</option>
-                        <option value="ቴክኒካል/እዝ">ቴክኒካል/እዝ</option>
-                        <option value="የጤና ባለሙያ ቡድን">የጤና ባለሙያ ቡድን</option>
+                      <option value="መደበኛ ሰራዊት">ለመደበኛ ሰራዊት</option>
+<option value="አይ ሲቲ ሙያተኞች">ለአይ ሲቲ ሙያተኞች</option>
+<option value="እጩ መኮንን">ለእጩ መኮንን</option>
+<option value="ህግ ሙያተኞች">ለህግ ሙያተኞች</option>
+<option value="መሃንድስ ሙያተኞች">ለመሃንድስ ሙያተኞች</option>
+<option value="ጤና ሙያተኞች">ለጤና ሙያተኞች</option>
+<option value="ሎጀስቲክስ ሙያተኞች">ለተለያዩ የሎጀስቲክስ ሙያተኞች</option>
+<option value="ኢንጂነሪንግ">ለኢንጂነሪንግ</option>
+<option value="ጤና ሳይንስ">ለጤና ሳይንስ</option>
+<option value="ሪሶርስ ማናጅመንት">ለሪሶርስ ማናጅመንት</option>   
                     </select>
                     <div class="invalid-feedback">እባክዎ ሴክተር ይምረጡ።</div>
                 </div>

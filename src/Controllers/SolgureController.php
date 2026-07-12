@@ -119,4 +119,60 @@ public function getDetails() {
     }
     exit; // የ MVC View እንዳይቀጥል እዚህ ላይ ያበቃል
 }
+public function processEdit() {
+     AuthHelper::checkRole(['team_leader', 'officer']);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . $_ENV['BASE_URL'] . '/defense-list?error=invalid_request');
+            exit;
+        }
+ 
+
+        // 3. ዳታዎችን በደህንነት መቀበልና ማጽዳት (Sanitizing)
+        $id = filter_input(INPUT_POST, 'defense_id', FILTER_VALIDATE_INT);
+        $fullname = isset($_POST['fullname']) ? trim($_POST['fullname']) : '';
+        $national_id = isset($_POST['national_id']) ? trim($_POST['national_id']) : null;
+        $sex = isset($_POST['sex']) ? trim($_POST['sex']) : '';
+        $age = filter_input(INPUT_POST, 'age', FILTER_VALIDATE_INT);
+        $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
+        $education_level = isset($_POST['education_level']) ? trim($_POST['education_level']) : '';
+        $educated_study = isset($_POST['educated_study']) ? trim($_POST['educated_study']) : null;
+        $additional_skill = isset($_POST['additional_skill']) ? trim($_POST['additional_skill']) : null;
+        $sector = isset($_POST['sector']) ? trim($_POST['sector']) : '';
+        $kebele = isset($_POST['kebele']) ? trim($_POST['kebele']) : '';
+        
+        // ከሴሽን የሚመጡ የደህንነት መለያዎች
+        $branch_id = $_SESSION['user']['branch_id'] ?? null;
+
+        // 4. አጭር የኋላ መስመር ማጣሪያ (Backend Validation)
+        if (!$id || empty($fullname) || empty($sex) || !$age || $age < 18 || $age > 30 || empty($phone) || empty($education_level) || empty($sector) || empty($kebele)) {
+            header('Location: ' . $_ENV['BASE_URL'] . '/solgure-registration');
+            exit;
+        }
+
+        // 5. ዳታውን አደራጅቶ ወደ ሞዴል መላክ
+        $updateData = [
+            'id' => $id,
+            'fullname' => $fullname,
+            'national_id' => $national_id,
+            'sex' => $sex,
+            'age' => $age,
+            'phone' => $phone,
+            'education_level' => $education_level,
+            'educated_study' => $educated_study,
+            'additional_skill' => $additional_skill,
+            'sector' => $sector,
+            'kebele' => $kebele,
+            'branch_id' => $branch_id
+        ];
+            $SolgureModel = new SolgureModel($this->db);
+            $resultedit = $SolgureModel->updateRecruitment($updateData);
+        if ($resultedit) {
+            $_SESSION['success'] = 'የመከላከያ ሰራዊት መረጃ በትክክል ተሻሽሏል።';
+            header('Location: ' . $_ENV['BASE_URL'] . '/solgure-registration');
+        } else {
+             $_SESSION['error'] = 'የመከላከያ ሰራዊት መረጃ ማሻሻያ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+            header('Location: ' . $_ENV['BASE_URL'] . '/solgure-registration');
+        }
+        exit;
+    }
 }
