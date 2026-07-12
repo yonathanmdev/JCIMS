@@ -22,12 +22,12 @@ $role = $_SESSION['user']['role'] ?? '';
               <img src="images/logo_transparent.png" 
                    alt="System Logo" 
                    class="JCIMS-bureau-logo" 
-                   style="height: 65px; width: auto; object-fit: contain; background: transparent !important; flex-shrink: 0;">
+                   style="height: 95px; width: auto; object-fit: contain; background: transparent !important; flex-shrink: 0;">
             <?php endif; ?>
             
             <div class="JCIMS-title-container">
               <p class="JCIMS-title-sub text-muted font-weight-bold" style="font-size: 13px; color: #4a5568; letter-spacing: 0.4px; margin: 0;">
-               ስራ እድል ፈጠራ እና ኢንተርፕራይዝ ምስረታ ሲስተም
+               ስራ እድል ፈጠራ እና ኢንተርፕራይዝ ምስረታ የመረጃ አስተዳደር ስርዓት
               </p>
             </div>
           </div>
@@ -46,7 +46,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_users) ?> Total
               </span>
               <i class="fas fa-users-cog fa-2x text-info mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">ጠቅላላ ተጠቃሚዎች</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ ፈላጊዎች መረጃ ሁኔታ</h6>
             </div>
           </div>
         </div>
@@ -58,7 +58,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($active_users) ?> Active
               </span>
               <i class="fas fa-user-check fa-2x text-success mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">Active ተቆጣጣሪዎች</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የኢንተርፕራይዞች ሁኔታ</h6>
             </div>
           </div>
         </div>
@@ -70,7 +70,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_branches) ?> Managed
               </span>
               <i class="fas fa-network-wired fa-2x text-secondary mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የቅርንጫፎች ብዛት</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ እድል ሁኔታ</h6>
             </div>
           </div>
         </div>
@@ -79,16 +79,19 @@ $role = $_SESSION['user']['role'] ?? '';
       <?php if ($role === 'team_leader' || $role === 'officer'): ?>
 
         <div class="col-md-4 col-sm-6 mb-3">
-          <div class="report-type-card card card-outline card-primary h-100 shadow-sm" style="border-radius: 12px;">
-            <div class="card-body text-center py-4 d-flex flex-column align-items-center justify-content-center position-relative">
-              <span class="badge badge-primary float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px;">
-                <?= number_format($total_employees) ?> Active
-              </span>
-              <i class="fas fa-users fa-2x text-primary mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">ጠቅላላ ሰራተኛ ብዛት</h6>
-            </div>
-          </div>
-        </div>
+  <!-- ሲነካ በቀጥታ ወደ አዲሱ ቻርት ገጽ ይወስዳል -->
+<a href="seeker-analytics" style="text-decoration: none; color: inherit;">
+  <div class="report-type-card card card-outline card-primary h-100 shadow-sm" style="border-radius: 12px; cursor: pointer;">
+    <div class="card-body text-center py-4 d-flex flex-column align-items-center justify-content-center position-relative">
+      <span class="badge badge-primary float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px;">
+         <?= number_format($total_job_seekers) ?> Total
+      </span>
+      <i class="fas fa-id-card fa-2x text-primary mb-3 mt-2"></i>
+      <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ ፈላጊዎች ሁኔታ</h6>
+    </div>
+  </div>
+</a>
+</div>
 
         <div class="col-md-4 col-sm-6 mb-3">
           <div class="report-type-card card card-outline card-success h-100 shadow-sm" style="border-radius: 12px;">
@@ -96,8 +99,8 @@ $role = $_SESSION['user']['role'] ?? '';
               <span class="badge badge-success float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px;">
                 <?= number_format($studyleave_employees) ?> Study
               </span>
-              <i class="fas fa-graduation-cap fa-2x text-success mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">በትምህርት ላይ ያሉ</h6>
+              <i class="fas fa-industry fa-2x text-success mb-3 mt-2"></i>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የኢንተርፕራይዞች ሁኔታ</h6>
             </div>
           </div>
         </div>
@@ -108,8 +111,47 @@ $role = $_SESSION['user']['role'] ?? '';
               <span class="badge badge-warning float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px; color: #ffffff;">
                 <?= number_format($onleave_employees) ?> Leave
               </span>
-              <i class="fas fa-calendar-check fa-2x text-warning mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">እረፍት ላይ ያሉ</h6>
+              <i class="fas fa-handshake fa-2x text-warning mb-3 mt-2"></i>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ እድል ሁኔታ</h6>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 col-sm-6 mb-3">
+  <!-- ሲነካ በቀጥታ ወደ አዲሱ ቻርት ገጽ ይወስዳል -->
+<a href="seeker-analytics" style="text-decoration: none; color: inherit;">
+  <div class="report-type-card card card-outline card-primary h-100 shadow-sm" style="border-radius: 12px; cursor: pointer;">
+    <div class="card-body text-center py-4 d-flex flex-column align-items-center justify-content-center position-relative">
+      <span class="badge badge-primary float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px;">
+         <?= number_format($total_job_seekers) ?> Total
+      </span>
+      <i class="far fa-lightbulb fa-2x text-primary mb-3 mt-2"></i>
+      <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የግንዛቤ ፈጠራ ሁኔታ</h6>
+    </div>
+  </div>
+</a>
+</div>
+
+<div class="col-md-4 col-sm-6 mb-3">
+          <div class="report-type-card card card-outline card-success h-100 shadow-sm" style="border-radius: 12px;">
+            <div class="card-body text-center py-4 d-flex flex-column align-items-center justify-content-center position-relative">
+              <span class="badge badge-success float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px;">
+                <?= number_format($studyleave_employees) ?> Study
+              </span>
+              <i class="fas fa-sitemap fa-2x text-success mb-3 mt-2"></i>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የአደረጃጀት ሁኔታ</h6>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 col-sm-6 mb-3">
+          <div class="report-type-card card card-outline card-warning h-100 shadow-sm" style="border-radius: 12px;">
+            <div class="card-body text-center py-4 d-flex flex-column align-items-center justify-content-center position-relative">
+              <span class="badge badge-warning float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px; color: #ffffff;">
+                <?= number_format($onleave_employees) ?> Leave
+              </span>
+              <i class="fas fa-users-cog fa-2x text-warning mb-3 mt-2"></i>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የተጠቃሚዎች ሁኔታ</h6>
             </div>
           </div>
         </div>

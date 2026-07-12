@@ -10,7 +10,7 @@
 
   <div class="d-none d-sm-inline-block text-right">
     <span class="badge badge-light border text-muted px-2 py-1" style="font-size: 11px; font-weight: 600; letter-spacing: 0.3px;">
-      <i class="fas fa-layer-group mr-1 text-primary"></i> v1.0
+      <i class="fas fa-layer-group mr-1 text-primary"></i> V2.0
     </span>
   </div>
 
