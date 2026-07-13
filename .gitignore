@@ -5,11 +5,4 @@ material/
 vendor/
 storage/
 # Ignore main .htaccess at project root
-/.htaccess
 
-# Ignore public folder .htaccess
-/public/.htaccess
-.env
-*.sql
-composer.lock
-composer.json
