@@ -388,7 +388,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <div class="panel-left">
         <img
             class="banner"
-            src="public/images/JCIMS-login-banner.png"
+            src="public/images/JCIMS-login-banner.jpeg"
             alt="Warka Hub JCIMS — Manage your team with ease"
         >
         <span class="banner-footer">© <?php echo date('Y'); ?> Warka Hub JCIMS</span>
@@ -428,16 +428,16 @@ if (session_status() === PHP_SESSION_NONE) {
             <form action="login_process" method="post" novalidate>
 
                 <div class="field">
-                    <label for="email">Email address</label>
+                    <label for="email">Username</label>
                     <div class="input-wrap">
                         <i class="fas fa-envelope field-icon" aria-hidden="true"></i>
                         <input
-                            type="email"
+                            type="text"
                             id="email"
                             name="email"
-                            placeholder="you@example.com"
+                            placeholder="ANRS000001"
                             required
-                            autocomplete="email"
+                            autocomplete="username"
                         >
                     </div>
                 </div>
@@ -460,16 +460,16 @@ if (session_status() === PHP_SESSION_NONE) {
                     </div>
                 </div>
 
-                <a href="forgot_password" class="forgot-link">Forgot your password?</a>
+                <a href="forgot_password" class="forgot-link">ፓስወርድ እረሳሁ</a>
 
                 <div class="form-footer">
                     <label class="remember">
                         <input type="checkbox" id="remember" name="remember">
-                        <span>Remember me</span>
+                        <span>አስታዉሰኝ</span>
                     </label>
 
                     <button type="submit" class="btn-signin">
-                        Sign in <i class="fas fa-arrow-right"></i>
+                        ግባ <i class="fas fa-arrow-right"></i>
                     </button>
                 </div>
 
