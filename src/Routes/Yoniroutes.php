@@ -47,6 +47,9 @@ return [
     'retrieve-jobseeker'                     => ['JobseekerController', 'getJobseekerById', true],
     'job-seekers-search'             => ['JobseekerController', 'liveSearch', true],
     'jobseekers-list-export-excel'            => ['JobseekerController', 'exportJobSeekersExcel', true],
+   'jobseekers-renewal'   => ['JobseekerController', 'renewalPage', true],
+    'job-seekers-renewal-search' => ['JobseekerController', 'renewalSearch', true],
+    'jobseeker-renewal-data' => ['JobseekerController', 'renewalData', true],
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs

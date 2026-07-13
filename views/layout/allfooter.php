@@ -79,6 +79,7 @@ function myAsset($path) {
 }
 ?>
 <script src="<?= myAsset('js/confirm-delete.js') ?>"></script>
+
 <?php if (isset($is_organization_page) && $is_organization_page === true): ?>
     
     <script src="<?= myAsset('js/organizations-logic.js') ?>"></script>
@@ -139,6 +140,7 @@ function myAsset($path) {
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
      <script src="<?= myAsset('js/jobseeker.views.js') ?>"></script>
+      <?php $jobseekerValidationJsLoaded = true; ?>
     <?php endif; ?>
 
      <?php if (isset($is_jobseeker_list_page) && $is_jobseeker_list_page === true): ?>
@@ -149,8 +151,19 @@ function myAsset($path) {
      <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
      <script src="<?= myAsset('js/jobseeker.views.js') ?>"></script>
      <script src="<?= myAsset('js/jobseeker-search.js') ?>"></script>
+     
     <?php endif; ?>
-   
+        <?php if (isset($is_jobseeker_renewal_page) && $is_jobseeker_renewal_page === true): ?>
+    <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
+    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
+    <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
+     <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
+  <script src="<?= myAsset('js/renewal-search.js') ?>"></script>
+ 
+    <?php endif; ?>
+
+
  <?php if (isset($is_deleteawarness) && $is_deleteawarness === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
  
@@ -223,7 +236,6 @@ function myAsset($path) {
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
      <script src="<?= myAsset('js/report-view.js') ?>"></script>
     <?php endif; ?>
-
 
     <?php if ($_SESSION['user']['role']==='team_leader'): ?>
     <script nonce="<?php echo $GLOBALS['nonce']; ?>">const BASE_URL = "<?= '/JCIMS' ?>"; // or use $_ENV['BASE_URL'] if you have .env</script>

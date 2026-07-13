@@ -34,6 +34,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
     <thead class="thead-light">
       <tr>
         <th>#</th>
+        <th>መ/ቁ</th>
         <th>ስም </th>
         <th>ጾታ</th>
         <th>Action</th>
@@ -44,6 +45,7 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
         <?php foreach ($jobSeekers as $index => $js): ?>
          <tr id="row-<?= $js['id'] ?>">
             <td><?= $index + 1 ?></td>
+            <td><?=$js['job_seeker_id'] ?></td>
             <td><?= htmlspecialchars($js['first_name']).' '.htmlspecialchars($js['father_name']).' '.htmlspecialchars($js['last_name']) ?></td>
            <td><?= htmlspecialchars($js['gender']) ?></td>
             <td class="text-center align-middle">

@@ -85,24 +85,45 @@ $jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
     error_log("TOTAL request took: " . round(($t4 - $t0) * 1000, 2) . "ms");
 }
 public function handleRegistration() {
-    AuthHelper::checkRole(['team_leader', 'officer'],[3, 4]);
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
         exit();
     }
 
-     $mode = trim($_POST['mode'] ?? 'create');
-    $jobseekerId = trim($_POST['jobseeker_id'] ?? '');
+    $mode         = trim($_POST['mode'] ?? 'create');
+    $jobseekerId  = trim($_POST['jobseeker_id'] ?? ''); // record's UUID `id`
+    $jobseekerIdInt = null; // job_seeker_id (int business ID), populated below for edit/renewal
+    $createdAt    = null;
 
     if ($mode === 'edit' && $jobseekerId === '') {
         $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
         exit();
     }
+    if ($mode === 'renewal' && $jobseekerId === '') {
+        $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+        exit();
+    }
 
-    $user           = $_SESSION['user'] ?? [];
-    $branchId       = $user['branch_id'] ?? null;
+    $jobSeekerModel = new JobSeekerModel($this->db);
+
+    if ($mode === 'renewal' || $mode === 'edit') {
+        $jobseekerdata  = $jobSeekerModel->getJobSeekerById($jobseekerId);
+        $jobseekerIdInt = $jobseekerdata['job_seeker_id'] ?? null;
+        $createdAt      = $jobseekerdata['created_at'] ?? null;
+
+        if ($jobseekerIdInt === null || $createdAt === null) {
+            $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
+            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+            exit();
+        }
+    }
+
+    $user     = $_SESSION['user'] ?? [];
+    $branchId = $user['branch_id'] ?? null;
 
     if (!$branchId || empty($user['id'])) {
         $_SESSION['error'] = 'የሰራተኛውን የድርጅት እና የቅርንጫፍ መረጃ ከስር ያስገቡ።';
@@ -117,63 +138,77 @@ public function handleRegistration() {
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
         exit();
     }
-    $fullNameRaw = $_POST['first_name'] . ' ' . $_POST['father_name'] . ' ' . $_POST['last_name'];
-        $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
 
-         // ── Persist ───────────────────────────────────────────────────────
-        $jobSeekerModel = new JobSeekerModel($this->db);
-        // 3. Duplicate check
-     $duplicate = $jobSeekerModel->checkDuplicateJobSeeker([
-    'branch_id'            => $_SESSION['user']['branch_id'],
-    'kebele_id_no'         => trim($_POST['kebele_id_no']),
-    'g8id'                 => trim($_POST['g8id'] ?? ''),
-    'Labor_ID'             => trim($_POST['Labor_ID'] ?? ''),
-    'FAN'                  => trim($_POST['FAN'] ?? ''),
-    'full_name_normalized' => $normalizedFullName,
-    'mothername'           => trim($_POST['mothername']),
-    'phone_number'         => trim($_POST['phone_number']),
-], $mode === 'edit' ? $jobseekerId : null
-);
+    $fullNameRaw        = $_POST['first_name'] . ' ' . $_POST['father_name'] . ' ' . $_POST['last_name'];
+    $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
 
-if (!empty($duplicate)) {
+    // ── Duplicate check — mode-aware exclusion ───────────────────────────
+    // create:  no exclusion — any match anywhere is a real duplicate
+    // edit:    exclude own row in the ACTIVE table only
+    // renewal: exclude own row in the ARCHIVE table only — if the same
+    //          job_seeker_id already exists in active, that's a real
+    //          duplicate (already renewed / already active) and must
+    //          still be flagged.
+    $excludeId    = null;
+    $excludeTable = null;
 
-    $triggerType = $duplicate['match_type'] ?? 'identity';
+    if ($mode === 'edit') {
+        $excludeId    = $jobseekerIdInt;
+        $excludeTable = 'active';
+    } elseif ($mode === 'renewal') {
+        $excludeId    = $jobseekerIdInt;
+        $excludeTable = 'archive';
+    }
 
-    // normalize to match your ENUM: 'kebele_id','g8id','labor_id','fan','identity'
-    $triggerTypeMap = [
-        'kebele' => 'kebele_id',
-        'g8id'   => 'g8id',
-        'labor'  => 'labor_id',
-        'fan'    => 'fan',
-        'identity' => 'identity',
-    ];
-    $triggerType = $triggerTypeMap[$triggerType] ?? 'identity';
+    $duplicate = $jobSeekerModel->checkDuplicateJobSeeker([
+        'branch_id'            => $_SESSION['user']['branch_id'],
+        'kebele_id_no'         => trim($_POST['kebele_id_no']),
+        'g8id'                 => trim($_POST['g8id'] ?? ''),
+        'Labor_ID'             => trim($_POST['Labor_ID'] ?? ''),
+        'FAN'                  => trim($_POST['FAN'] ?? ''),
+        'full_name_normalized' => $normalizedFullName,
+        'mothername'           => trim($_POST['mothername']),
+        'phone_number'         => trim($_POST['phone_number']),
+    ], $excludeId, $excludeTable);
 
-    $jobSeekerModel->logDuplicateAttempt([
-    'id'                     => Uuid::uuid7()->toString(),
-    'attempted_by'           => $user['id'],
-    'branch_id'              => $branchId,
-    'trigger_type'           => $triggerType,
-    'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
-    'matched_source_table'   => $duplicate['source_table'] ?? 'active',
-    'attempted_kebele_id_no' => trim($_POST['kebele_id_no']),
-    'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
-    'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
-    'attempted_fan'          => trim($_POST['FAN'] ?? ''),
-    'attempted_full_name'    => $normalizedFullName,
-    'attempted_phone_number' => trim($_POST['phone_number']),
-    'attempted_mothername'   => trim($_POST['mothername']),
-    'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
-]);
+    if (!empty($duplicate)) {
 
-    $branchHierarchy = $jobSeekerModel->getBranchHierarchy($duplicate['branch_id']);
+        $triggerType = $duplicate['match_type'] ?? 'identity';
 
-    $_SESSION['error'] =
-        "ስራ ፈላጊው ከዚህ በፊት <strong>{$branchHierarchy}</strong> ተመዝግቧል።" . $mode;
+        $triggerTypeMap = [
+            'kebele'   => 'kebele_id',
+            'g8id'     => 'g8id',
+            'labor'    => 'labor_id',
+            'fan'      => 'fan',
+            'identity' => 'identity',
+        ];
+        $triggerType = $triggerTypeMap[$triggerType] ?? 'identity';
 
-    header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
-    exit();
-}
+        $jobSeekerModel->logDuplicateAttempt([
+            'id'                     => Uuid::uuid7()->toString(),
+            'attempted_by'           => $user['id'],
+            'branch_id'              => $branchId,
+            'trigger_type'           => $triggerType,
+            'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
+            'matched_source_table'   => $duplicate['source_table'] ?? 'active',
+            'attempted_kebele_id_no' => trim($_POST['kebele_id_no']),
+            'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
+            'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
+            'attempted_fan'          => trim($_POST['FAN'] ?? ''),
+            'attempted_full_name'    => $normalizedFullName,
+            'attempted_phone_number' => trim($_POST['phone_number']),
+            'attempted_mothername'   => trim($_POST['mothername']),
+            'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
+        ]);
+
+        $branchHierarchy = $jobSeekerModel->getBranchHierarchy($duplicate['branch_id']);
+
+        $_SESSION['error'] =
+            "ስራ ፈላጊው ከዚህ በፊት <strong>{$branchHierarchy}</strong> ተመዝግቧል።";
+
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+        exit();
+    }
 
     try {
         // ── Resolve sector/subsector UUIDs to bigint FK values ────────────
@@ -214,7 +249,11 @@ if (!empty($duplicate)) {
 
         // ── Build data arrays ─────────────────────────────────────────────
         $data = [
+            // FIX: edit must reuse the record's actual UUID (id), not the
+            // int job_seeker_id — was previously assigned $jobseekerIdInt.
             'uuid'                             => $mode === 'edit' ? $jobseekerId : Uuid::uuid7()->toString(),
+            'intid'                            => $mode === 'renewal' ? $jobseekerIdInt : null,
+            'created_at'                       => $mode === 'renewal' ? $createdAt : null,
             'first_name'                       => trim($_POST['first_name'] ?? ''),
             'father_name'                      => trim($_POST['father_name'] ?? ''),
             'last_name'                        => trim($_POST['last_name'] ?? ''),
@@ -257,30 +296,34 @@ if (!empty($duplicate)) {
             'branch_id'                        => $branchId,
             'reg_by'                           => $user['id'],
             'regstration_level'                => $user['level'] ?? '',
-            'normalizedFullName'                => $normalizedFullName,
-
-            // ── Resolved sector/subsector bigint FKs ─────────────────────
+            'normalizedFullName'               => $normalizedFullName,
             'choice_sector1' => $resolvedSectors[1]['sector_id'],
             'sub_choose1'    => $resolvedSectors[1]['subsector_id'],
             'choice_sector2' => $resolvedSectors[2]['sector_id'],
             'sub_choose2'    => $resolvedSectors[2]['subsector_id'],
             'choice_sector3' => $resolvedSectors[3]['sector_id'],
             'sub_choose3'    => $resolvedSectors[3]['subsector_id'],
-            'housewife'        => (int) ($_POST['housewife'] ?? 0),
+            'housewife'      => (int) ($_POST['housewife'] ?? 0),
         ];
 
-       if ($mode === 'edit') {
-            $success = $jobSeekerModel->updateJobseeker($data);
+        // FIX: chained as if/elseif/else — previously the renewal check was
+        // a SEPARATE if/else from the edit check, so every edit submission
+        // ran updateJobseeker() AND THEN createJobseeker() too.
+        if ($mode === 'edit') {
+            $success     = $jobSeekerModel->updateJobseeker($data);
             $auditAction = 'jobseeker_updated';
             $successMsg  = 'ስራ ፈላጊ መረጃ በትክክል ተስተካክሏል።';
+        } elseif ($mode === 'renewal') {
+            $success     = $jobSeekerModel->createJobseekerRenewal($data);
+            $auditAction = 'jobseeker_renewal';
+            $successMsg  = 'ስራ ፈላጊ መረጃ በትክክል ታድሷል';
         } else {
-            $data['uuid'] = Uuid::uuid7()->toString();
-            $success = $jobSeekerModel->createJobseeker($data);
+            $success     = $jobSeekerModel->createJobseeker($data);
             $auditAction = 'jobseeker_registered';
             $successMsg  = 'ስራ ፈላጊ በትክክል ተመዝግቧል።';
         }
 
-         if ($success) {
+        if ($success) {
             \App\Helpers\AuditHelper::log($auditAction, 'job_seekers', $data['reg_by'], null, [
                 'uuid'        => $data['uuid'],
                 'first_name'  => $data['first_name'],
@@ -289,7 +332,7 @@ if (!empty($duplicate)) {
                 'branch_id'   => $data['branch_id'],
             ]);
 
-            $_SESSION['success'] =  $successMsg;
+            $_SESSION['success'] = $successMsg;
         } else {
             $_SESSION['error'] = 'ስራ ፈላጊ መመዝገቢያ ሂደት አልተሳካም።';
         }
@@ -299,6 +342,14 @@ if (!empty($duplicate)) {
         $_SESSION['error'] = "ምዝገባው አልተሳካም። እንደገና ይሞክሩ።";
     }
 
+    if ($mode === 'renewal') {
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseekers-renewal");
+        exit();
+    }
+    if ($mode === 'edit') {
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseekers-list");
+        exit();
+    }
     header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
     exit();
 }
@@ -661,6 +712,35 @@ private function validateJobseekerData(array $post): array
 
     $this->render('jobseekers-list', $data);
 }
+  public function renewalPage() {
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    $myBranchId = $_SESSION['user']['branch_id'];
+ $sectorModel = new SectorModel($this->db);
+    $sectors = $sectorModel->getSectors();
+
+    $fiscal_year =AuthHelper::checkFiscalYear();
+    $jobSeekerModel = new JobSeekerModel($this->db);
+    $limit = 50;
+    $currentPage = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($currentPage - 1) * $limit;
+
+    $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchyRenewal($myBranchId, $limit, $offset,$fiscal_year);
+    $totalCount = $jobSeekerModel->countJobSeekersByHierarchyRenewal($myBranchId, $fiscal_year);
+    $totalPages = (int)ceil($totalCount / $limit);
+
+    $data = [
+        'title'       => 'JCIMS - የሰራተኛ መመዝገቢያ',
+        'jobSeekers'  => $jobSeekers,
+        'sectors'     => $sectors,
+        'offset'      => $offset,        // ADD THIS
+        'currentPage' => $currentPage,   // ADD THIS
+        'totalPages'  => $totalPages,    // ADD THIS
+        'totalCount' => $totalCount
+    ];
+
+    $this->render('jobseekers-renewal', $data);
+}
+    
 public function liveSearch(): void
 {
     AuthHelper::checkRole(['team_leader', 'officer']);
@@ -691,6 +771,77 @@ public function liveSearch(): void
         'count' => count($results),
     ]);
     exit;
+}
+
+public function renewalSearch()
+{
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+ $fiscal_year =AuthHelper::checkFiscalYear();
+    $myBranchId = $_SESSION['user']['branch_id'] ?? null;
+    if (!$myBranchId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Unauthorized']);
+        exit;
+    }
+
+    $query = $_GET['q'] ?? '';
+    $query = trim($query);
+
+    header('Content-Type: application/json; charset=utf-8');
+
+    if (mb_strlen($query) < 2) {
+        echo json_encode(['results' => []]);
+        exit;
+    }
+
+    $searchModel = new JobSeekerModel($this->db);
+    $results = $searchModel->searchArchive($query, $myBranchId, $fiscal_year,20);
+
+    echo json_encode([
+        'results' => $results,
+        'query' => $query,
+        'count' => count($results),
+    ]);
+    exit;
+}
+public function renewalData()
+{
+    $jobSeekerId = $_GET['job_seeker_id'] ?? null;
+    $myBranchId  = $_SESSION['user']['branch_id'] ?? null;
+
+    header('Content-Type: application/json');
+
+    if (!$jobSeekerId || !$myBranchId) {
+        echo json_encode(['success' => false, 'message' => 'ልክ ያልሆነ ጥያቄ']);
+        return;
+    }
+
+    $jobSeekerModel = new JobSeekerModel($this->db);
+    $jobseeker = $jobSeekerModel->findArchiveByJobSeekerId($myBranchId, $jobSeekerId);
+
+    if (!$jobseeker) {
+        echo json_encode(['success' => false, 'message' => 'ስራ ፈላጊ አልተገኘም']);
+        return;
+    }
+
+    // Permanently employed job seekers cannot be renewed — block before
+    // any remap/population happens.
+    if ((int)($jobseeker['employment_status'] ?? 0) === 1) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'ቋሚ የስራ እድል ስለተፈጠረላቸው ማደስ አይችሉም።'
+        ]);
+        return;
+    }
+
+    $jobseeker['choice_sector1'] = $jobseeker['choice_sector1_uuid'] ?? '';
+    $jobseeker['sub_choose1']    = $jobseeker['sub_choose1_uuid'] ?? '';
+    $jobseeker['choice_sector2'] = $jobseeker['choice_sector2_uuid'] ?? '';
+    $jobseeker['sub_choose2']    = $jobseeker['sub_choose2_uuid'] ?? '';
+    $jobseeker['choice_sector3'] = $jobseeker['choice_sector3_uuid'] ?? '';
+    $jobseeker['sub_choose3']    = $jobseeker['sub_choose3_uuid'] ?? '';
+
+    echo json_encode(['success' => true, 'jobseeker' => $jobseeker]);
 }
  public function exportJobSeekersExcel(): void
     {
