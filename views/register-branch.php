@@ -2,7 +2,6 @@
 <!-- Main content -->
 <section class="content">
   <div class="container-fluid">
-
     <!-- Card -->
     <div class="card card-default">
       <div class="card-header">
