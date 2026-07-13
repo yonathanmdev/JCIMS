@@ -15,6 +15,31 @@ class ReportgenerationModel
         $this->db = $db;
     }
 
+    public function getTotalAwarenessCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የግንዛቤ ፈጠራ መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(js.id) as total 
+        FROM job_seekers js
+        INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id 
+        WHERE js.awareness = 1";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}
+
     public function getTotalJobSeekersCountByHierarchy($branchId)
     {
         if (empty($branchId)) {
@@ -73,7 +98,7 @@ if (empty($branchIds) || $branchIds[0] === null) {
     return [
         'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
         'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
-        'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+        'physical'  => ['0' => 0, '1' => 0],
         'education' => [],
         'status'    => []
     ];
@@ -87,7 +112,7 @@ $res = $this->db->query("SELECT gender, residence_status, physical_condition, ed
 
 $gender = ['ወንድ' => 0, 'ሴት' => 0];
 $residence = ['ከተማ' => 0, 'ገጠር' => 0];
-$physical = ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0];
+$physical = ['0' => 0, '1' => 0];
 $education = [];
 $status = [];
 
@@ -113,13 +138,13 @@ foreach ($res as $row) {
     // ማሻሻያ 4፦ የአካል ጉዳት ማጣሪያ
     $p = isset($row['physical_condition']) ? trim($row['physical_condition']) : '';
     if (!empty($p)) {
-        if (stripos($p, 'disabled') !== false || stripos($p, 'ጉዳተኛ') !== false || stripos($p, 'አካል') !== false) {
-            $physical['አካል ጉዳተኛ']++;
+        if (stripos($p, '1') !== false){
+            $physical['1']++;
         } else {
-            $physical['መደበኛ']++;
+            $physical['0']++;
         }
     } else {
-        $physical['መደበኛ']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
+        $physical['0']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
     }
 
     // ትምህርት
