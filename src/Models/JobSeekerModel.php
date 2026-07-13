@@ -406,6 +406,7 @@ public function createJobseeker(array $data): bool {
 public function getLast24HoursCount(string $myBranchId, string $userId, int $limit = 50, int $offset = 0): array {
    $sql = "SELECT
             js.id,
+            js.job_seeker_id,
             js.first_name,
             js.father_name,
             js.last_name,
