@@ -1,5 +1,5 @@
 name: Deploy PHP App to cPanel
-
+ 
 on:
   push:
     branches:
