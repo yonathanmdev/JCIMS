@@ -964,4 +964,29 @@ public function renewalData()
 
     return $row;
 }
+
+
+// setting up team
+public function settingUpTeam()
+    {
+  AuthHelper::checkRole(
+    ['team_leader','officer'],
+    [3, 4]
+);
+        $user = $_SESSION['user'] ?? [];
+        $branchId = $user['branch_id'] ?? null;
+        $userId = $user['id'] ?? null;
+$sectorModel = new SectorModel($this->db);
+$sectors  = $sectorModel->getSectors();
+        
+        $jobSeekerModel = new JobSeekerModel($this->db);
+$jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
+        $data = [
+            'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
+            'sectors' => $sectors,
+            'jobSeekers' => $jobSeekers
+        ];
+
+        $this->render('setting-up-team', $data);
+    }
     }
