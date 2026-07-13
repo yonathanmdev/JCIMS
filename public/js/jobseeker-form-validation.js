@@ -767,5 +767,5 @@ function populateFormFromData(form, js) {
         // No need to explicitly call populateSubSectors here as it's handled by change events
         // on sector selects, which are triggered by populateFormFromData.
     }
-
+window.populateFormFromData = populateFormFromData;
 })();

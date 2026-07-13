@@ -139,22 +139,44 @@ $currentUrl = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
                 <?php endforeach; ?>
 
             </ul>
+    <?php else: ?>
 
-        <?php else: ?>
+    <?php if (isset($item['modal'])): ?>
 
-            <a href="<?= rtrim($_ENV['BASE_URL'], '/') . $item['url'] ?>"
-               class="nav-link <?= $item['class'] ?? '' ?>">
+        <a href="javascript:void(0)"
+           class="nav-link <?= $item['class'] ?? '' ?>"
+           data-toggle="modal"
+           data-target="<?= $item['modal']['target'] ?>"
+           <?= isset($item['modal']['source'])
+               ? 'data-source="' . htmlspecialchars($item['modal']['source']) . '"'
+               : '' ?>>
 
-                <i class="nav-icon <?= $item['icon'] ?? 'far fa-circle' ?>"
-                   style="font-size:13px;"></i>
+            <i class="nav-icon <?= $item['icon'] ?? 'far fa-circle' ?>"
+               style="font-size:13px;"></i>
 
-                <p style="font-size:13px;">
-                    <?= htmlspecialchars($item['label']) ?>
-                </p>
+            <p style="font-size:13px;">
+                <?= htmlspecialchars($item['label']) ?>
+            </p>
 
-            </a>
+        </a>
 
-        <?php endif; ?>
+    <?php else: ?>
+
+        <a href="<?= rtrim($_ENV['BASE_URL'], '/') . $item['url'] ?>"
+           class="nav-link <?= $item['class'] ?? '' ?>">
+
+            <i class="nav-icon <?= $item['icon'] ?? 'far fa-circle' ?>"
+               style="font-size:13px;"></i>
+
+            <p style="font-size:13px;">
+                <?= htmlspecialchars($item['label']) ?>
+            </p>
+
+        </a>
+
+    <?php endif; ?>
+
+<?php endif; ?>
 
     </li>
 
