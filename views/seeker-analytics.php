@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const chartsData = rawData || {
         gender: { 'ወንድ': 0, 'ሴት': 0 },
         residence: { 'ከተማ': 0, 'ገጠር': 0 },
-        physical: { 'መደበኛ': 0, 'አካል ጉዳተኛ': 0 },
+        physical: { '0': 0, '1': 0 },
         education: { 'ያልተገለጸ': 0 },
         status: { 'ያልተገለጸ': 0 }
     };
@@ -154,25 +154,46 @@ document.addEventListener("DOMContentLoaded", function() {
         options: commonOptions
     });
 
-    // 3. አካል ጉዳት ቻርት
+    // 3. የአካል ጉዳት ሁኔታ ቻርት (0 = ጉዳት የሌለበት፣ 1 = ጉዳት ያለበት)
+    const physicalRaw = chartsData.physical || { '0': 0, '1': 0 };
+
+    // የዳታቤዙን 0 እና 1 ቁልፎች ወደ ፈለግከው ትክክለኛ የአማርኛ ስም መለወጫ
+    const physicalMappedData = {
+        'ጉዳት የሌለበት': physicalRaw['0'] || 0,
+        'ጉዳት ያለበት': physicalRaw['1'] || 0
+    };
+
     new Chart(document.getElementById('physicalChart'), {
         type: 'bar',
         data: {
-            labels: Object.keys(chartsData.physical),
-            datasets: [{ data: Object.values(chartsData.physical), backgroundColor: ['#6366f1', '#ef4444'], barPercentage: 0.5 }]
+            labels: Object.keys(physicalMappedData), // 'ጉዳት የሌለበት' እና 'ጉዳት ያለበት' የሚሉትን ስሞች ያወጣል
+            datasets: [{ 
+                data: Object.values(physicalMappedData), // የ 0 እና የ 1 ን ዋጋዎች ይወስዳል
+                backgroundColor: ['#6366f1', '#ef4444'], 
+                barPercentage: 0.5 
+            }]
         },
         options: commonOptions
     });
 
     // 4. ትምህርት ቻርት
-    new Chart(document.getElementById('educationChart'), {
-        type: 'bar',
-        data: {
-            labels: Object.keys(chartsData.education),
-            datasets: [{ data: Object.values(chartsData.education), backgroundColor: '#3b82f6', barPercentage: 0.6 }]
-        },
-        options: commonOptions
-    });
+new Chart(document.getElementById('educationChart'), {
+    type: 'bar',
+    data: {
+        // ቁጥሮቹን (1 እና 2) ወደ ፈለጉት የአማርኛ ጽሑፍ ይቀይራል
+        labels: Object.keys(chartsData.education).map(key => {
+            if (key === '1') return 'ቴ/ሙ/ተመራቂዎች';
+            if (key === '2') return 'ዩኒቨርሲቲ ተመራቂዎች';
+            return key; // ሌላ ቁጥር ካለ እራሱን ይመልሳል
+        }),
+        datasets: [{ 
+            data: Object.values(chartsData.education), 
+            backgroundColor: '#3b82f6', 
+            barPercentage: 0.6 
+        }]
+    },
+    options: commonOptions
+});
 
     // 5. ሁኔታ ቻርት
     new Chart(document.getElementById('statusChart'), {

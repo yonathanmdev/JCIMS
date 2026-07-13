@@ -25,6 +25,7 @@ class DashboardController extends BaseController {
         $active_users         = 0;
         $total_branches       = 0;
         $total_job_seekers    = 0; // የስራ ፈላጊዎች መቆጠሪያ ኮንቴይነር
+        $total_awareness      = 0;
 
         // የሪፖርት ሞዴሉን እዚህ ጋር አንድ ጊዜ እናዘጋጀዋለን (ለሁሉም ሚናዎች እንዲያገለግል)
         $reportModel = new ReportgenerationModel($this->db);
@@ -50,6 +51,8 @@ class DashboardController extends BaseController {
             
             // ለባለሙያውም የስራ ፈላጊውን ቁጥር ይቆጥራል
             $total_job_seekers    = $reportModel->getTotalJobSeekersCountByHierarchy($branch_id);
+            $total_awareness = $reportModel->getTotalAwarenessCountByHierarchy($branch_id);
+
         }
 
         // ዳታውን ወደ ቪው ማስተላለፍ
@@ -63,7 +66,8 @@ class DashboardController extends BaseController {
             'total_branches'       => $total_branches,
             'total_users'          => $total_users,
             'active_users'         => $active_users,
-            'total_job_seekers'    => $total_job_seekers // አዲሱ የቁጥር ዳታ
+            'total_job_seekers'    => $total_job_seekers, // አዲሱ የቁጥር ዳታ
+            'total_awareness' => $total_awareness // አዲሱ የግንዛቤ ፈጠራ ቁጥር ዳታ
         ];
 
         $this->render('dashboard', $data);
