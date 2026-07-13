@@ -31,8 +31,6 @@
                             </div>
                         </div>
 
-                        
-
                         <!-- Date Range: From -->
                         <div class="col-md-2">
                             <div class="form-group mb-0">
@@ -74,7 +72,8 @@
                                 </div>
                             </div>
                         </div>
-<!-- Report Type Selection -->
+
+                        <!-- Report Type Selection -->
                         <div class="col-md-4">
                             <div class="form-group mb-0">
                                 <label for="reportSelect" class="mb-1 text-dark">
@@ -95,6 +94,7 @@
                                 </select>
                             </div>
                         </div>
+
                         <!-- Action Button -->
                         <div class="col-md-1 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary btn-block shadow-sm" id="submitBtn">
@@ -117,7 +117,7 @@
 </section>
 
 <?php if (!empty($branches)): ?>
-<script nonce="<?php echo $GLOBALS['nonce']; ?>">
+<script nonce="<?php echo $GLOBALS['nonce'] ?? ''; ?>">
     window.ALL_BRANCHES = <?= json_encode(array_map(fn($b) => [
         'id'    => $b['internal_id'],
         'name'  => $b['name'],
@@ -126,7 +126,7 @@
 </script>
 <?php endif; ?>
 
-<script nonce="<?php echo $GLOBALS['nonce']; ?>">
+<script nonce="<?php echo $GLOBALS['nonce'] ?? ''; ?>">
 document.addEventListener('DOMContentLoaded', function() {
     const reportForm = document.getElementById('reportForm');
     const reportSelect = document.getElementById('reportSelect');
@@ -144,12 +144,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // 2. 'ሠ' የሚለውን ፊደል አጥፍቶ ቁጥሯን ብቻ መለየት (ሠ1 -> 1)
         const reportNumber = reportType.replace('ሠ', ''); 
 
-        // 3. የፎርሙን መሄጃ አድራሻ (action) በቁጥሩ መሠረት በዲናሚክ መቀየር
-        reportForm.action = `${BASE_URL}/report-${reportNumber}`;
-        location.reload();
-        // ፎርሙ በ POST እና በ target="_blank" መሠረት ሁለቱንም (branch_id እና report_type) ይዞ በአዲስ ታብ ይከፈታል
+        // 3. የኢንቫይሮመንት BASE_URL መኖሩን ቼክ ማድረግ (ከሌለ ባዶ ስትሪንግ)
+        const baseUrl = (typeof BASE_URL !== 'undefined') ? BASE_URL : "<?= rtrim($_ENV['BASE_URL'] ?? '', '/') ?>";
+
+        // 4. የፎርሙን መሄጃ አድራሻ (action) በዲናሚክ መቀየር
+        reportForm.action = `${baseUrl}/report-${reportNumber}`;
+        
+        // 🔥 ዋናው ማስተካከያ፡ location.reload(); እዚህ ጋር መኖር የለበትም። 
+        // ፎርሙ በአዲስ ታብ በሰላም እንዲከፈት ይተዋታል።
     });
 });
+
 (function () {
     const searchInput = document.getElementById('branchSearchInput');
     const hiddenInput = document.getElementById('branchSelect');

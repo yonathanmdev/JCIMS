@@ -24,5 +24,10 @@ return [
     'get-branches-by-hierarchy-ajax' => ['JobseekerTransferController', 'getBranchesByHierarchyAjax', true],
     'process-jobseeker-transfer' => ['JobseekerTransferController', 'processJobSeekerTransfer', true],
     'jobseeker-transfers-list' => ['JobseekerTransferController', 'showTransferTracking', true],
-   
+    'jobseeker-transfer-decision' => ['JobseekerTransferController', 'submitTransferDecision', true],
+    'solgure-registration' => ['SolgureController', 'sulgureshowRegisterForm', true],
+    'defense-direct-registration-process' => ['SolgureController', 'processRegistration', true],
+    'defense-get-details' => ['SolgureController', 'getDetails', true],
+    'defense-print-profile' => ['SolgureController', 'printProfile', true],
+    'processEdit' => ['SolgureController', 'processEdit', true],
 ];

@@ -208,5 +208,52 @@ public function showTransferTracking() {
         ];
         $this->render('jobseeker-transfers-list', $data);
     }
-   
+   /**
+     * ከፖፕ-አፕ የሚመጣውን የዝውውር ውሳኔ ማስተናገጃ ዋና ፈንክሽን (AJAX)
+     */
+    public function submitTransferDecision() {
+        // የምላሽ አይነት JSON መሆኑን ማሳወቅ
+        header('Content-Type: application/json; charset=utf-8');
+
+        // 1. የሴሽን እና የባለስልጣን ደህንነት ማረጋገጫ
+        $currentBranchId = isset($_SESSION['user']['branch_id']) ? (int)$_SESSION['user']['branch_id'] : 0;
+        $userId          = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
+
+        if ($currentBranchId <= 0 || $userId <= 0) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'ያልተፈቀደ መዳረሻ! እባክዎ እንደገና ይግቡ።'
+            ]);
+            exit;
+        }
+
+        // 2. ከፎርሙ የመጡ መረጃዎችን መቀበልና ማጣራት
+        $transferLogId = filter_input(INPUT_POST, 'transfer_log_id', FILTER_DEFAULT);
+        $actionStatus  = filter_input(INPUT_POST, 'action_status', FILTER_VALIDATE_INT); // 1 = Approve, 2 = Reject
+
+        if (empty($transferLogId) || !$actionStatus || !in_array($actionStatus, [1, 2])) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'የተሳሳተ ወይም ያልተሟላ የውሳኔ መረጃ ተልኳል።'
+            ]);
+            exit;
+        }
+
+        try {
+            // 3. የሞዴል ኢንስታንስ መፍጠር እና ሂደቱን ማስፈጸም
+            $model = new JobseekerTransferModel($this->db);
+            $result = $model->updateTransferDecision($transferLogId, $actionStatus, $userId, $currentBranchId);
+
+            // ውጤቱን ለጃቫስክሪፕቱ መመለስ
+            echo json_encode($result);
+            exit;
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'የሲስተም ስህተት አጋጥሟል፦ ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
     }

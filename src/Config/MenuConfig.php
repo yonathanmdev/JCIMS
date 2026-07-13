@@ -87,6 +87,26 @@ class MenuConfig
                     ],
                 ]
             ],
+                [
+                'label' => 'መከላከያ',
+                'icon'  => 'fas fa-users',
+                'roles' => ['team_leader', 'officer'],
+                'levels' => [1, 2, 3],
+                'children' => [
+                    [
+                        'label' => 'መከላከያ መመዝገብ',
+                        'url'   => '/solgure-registration',
+                        'roles' => ['officer'],
+                        'levels' => [3]
+                    ],
+                    [
+                        'label' => 'ዝርዝር',
+                        'url'   => '/solgure-registration',
+                        'roles' => ['team_leader', 'officer'],
+                        'levels' => [1, 2, 3]
+                    ]
+                ]
+            ],
 
            [
                 'label' => 'ግንዛቤ',
@@ -142,8 +162,7 @@ class MenuConfig
         [
             'label' => 'ማየት',
             'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
-            'roles' => ['team_leader', 'officer'],
-            'levels' => [3, 4]
+            'roles' => ['team_leader', 'officer']
         ],
     ]
 ],

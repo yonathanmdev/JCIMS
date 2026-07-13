@@ -15,209 +15,135 @@ class ReportgenerationModel
         $this->db = $db;
     }
 
+    public function getTotalJobSeekersCountByHierarchy($branchId)
+    {
+        if (empty($branchId)) {
+            return 0;
+        }
+
+        // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን መቁጠሪያ ኩየሪ
+        $sql = "WITH RECURSIVE SubBranches AS (
+                    SELECT b.internal_id
+                    FROM branches b
+                    INNER JOIN branches root ON root.internal_id = :my_branch
+                    WHERE b.path LIKE CONCAT(root.path, '%')
+                )
+                SELECT COUNT(js.id) as total 
+                FROM job_seekers js
+                INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['my_branch' => $branchId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return isset($result['total']) ? (int)$result['total'] : 0;
+    }
+
+
+    public function getDashboardChartsData($branchId)
+{
+    if (empty($branchId)) {
+        return [
+            'gender' => ['M' => 0, 'F' => 0],
+            'residence' => ['urban' => 0, 'rural' => 0],
+            'physical' => ['normal' => 0, 'disabled' => 0],
+            'education' => [],
+            'status' => []
+        ];
+    }
+
+// 1. መዋቅሩን በፓዝ መለየት
+$sqlBranches = "WITH RECURSIVE SubBranches AS (
+                    SELECT b.internal_id FROM branches b
+                    INNER JOIN branches root ON root.internal_id = :my_branch
+                    WHERE b.path LIKE CONCAT(root.path, '%')
+                ) SELECT internal_id FROM SubBranches";
+                
+$stmtB = $this->db->prepare($sqlBranches);
+$stmtB->execute(['my_branch' => $branchId]);
+$branchIds = $stmtB->fetchAll(PDO::FETCH_COLUMN);
+
+// ማሻሻያ 1፦ የንዑስ ቅርንጫፍ ፓዝ ባዶ ቢሆን እንኳ የወቅቱን ቅርንጫፍ ብቻ ወስዶ ዳታ እንዲያመጣ ማድረግ
+if (empty($branchIds)) {
+    $branchIds = [$branchId];
+}
+
+// አደገኛ ሁኔታን ለመከላከል (የቅርንጫፍ አይዲው ጭምር ባዶ ከሆነ)
+if (empty($branchIds) || $branchIds[0] === null) {
+    return [
+        'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
+        'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
+        'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+        'education' => [],
+        'status'    => []
+    ];
+}
+
+$inClause = implode(',', array_map('intval', $branchIds));
+
+// 2. ፆታ እና የመኖሪያ ቦታ ቆጠራ
+$res = $this->db->query("SELECT gender, residence_status, physical_condition, education_level_category, srafelagi_huneta 
+                         FROM job_seekers WHERE branch_id IN ($inClause)")->fetchAll(PDO::FETCH_ASSOC);
+
+$gender = ['ወንድ' => 0, 'ሴት' => 0];
+$residence = ['ከተማ' => 0, 'ገጠር' => 0];
+$physical = ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0];
+$education = [];
+$status = [];
+
+foreach ($res as $row) {
+    // ማሻሻያ 2፦ የፆታ ማጣሪያን አስተማማኝ ማድረግ (የባዶ ቦታ ማስወገጃ እና የትንሽ/ትልቅ ሆሄያት መቆጣጠሪያ)
+    $g = isset($row['gender']) ? strtoupper(trim($row['gender'])) : '';
+    if ($g === 'M' || $g === 'ወንድ' || $g === 'MALE') {
+        $gender['ወንድ']++;
+    } else if ($g === 'F' || $g === 'ሴት' || $g === 'FEMALE') {
+        $gender['ሴት']++;
+    }
+
+    // ማሻሻያ 3፦ የመኖሪያ ሁኔታ ማጣሪያ (ዳታ መኖሩን ያረጋግጣል)
+    $r = isset($row['residence_status']) ? trim($row['residence_status']) : '';
+    if (!empty($r)) {
+        if (stripos($r, 'urban') !== false || $r == 'ከተማ') {
+            $residence['ከተማ']++;
+        } else if (stripos($r, 'rural') !== false || $r == 'ገጠር') {
+            $residence['ገጠር']++;
+        }
+    }
+
+    // ማሻሻያ 4፦ የአካል ጉዳት ማጣሪያ
+    $p = isset($row['physical_condition']) ? trim($row['physical_condition']) : '';
+    if (!empty($p)) {
+        if (stripos($p, 'disabled') !== false || stripos($p, 'ጉዳተኛ') !== false || stripos($p, 'አካል') !== false) {
+            $physical['አካል ጉዳተኛ']++;
+        } else {
+            $physical['መደበኛ']++;
+        }
+    } else {
+        $physical['መደበኛ']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
+    }
+
+    // ትምህርት
+    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ያልተገለጸ';
+    $education[$edu] = ($education[$edu] ?? 0) + 1;
+
+    // ሁኔታ
+    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ያልተገለጸ';
+    $status[$st] = ($status[$st] ?? 0) + 1;
+}
+
+return [
+    'gender'    => $gender,
+    'residence' => $residence,
+    'physical'  => $physical,
+    'education' => $education,
+    'status'    => $status
+];
+}
     /**
      * ለሠ1 ሪፖርት የሚያስፈልጉትን አጠቃላይ የ SUM(CASE WHEN...) ዳታዎች
      * ከኮንትሮለር ይልቅ እዚሁ ሞዴል ላይ በንጽህና በ PDO አውጥቶ የሚመልስ ሜቶድ።
      */
-    public function getSe1ReportData($year = null)
-    {
-        $query = "
-            SELECT 
-                -- 1. አጠቃላይ የተመዘገቡ ስራ ፈላጊዎች
-                SUM(CASE WHEN residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_reg,
-                SUM(CASE WHEN residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_reg,
-                SUM(CASE WHEN residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_reg,
-                SUM(CASE WHEN residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_reg,
-
-                -- 2. በዕድሜ (15-29 ዓመት)
-                SUM(CASE WHEN age >= 15 AND age <= 29 AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_age15_29,
-                SUM(CASE WHEN age >= 15 AND age <= 29 AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_age15_29,
-                SUM(CASE WHEN age >= 15 AND age <= 29 AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_age15_29,
-                SUM(CASE WHEN age >= 15 AND age <= 29 AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_age15_29,
-
-                -- 3. በዕድሜ (30-64 ዓመት)
-                SUM(CASE WHEN age >= 30 AND age <= 64 AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_age30_64,
-                SUM(CASE WHEN age >= 30 AND age <= 64 AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_age30_64,
-                SUM(CASE WHEN age >= 30 AND age <= 64 AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_age30_64,
-                SUM(CASE WHEN age >= 30 AND age <= 64 AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_age30_64,
-
-                -- 4. የተመዘገቡ የዩኒቨርሲቲ ተመራቂዎች ብዛት
-                SUM(CASE WHEN (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_uni,
-                SUM(CASE WHEN (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_uni,
-                SUM(CASE WHEN (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_uni,
-                SUM(CASE WHEN (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_uni,
-
-                -- 5. የተመዘገቡ የቴክኒክና ሙያ ተመራቂዎች ብዛት
-                SUM(CASE WHEN (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_tvet,
-                SUM(CASE WHEN (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_tvet,
-                SUM(CASE WHEN (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_tvet,
-                SUM(CASE WHEN (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_tvet,
-
-                -- 6. የተመዘገቡ አካል ጉዳተኞች
-                SUM(CASE WHEN physical_condition = '1' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_dis,
-                SUM(CASE WHEN physical_condition = '1' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_dis,
-                SUM(CASE WHEN physical_condition = '1' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_dis,
-                SUM(CASE WHEN physical_condition = '1' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_dis,
-
-                -- 7. የተመዘገቡ ከስደት ተመላሾች
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_returnee,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_returnee,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_returnee,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_returnee,
-
-                -- 8. የተመዘገቡ የሀገር ውስጥ ተፈናቃዮች
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_idp,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_idp,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_idp,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_idp,
-
-                -- 9. የተመዘገቡ መኖሪያቸው ጎዳና የሆኑ ዜጎች
-                SUM(CASE WHEN meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_homeless,
-                SUM(CASE WHEN meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_homeless,
-                SUM(CASE WHEN meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_homeless,
-                SUM(CASE WHEN meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_homeless,
-
-                -- 10. የግንዛቤ ማሳደጊያ የተሰጣቸው ስራ ፈላጊዎች
-                SUM(CASE WHEN  awareness = '1' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr,
-                SUM(CASE WHEN  awareness = '1' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr,
-                SUM(CASE WHEN  awareness = '1' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr,
-                SUM(CASE WHEN  awareness = '1' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr,
-
-                -- 11. የግንዛቤ ማሳደጊያ የተሰጣቸው ወጣቶች ስራ ፈላጊዎች
-                SUM(CASE WHEN awareness = '1' AND age >= 15 AND age <= 29 AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr_youth,
-                SUM(CASE WHEN awareness = '1' AND age >= 15 AND age <= 29 AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr_youth,
-                SUM(CASE WHEN awareness = '1' AND age >= 15 AND age <= 29 AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr_youth,
-                SUM(CASE WHEN awareness = '1' AND age >= 15 AND age <= 29 AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr_youth,
-
-                -- 12. ለሌሎች ህብረተሰብ ክፍሎች
-                SUM(CASE WHEN (meteleya_huneta NOT LIKE '%ስደት%' AND meteleya_huneta NOT LIKE '%ተፈናቃይ%' AND meteleya_huneta NOT LIKE '%ጎዳና%' AND physical_condition != 'አዎ' AND (educational_level NOT LIKE '%ዲግሪ%' AND educational_level NOT LIKE '%Degree%' AND educational_level NOT LIKE '%ሌቨል%' AND educational_level NOT LIKE '%Level%')) AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_others,
-                SUM(CASE WHEN (meteleya_huneta NOT LIKE '%ስደት%' AND meteleya_huneta NOT LIKE '%ተፈናቃይ%' AND meteleya_huneta NOT LIKE '%ጎዳና%' AND physical_condition != 'አዎ' AND (educational_level NOT LIKE '%ዲግሪ%' AND educational_level NOT LIKE '%Degree%' AND educational_level NOT LIKE '%ሌቨል%' AND educational_level NOT LIKE '%Level%')) AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_others,
-                SUM(CASE WHEN (meteleya_huneta NOT LIKE '%ስደት%' AND meteleya_huneta NOT LIKE '%ተፈናቃይ%' AND meteleya_huneta NOT LIKE '%ጎዳና%' AND physical_condition != 'አዎ' AND (educational_level NOT LIKE '%ዲግሪ%' AND educational_level NOT LIKE '%Degree%' AND educational_level NOT LIKE '%ሌቨል%' AND educational_level NOT LIKE '%Level%')) AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_others,
-                SUM(CASE WHEN (meteleya_huneta NOT LIKE '%ስደት%' AND meteleya_huneta NOT LIKE '%ተፈናቃይ%' AND meteleya_huneta NOT LIKE '%ጎዳና%' AND physical_condition != 'አዎ' AND (educational_level NOT LIKE '%ዲግሪ%' AND educational_level NOT LIKE '%Degree%' AND educational_level NOT LIKE '%ሌቨል%' AND educational_level NOT LIKE '%Level%')) AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_others,
-
-                -- 13. ስራ ፈላጊ ወላጆች
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ወላጅ%' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_parents,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ወላጅ%' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_parents,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ወላጅ%' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_parents,
-                SUM(CASE WHEN srafelagi_huneta LIKE '%ወላጅ%' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_parents,
-
-                -- 14. የግንዛቤ ማሳደጊያ የተሰጣቸው የዩኒቨርሲቲ ተመራቂዎች
-                SUM(CASE WHEN awareness = '1' AND (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr_uni,
-                SUM(CASE WHEN awareness = '1' AND (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr_uni,
-                SUM(CASE WHEN awareness = '1' AND (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr_uni,
-                SUM(CASE WHEN awareness = '1' AND (educational_level LIKE '%የመጀመሪያ ዲግሪ%' OR educational_level LIKE '%ሁለተኛ ዲግሪ%') AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr_uni,
-
-                -- 15. የግንዛቤ ማሳደጊያ የተሰጣቸው የቴክኒክና ሙያ ተመራቂዎች
-                SUM(CASE WHEN  awareness = '1' AND (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr_tvet,
-                SUM(CASE WHEN  awareness = '1' AND (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr_tvet,
-                SUM(CASE WHEN  awareness = '1' AND (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr_tvet,
-                SUM(CASE WHEN  awareness = '1' AND (educational_level LIKE '%ደረጃ 1%' OR educational_level LIKE '%ደረጃ 2%' OR educational_level LIKE '%ደረጃ 3%' OR educational_level LIKE '%ደረጃ 4%' OR educational_level LIKE '%ደረጃ 5%') AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr_tvet,
-
-                -- 16. የግንዛቤ ማሳደጊያ የተሰጣቸው አካል ጉዳተኞች
-                SUM(CASE WHEN awareness = '1' AND physical_condition = '1' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr_dis,
-                SUM(CASE WHEN awareness = '1' AND physical_condition = '1' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr_dis,
-                SUM(CASE WHEN awareness = '1' AND physical_condition = '1' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr_dis,
-                SUM(CASE WHEN awareness = '1' AND physical_condition = '1' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr_dis,
-
-                -- 17. የግንዛቤ ማሳደጊያ የተሰጣቸው ከስደት ተመላሾች
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr_ret,
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr_ret,
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr_ret,
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ከስደት ተመላሽ%' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr_ret,
-
-                -- 18. የግንዛቤ ማሳደጊያ የተሰጣቸው የሀገር ውስጥ ተፈናቃዮች
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr_idp,
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr_idp,
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr_idp,
-                SUM(CASE WHEN awareness = '1' AND srafelagi_huneta LIKE '%ተፈናቃይ%' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr_idp,
-
-                -- 19. የግንዛቤ ማሳደጊያ የተሰጣቸው መኖሪያቸው ጎዳና የሆኑ ዜጎች
-                SUM(CASE WHEN awareness = '1' AND meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_awr_homeless,
-                SUM(CASE WHEN awareness = '1' AND meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_awr_homeless,
-                SUM(CASE WHEN awareness = '1' AND meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_awr_homeless,
-                SUM(CASE WHEN awareness = '1' AND meteleya_huneta LIKE '%ጎዳና ተዳዳሪ%' AND residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_awr_homeless,
-
-                -- 20. ለስራ ፈላጊዎች ተገቢውን የምክርና የመረጃ አገልግሎት መስጠት
-                SUM(CASE WHEN residence_status = 'ከተማ' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_advice,
-                SUM(CASE WHEN residence_status = 'ከተማ' AND gender = 'ሴት' THEN 1 ELSE 0 END) as urban_f_advice,
-                SUM(CASE WHEN residence_status = 'ገጠር' AND gender = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_advice,
-                SUM(CASE WHEN residence_status = 'ገጠር' AND gender = 'ሴት' THEN 1 ELSE 0 END) as rural_f_advice
-            FROM {$this->table}
-            WHERE 1=1
-        ";
-
-        $params = [];
-        if ($year) {
-            $query .= " AND fiscal_year = ?";
-            $params[] = $year;
-        }
-
-        $stmt = $this->db->prepare($query);
-        $stmt->execute($params);
-        $reportData = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // ዳታ ከሌለ ሁሉንም 0 አድርጎ እንዲመልስ
-        if (!$reportData || $reportData['urban_m_reg'] === null) {
-            $fields = [
-                'reg', 'age15_29', 'age30_64', 'uni', 'tvet', 'dis', 'returnee', 'idp', 
-                'homeless', 'awr', 'awr_youth', 'others', 'parents', 'awr_uni', 'awr_tvet', 
-                'awr_dis', 'awr_ret', 'awr_idp', 'awr_homeless', 'advice'
-            ];
-            $reportData = [];
-            foreach ($fields as $field) {
-                $reportData["urban_m_{$field}"] = 0;
-                $reportData["urban_f_{$field}"] = 0;
-                $reportData["rural_m_{$field}"] = 0;
-                $reportData["rural_f_{$field}"] = 0;
-            }
-        }
-
-        return $reportData;
-    }
-
-
-
-    /**
- * ለሌሎች ህብረተሰብ ክፍሎች (12) እና ለስራ ፈላጊ ወላጆች (13) ብቻ ከሌላው ቴብል ያመጣል
- */
-public function getSe1OtherData($year = null, $branchId = null)
-{
-    $params = [];
-    $whereClause = " WHERE 1=1";
-
-    // የዓመት ማጣሪያ
-    if (!empty($year)) {
-        $whereClause .= " AND fiscal_year = :year";
-        $params[':year'] = $year;
-    }
-    // የቅርንጫፍ ማጣሪያ
-    if (!empty($branchId)) {
-        $whereClause .= " AND branch_id = :branch_id";
-        $params[':branch_id'] = $branchId;
-    }
-
-$sql = "SELECT 
-        -- 12. ለሌሎች ህብረተሰብ ክፍሎች (LIKE ተስተካክሏል)
-        SUM(CASE WHEN awareness_type LIKE '%ለሌሎች ህብረተሰብ ክፍሎች%' AND yemenoriya_akababi = 'ከተማ' AND sex = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_others,
-        SUM(CASE WHEN awareness_type LIKE '%ለሌሎች ህብረተሰብ ክፍሎች%' AND yemenoriya_akababi = 'ከተማ' AND sex = 'ሴት' THEN 1 ELSE 0 END) as urban_f_others,
-        SUM(CASE WHEN awareness_type LIKE '%ለሌሎች ህብረተሰብ ክፍሎች%' AND yemenoriya_akababi = 'ገጠር' AND sex = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_others,
-        SUM(CASE WHEN awareness_type LIKE '%ለሌሎች ህብረተሰብ ክፍሎች%' AND yemenoriya_akababi = 'ገጠር' AND sex = 'ሴት' THEN 1 ELSE 0 END) as rural_f_others,
-
-        -- 13. ስራ ፈላጊ ወላጆች (LIKE ተስተካክሏል)
-        SUM(CASE WHEN awareness_type LIKE '%ለስራ ፈላጊ ወላጆች%' AND yemenoriya_akababi = 'ከተማ' AND sex = 'ወንድ' THEN 1 ELSE 0 END) as urban_m_parents,
-        SUM(CASE WHEN awareness_type LIKE '%ለስራ ፈላጊ ወላጆች%' AND yemenoriya_akababi = 'ከተማ' AND sex = 'ሴት' THEN 1 ELSE 0 END) as urban_f_parents,
-        SUM(CASE WHEN awareness_type LIKE '%ለስራ ፈላጊ ወላጆች%' AND yemenoriya_akababi = 'ገጠር' AND sex = 'ወንድ' THEN 1 ELSE 0 END) as rural_m_parents,
-        SUM(CASE WHEN awareness_type LIKE '%ለስራ ፈላጊ ወላጆች%' AND yemenoriya_akababi = 'ገጠር' AND sex = 'ሴት' THEN 1 ELSE 0 END) as rural_f_parents
-    FROM awareness_creation_other" . $whereClause;
-
-    $stmt = $this->db->prepare($sql);
-    $stmt->execute($params);
-    return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
-}
-
- 
-
-
+    
 /**
  * ከተጠቃሚው ቅርንጫፍ ጀምሮ ያሉትን ንዑስ መዋቅሮች በስም ዝርዝር ያመጣል
  */
@@ -253,6 +179,11 @@ public function getAllowedBranches(string $myBranchId): array
 
 public function getReport1ByHierarchy(string $myBranchId, $startdate, $enddate): array
 {
+    // $myBranchId ባዶ ከሆነ ወይም NULL በካስቲንግ መጥቶ "" ከሆነ ቀጥታ ባዶ ሪፖርት ይመልሳል
+    if (empty($myBranchId)) {
+        return $this->normalizeReportRow([]);
+    }
+
     $sql = "
         WITH RECURSIVE SubBranches AS (
             -- 1. መጀመሪያ ቅርንጫፉንና ከሥሩ ያሉትን ንዑስ ቅርንጫፎች በፓዝ ይለያል
@@ -262,15 +193,16 @@ public function getReport1ByHierarchy(string $myBranchId, $startdate, $enddate):
             WHERE b.path LIKE CONCAT(root.path, '%')
         ),
         FilteredAwareness AS (
-            -- 2. ኮምፖዚት ኢንዴክስ ቅደም-ተከተል ሙሉ በሙሉ ጠብቆ ያነባል (image_6c5b41.png)
+            -- 2. የኮምፖዚት ኢንዴክስ ቅደም-ተከተል ጠብቆ ያነባል
             SELECT 
                 aco.yemenoriya_akababi,
                 aco.sex,
                 aco.awareness_type
             FROM awareness_creation_other aco
-            INNER JOIN SubBranches sb ON aco.branch_id = sb.internal_id where aco.reg_date < :report_date + INTERVAL 1 DAY
+            INNER JOIN SubBranches sb ON aco.branch_id = sb.internal_id 
+            WHERE aco.reg_date BETWEEN :start_date AND :end_date
         )
-        -- 3. ሁሉንም የኅብረተሰብ ክፍሎች የኢንዴክስህን ቅደም ተከተል ጠብቆ እዚህ ያሰላል
+        -- 3. ሁሉንም የኅብረተሰብ ክፍሎች እዚህ ያሰላል
         SELECT
             -- ምድብ 1፡ ለስራ ፈላጊ ወላጆች
             COUNT(CASE WHEN aco.yemenoriya_akababi = 'ከተማ' AND aco.sex = 'ወንድ' AND aco.awareness_type = 'ለስራ ፈላጊ ወላጆች' THEN 1 END) AS urban_m_parents,
@@ -290,6 +222,7 @@ public function getReport1ByHierarchy(string $myBranchId, $startdate, $enddate):
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
         $stmt->bindValue(':start_date', $startdate, PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, PDO::PARAM_STR);
         $stmt->execute();
 
         return $this->normalizeReportRow($stmt->fetch(PDO::FETCH_ASSOC));
@@ -321,7 +254,7 @@ private function normalizeReportRow(array|false $row): array
  * 2. ለስራ ፈላጊዎች የምክርና የመረጃ አገልግሎት እንዲሁም የዕድሜ ስብጥር ሪፖርት (ከ job_seekers ቴብል ብቻ)
  * ኢንዴክስ ቅደም-ተከተል፦ gender ➡️ residence_status ➡️ age
  */
-public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
+public function getJobSeekersAdviceByHierarchy(string $myBranchId, $startdate, $enddate): array
 {
     $sql = "
         WITH RECURSIVE SubBranches AS (
@@ -343,7 +276,7 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
                 js.meteleya_huneta,
                 js.awareness
             FROM job_seekers js
-            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id
+            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id WHERE js.created_at BETWEEN :start_date AND :end_date
         )
         SELECT
             -- ምድብ 1 እና መጨረሻው ፦ የምክርና መረጃ አገልግሎት
@@ -449,6 +382,8 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId): array
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->bindValue(':start_date', $startdate, PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, PDO::PARAM_STR);
         $stmt->execute();
 
         return $this->normalizeAdviceRow($stmt->fetch(PDO::FETCH_ASSOC));
@@ -520,6 +455,145 @@ private function normalizeAdviceRow(array|false $row): array
     return $normalized;
 }
 
+/**
+ * 3. ለሠ10 ሪፖርት ራሱን ችሎ የተሰራ ፈንክሽን
+ */
+public function getReportTenByHierarchy(string $myBranchId, string $startdate, string $enddate): array
+{
+    if (empty($myBranchId)) {
+        return $this->normalizeReportTenRow([]);
+    }
+
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            -- 1. ቅርንጫፉንና ከሥሩ ያሉትን ንዑስ ቅርንጫፎች በፓዝ ይለያል
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        ),
+        FilteredJobSeekers AS (
+            -- 2. ከተመረጡት ቅርንጫፎች እና ቀናት አንጻር ብቻ ያጣራል (ያለ ምንም የ gregby ገደብ)
+            SELECT 
+                js.gender,
+                js.residence_status,
+                js.age,
+                js.education_level_category,
+                js.physical_condition,
+                js.srafelagi_huneta,
+                js.meteleya_huneta
+            FROM job_seekers js
+            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id
+            WHERE js.created_at BETWEEN :start_date AND :end_date
+        )
+        SELECT
+            -- ምድብ 1፦ የሴቶች ስብጥር (ፆታ 'ሴት' የሆኑ ብቻ)
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' THEN 1 END) AS urban_f_reg,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' THEN 1 END) AS rural_f_reg,
+
+            -- ምድብ 2፦ የወጣቶች ስብጥር (ዕድሜ 15-29)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS urban_m_youth,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS urban_f_youth,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS rural_m_youth,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.age >= 15 AND js.age <= 29 THEN 1 END) AS rural_f_youth,
+
+            -- ምድብ 3፦ አካል ጉዳተኞች (physical_condition = 1)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.physical_condition = 1 THEN 1 END) AS urban_m_disabled,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.physical_condition = 1 THEN 1 END) AS urban_f_disabled,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.physical_condition = 1 THEN 1 END) AS rural_m_disabled,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.physical_condition = 1 THEN 1 END) AS rural_f_disabled,
+
+            -- ምድብ 4፦ ከስደት ተመላሾች (srafelagi_huneta = 'ከስደት ተመላሽ')
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS urban_m_returnee,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS urban_f_returnee,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS rural_m_returnee,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ከስደት ተመላሽ' THEN 1 END) AS rural_f_returnee,
+
+            -- ምድብ 5፦ የሀገር ውስጥ ተፈናቃዮች (srafelagi_huneta = 'ተፈናቃይ')
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS urban_m_idp,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS urban_f_idp,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS rural_m_idp,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.srafelagi_huneta = 'ተፈናቃይ' THEN 1 END) AS rural_f_idp,
+
+            -- ምድብ 6፦ መኖሪያቸው ጎዳና የሆኑ ዜጎች (meteleya_huneta = 'ጎዳና ተዳዳሪ')
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS urban_m_homeless,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS urban_f_homeless,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS rural_m_homeless,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.meteleya_huneta = 'ጎዳና ተዳዳሪ' THEN 1 END) AS rural_f_homeless,
+
+            -- ምድብ 7፦ የዩኒቨርሲቲ ተመራቂዎች (education_level_category = 2)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.education_level_category = 2 THEN 1 END) AS urban_m_uni,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.education_level_category = 2 THEN 1 END) AS urban_f_uni,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.education_level_category = 2 THEN 1 END) AS rural_m_uni,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.education_level_category = 2 THEN 1 END) AS rural_f_uni,
+
+            -- ምድብ 8፦ የቴክኒክና ሙያ ተመራቂዎች (education_level_category = 1)
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ከተማ' AND js.education_level_category = 1 THEN 1 END) AS urban_m_tvet,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ከተማ' AND js.education_level_category = 1 THEN 1 END) AS urban_f_tvet,
+            COUNT(CASE WHEN js.gender = 'ወንድ' AND js.residence_status = 'ገጠር' AND js.education_level_category = 1 THEN 1 END) AS rural_m_tvet,
+            COUNT(CASE WHEN js.gender = 'ሴት' AND js.residence_status = 'ገጠር' AND js.education_level_category = 1 THEN 1 END) AS rural_f_tvet
+        FROM FilteredJobSeekers AS js
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->bindValue(':start_date', $startdate, PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $this->normalizeReportTenRow($stmt->fetch(PDO::FETCH_ASSOC));
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return $this->normalizeReportTenRow([]);
+    }
 }
+/**
+ * እያንዳንዱን የዳታቤዝ ረድፍ የመጣለትን ቁልፍ ስም መነሻ በማድረግ
+ * ባዶ የሆኑትን ወደ 0 የሚቀይር አጋዥ ዘዴ
+ */
+private function normalizeReportTenRow($row) {
+    if (!$row) {
+        return [];
+    }
+    
+    // በፈርስት ሌቨል የሴቶች ሪፖርት ላይ ያሉ ቁልፎች
+    $baseKeys = [
+        'rural_f_reg', 'rural_f_awareness', 'rural_f_perm', 'rural_f_temp',
+        'urban_f_reg', 'urban_f_awareness', 'urban_f_perm', 'urban_f_temp'
+    ];
+    
+    // ለሌሎቹ 7 አመላካቾች (ወጣቶች፣ አካል ጉዳተኞች...) ያሉ ቁልፎች
+    $indicators = ['youth', 'disabled', 'returnee', 'idp', 'homeless', 'uni', 'tvet'];
+    foreach ($indicators as $ind) {
+        $baseKeys[] = "rural_m_{$ind}_reg";
+        $baseKeys[] = "rural_m_{$ind}_awareness";
+        $baseKeys[] = "rural_m_{$ind}_perm";
+        $baseKeys[] = "rural_m_{$ind}_temp";
+        
+        $baseKeys[] = "rural_f_{$ind}_reg";
+        $baseKeys[] = "rural_f_{$ind}_awareness";
+        $baseKeys[] = "rural_f_{$ind}_perm";
+        $baseKeys[] = "rural_f_{$ind}_temp";
+        
+        $baseKeys[] = "urban_m_{$ind}_reg";
+        $baseKeys[] = "urban_m_{$ind}_awareness";
+        $baseKeys[] = "urban_m_{$ind}_perm";
+        $baseKeys[] = "urban_m_{$ind}_temp";
+        
+        $baseKeys[] = "urban_f_{$ind}_reg";
+        $baseKeys[] = "urban_f_{$ind}_awareness";
+        $baseKeys[] = "urban_f_{$ind}_perm";
+        $baseKeys[] = "urban_f_{$ind}_temp";
+    }
 
+    $normalized = [];
+    foreach ($baseKeys as $key) {
+        // ዳታው ካለና ባዶ ካልሆነ ወደ ቁጥር ይቀይረዋል፣ ከሌለ 0 ያደርገዋል
+        $normalized[$key] = (isset($row->$key) && $row->$key !== '') ? (int)$row->$key : 
+                            ((isset($row[$key]) && $row[$key] !== '') ? (int)$row[$key] : 0);
+    }
 
+    return $normalized;
+}
+}

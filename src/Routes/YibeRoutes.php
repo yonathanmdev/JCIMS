@@ -8,4 +8,8 @@ return [
     // በ AJAX የሪፖርት ሰንጠረዦችን (እንደ ሠ1) ዳታ መሳቢያ ራውት
     'report1'     => ['ReportgenerationController', 'report1', true],
     'report-1'     => ['ReportgenerationController', 'report1Show', true],
+    'report-10'     => ['ReportgenerationController', 'report10Show', true],
+
+    // የስራ ፈላጊዎች ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
+    'seeker-analytics' => ['ReportgenerationController', 'seekerAnalyticsShow', true],
 ];

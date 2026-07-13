@@ -16,111 +16,110 @@ class ReportgenerationController extends BaseController
         $this->reportModel = new ReportgenerationModel($this->db);
     }
 
+
+public function seekerAnalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ?? ($_SESSION['branch_id'] ?? 1);
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsData($branchId);
+
+    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
+    if (!$chartsData) {
+        $chartsData = [
+            'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
+            'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+            'education' => ['ያልተገለጸ' => 0],
+            'status'    => ['ያልተገለጸ' => 0]
+        ];
+    }
+
+    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
+    $this->render('/seeker-analytics', [
+        'title'      => 'የስራ ፈላጊዎች ስታቲስቲክስ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
+
+
     /**
      * የሪፖርት ፎርሙንና የሪፖርት ማሳያ ገጽ
      */
-   public function showReportForm()
-{
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $reportType = $_POST['report_type'] ?? null;
-        $year       = $_POST['year'] ?? null;
-
-        // 1. ከ Session ላይ የባለቤቱን branch_id እንወስዳለን
-        // ማሳሰቢያ፦ ሲስተምህ ላይ በሎግኢን ጊዜ Session ውስጥ የተቀመጠበትን ስም (ለምሳሌ 'user_branch' ወይም 'branch_id') አረጋግጥ
-        $branchId = $_SESSION['user']['branch_id'] ?? null; 
+    public function reportIndexShow()
+    {
+        AuthHelper::checkRole(['team_leader', 'officer']);
         
+        $myBranchId = $_SESSION['user']['branch_id'] ?? '';
+        $myBranchId = (string)$myBranchId;
+        
+        // የቅርንጫፉን ስም ከሴሽን መውሰድ (ከሌለ ባዶ)
+        $myBranchName = $_SESSION['user']['branch_name'] ?? ($_SESSION['user']['name'] ?? '');
+        $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
 
-        if ($reportType === 'ሠ1') {
-            // 2. የ branch_id እሴትን ለሞዴሉ እናሳልፋለን
-           // 1. ያንተ የቆየውና ሌሎቹን ቁጥሮች በትክክል የሚያመጣው የሞዴል ጥሪ
-$mainData = $this->reportModel->getSe1ReportData($year, $branchId);
-
-// 2. አዲሱ ለቁጥር 12 እና 13 ብቻ የፈጠርነው የሞዴል ጥሪ
-$otherData = $this->reportModel->getSe1OtherData($year, $branchId);
-
-// 3. ሁለቱን ዳታዎች ማዋሃድ (ይህ ወሳኝ ነው!)
-$reportData = array_merge($mainData ?: [], $otherData ?: []);
-
-            $title = 'የስራ ፈላጊዎች ምዝገባና ግንዛቤ ፈጠራ ሪፖርት (ሠ1)'.$branchId;
-            
-            $viewPath = __DIR__ . '/../views/report1.php'; 
-            if (file_exists($viewPath)) {
-                include $viewPath;
+        $branches = [];
+        $branchModel = new Branch($this->db);
+        
+        if (!empty($myBranchId)) {
+            if ($ketemaAstedader) {
+                $branches = $branchModel->getOneStopCenter($myBranchId);
             } else {
-                include __DIR__ . '/../../views/report1.php';
+                $branches = $branchModel->getImmediateSubBranches($myBranchId);
             }
-            exit();
         }
+
+        // 💡 ማስተካከያ፡ defaultBranchId እና defaultBranchName ወደ ቪው ይላካሉ
+        $this->render('report-registration', [
+            'branches'          => $branches,
+            'defaultBranchId'   => $myBranchId,
+            'defaultBranchName' => $myBranchName
+        ]);
     }
 
-    $data = [
-        'title' => 'JCIMS - የሪፖርት ማስሊያ ቦታ',
-    ];
-    $this->render('report-registration', $data);
-}
-
-
-
-
-
-
-public function reportIndexShow()
+    public function report1Show()
 {
     AuthHelper::checkRole(['team_leader', 'officer']);
-    // 1. ከተጠቃሚው ሴሽን የራሱን ቅርንጫፍ መለያ መውሰድ
-    $myBranchId = $_SESSION['user']['branch_id'] ?? null;
-    $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
-
-    // 2. ሞዴሉን መጥራት
-    $branches = [];
-    $branchModel = new Branch($this->db);
     
-    // 3. ዳታውን ከሞዴል ማምጣት
-    if($ketemaAstedader){
-        $branches = $branchModel->getOneStopCenter($myBranchId);
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? '';
+    
+    // 💡 ማስተካከያ 1፦ ዳታውን ከ POST ካጣው ከ GET (ከሊንኩ ላይ) እንዲፈልግ ተደርጓል
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
+    
+    $branchData = [];
+    $branchModel = new Branch($this->db);
+
+    // 1. መለያው (branch_id) በትክክል መመረጡን ማረጋገጥ
+    if (!empty($postedBranchId)) {
+        $myBranchId = $postedBranchId;
     } else {
-        $branches = $branchModel->getImmediateSubBranches($myBranchId);
+        $myBranchId = $sessionBranchId;
     }
 
-    // 4. 🔥 ዋናው ነጥብ፦ ዳታውን በ Array Key 'branches' አድርጎ ወደ ቪው መላክ
-    // የእርስዎ ፍሬምወርቅ $this->render() የሚጠቀም ከሆነ፡
-    $this->render('report-registration', [
-        'branches' => $branches
-    ]);
+    $myBranchId = (string)$myBranchId;
 
-    /* 
-    💡 ማሳሰቢያ፦ ሲስተምህ custom custom ቢሆንና render() ባይጠቀም፣ 
-    ከላይ የተገኘው $branches ተለዋዋጭ ሳይጠፋ (ሳይሰረዝ) ቪውውን በ include መጥራት አለብህ፡
-    
-    include __DIR__ . '/../views/report-registration.php';
-    */
-}
+    // የብራንቹን መረጃ ለሪፖርቱ ሄደር (Header) ማምጫ
+    if (!empty($myBranchId)) {
+        $branchData = $branchModel->getBranchById($myBranchId);
+    }
 
-
-public function report1Show()
-{
-AuthHelper::checkRole(['team_leader', 'officer']);
- $level = $_SESSION['user']['level'];
- $myBranchId = $_POST['branch_id'] ?? null;
-$branchData = [];
-if (empty($myBranchId) && $level !== 4) {
-    $myBranchId = $_SESSION['user']['branch_id'] ?? null;
-}
-else{
-    $myBranchId = $_POST['branch_id'] ?? null;
-    $branchModel = new Branch($this->db);
-    $branchData  = $branchModel->getBranchById($myBranchId);
-}
+    // 💡 ማስተካከያ 2፦ ቀናቶችንም ከ POST ከሌለ ከ GET (ከሊንኩ) እንዲወስድ ተደርጓል
     $today = date('Y-m-d');
-    $startdate = $_POST['start_date'] ?? date('Y-m-d');
-    $enddate = $_POST['end_date'] ?? date('Y-m-d');
-    if($startdate > $today){
-         $_SESSION['error'] = 'የሪፖርት መጀመሪያ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+    $startdate = $_POST['start_date'] ?? ($_GET['start_date'] ?? date('Y-m-d'));
+    $enddate = $_POST['end_date'] ?? ($_GET['end_date'] ?? date('Y-m-d'));
+
+    if ($startdate > $today) {
+        $_SESSION['error'] = 'የሪፖርት መጀመሪያ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
         exit(); 
     }
-    if($enddate > $today){
-          $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+    if ($enddate > $today) {
+        $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
         exit();
     }
@@ -129,9 +128,9 @@ else{
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
         exit();
     }
+
     $awarenessModel = new ReportgenerationModel($this->db);
 
-    
     // 1. ከመጀመሪያው ቴብል ዳታውን ያመጣል
     $awarenessReport = $awarenessModel->getReport1ByHierarchy($myBranchId, $startdate, $enddate);
 
@@ -143,10 +142,41 @@ else{
 
     // 4. የተዋሃደውን ሙሉ ዳታ ለቪው (report-1) ያስተላልፋል
     $this->renderPrintable('report-1', [
-        'report1' => $finalReport,
+        'report1'    => $finalReport,
         'branchData' => $branchData,
-        'startdate' => $startdate,
-        'enddate' => $enddate
+        'startdate'  => $startdate,
+        'enddate'    => $enddate,
+        'myBranchId' => $myBranchId // 💡 ይህ ለቪው ሊንክ መስሪያ እንዲያገለግል ወደ ቪው ተልኳል
+    ]);
+}
+public function report10Show()
+{
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? '';
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    
+    $branchModel = new Branch($this->db);
+    $myBranchId = !empty($postedBranchId) ? $postedBranchId : $sessionBranchId;
+    $myBranchId = (string)$myBranchId;
+
+    $branchData = [];
+    if (!empty($myBranchId)) {
+        $branchData = $branchModel->getBranchById($myBranchId);
+    }
+
+    $startdate = $_POST['start_date'] ?? ($_GET['start_date'] ?? date('Y-m-d'));
+    $enddate = $_POST['end_date'] ?? ($_GET['end_date'] ?? date('Y-m-d'));
+
+    // 💡 ማስታወሻ፦ እዚህ ጋር የ Model ኮድህን ጠርተህ ዳታቤዝ ውስጥ ያሉትን የከተማ/ገጠር ስብጥሮች ታመጣለህ
+    $reportModel = new ReportgenerationModel($this->db);
+    // $reportData = $reportModel->getReport10Data($myBranchId, $startdate, $enddate);
+
+    $this->renderPrintable('report-10', [
+        'branchData' => $branchData,
+        'startdate'  => $startdate,
+        'enddate'    => $enddate,
+        'myBranchId' => $myBranchId
     ]);
 }
 }

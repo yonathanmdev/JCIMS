@@ -12,7 +12,6 @@ $is_employee_edit_page = true; ?>
           </a>
         </div>
       </div>
-
       <div class="card-body">
         <form action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/employee-edit-save" method="POST" enctype="multipart/form-data" id="employee-edit-form">
           <input type="hidden" name="uuid" value="<?= htmlspecialchars($employee['uuid'] ?? '') ?>">
