@@ -140,7 +140,7 @@ function myAsset($path) {
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     <script src="<?= myAsset('js/jobseeker-form-validation.js') ?>"></script>
      <script src="<?= myAsset('js/jobseeker.views.js') ?>"></script>
-      <?php $jobseekerValidationJsLoaded = true; ?>
+      
     <?php endif; ?>
 
      <?php if (isset($is_jobseeker_list_page) && $is_jobseeker_list_page === true): ?>
@@ -163,15 +163,13 @@ function myAsset($path) {
  
     <?php endif; ?>
 
-
- <?php if (isset($is_deleteawarness) && $is_deleteawarness === true): ?>
+<?php if (isset($is_jobseeker_team_page) && $is_jobseeker_team_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
- 
-     
-    <script src="<?= myAsset('js/sweetalert2.min.js') ?>"></script>
+    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-   
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     <?php endif; ?>
+ 
 
      <?php if (isset($is_employee_scholarship_page) && $is_employee_scholarship_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>

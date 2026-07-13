@@ -134,6 +134,26 @@ class MenuConfig
                     
                 ]
             ],  
+            [
+                'label' => 'አደረጀጅት',
+                'icon'  => 'fas fa-users',
+                'roles' => ['team_leader', 'officer'],
+                'children' => [
+                    [
+                        'label' => 'ማደራጀት',
+                        'url'   => '/setting-up-team',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                     [
+                        'label' => 'የተደራጁ',
+                        'url'   => '/team-lists',
+                        'roles' => ['team_leader', 'officer'],
+                        
+                    ],
+                    
+                ]
+            ],  
              [
                 'label' => 'ዝዉዉር',
                 'icon'  => 'fas fa-users',
