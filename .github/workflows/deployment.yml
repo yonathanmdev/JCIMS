@@ -9,7 +9,7 @@ jobs:
   ftp-deploy:
     runs-on: ubuntu-latest
 
-    environment: jcims
+    environment: JCIMS
 
     steps:
       - uses: actions/checkout@v4
