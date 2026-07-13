@@ -27,29 +27,72 @@ public function getBranchHierarchy(int $branchId): string
         return '';
     }
 }
-  public function checkDuplicateJobSeeker(array $data, ?string $excludeJobseekerId = null): array
+public function getJobSeekerById(string $id): ?array
 {
-    // Build a uniquely-named exclude clause per UNION arm, since PDO
-    // (with real prepared statements) rejects binding one value to
-    // multiple occurrences of the same named placeholder.
-    $exclude = function (string $suffix) use ($excludeJobseekerId): string {
-        return $excludeJobseekerId ? " AND id <> :exclude_id{$suffix} " : "";
+    try {
+        $stmt = $this->db->prepare("
+            SELECT job_seeker_id, created_at
+            FROM job_seekers
+            WHERE id = :id
+
+            UNION ALL
+
+            SELECT job_seeker_id, created_at
+            FROM job_seekers_archive
+            WHERE id = :id2
+
+            LIMIT 1
+        ");
+
+        $stmt->bindValue(':id', $id);
+        $stmt->bindValue(':id2', $id);
+
+        $stmt->execute();
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $result ?: null;
+
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return null;
+    }
+}
+ /**
+ * @param array       $data
+ * @param string|null $excludeJobseekerId  job_seeker_id to exclude from matching, or null for create mode
+ * @param string|null $excludeSourceTable  'active' | 'archive' — WHICH table's row to exclude.
+ *                                          Required when $excludeJobseekerId is set.
+ */
+public function checkDuplicateJobSeeker(
+    array $data,
+    ?string $excludeJobseekerId = null,
+    ?string $excludeSourceTable = null
+): array {
+    // Excludes the caller's own record from matching itself — but ONLY
+    // on the specified source table. This lets edit and renewal use the
+    // same method with opposite exclusion targets:
+    //   - edit:     exclude the 'active' row (the record being edited)
+    //   - renewal:  exclude the 'archive' row (the record being renewed);
+    //               if the same job_seeker_id also exists in 'active',
+    //               that's a real duplicate and must still be flagged.
+    $exclude = function (string $suffix) use ($excludeJobseekerId, $excludeSourceTable): string {
+        if (!$excludeJobseekerId || !$excludeSourceTable) {
+            return "";
+        }
+        return " AND NOT (job_seeker_id = :exclude_id{$suffix} AND source_table = :exclude_table{$suffix}) ";
     };
 
-    // NOTE: exclude clause now applies to `source.id` -- the combined
-    // CTE below carries the `id` column through from both tables so
-    // the same bound param works whether the match lands in the live
-    // table or the archive.
     $sql = "
         WITH source AS (
             SELECT
-                id, job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
+               job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
                 full_name_normalized, phone_number, mothername,
                 'active' AS source_table
             FROM job_seekers
             UNION ALL
             SELECT
-                id, job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
+                job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
                 full_name_normalized, phone_number, mothername,
                 'archive' AS source_table
             FROM job_seekers_archive
@@ -84,11 +127,6 @@ public function getBranchHierarchy(int $branchId): string
     try {
         $stmt = $this->db->prepare($sql);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Normalize Input
-        |--------------------------------------------------------------------------
-        */
         $branchId = (int) ($data['branch_id'] ?? 0);
         $kebeleId = trim($data['kebele_id_no'] ?? '');
         $g8id     = trim($data['g8id'] ?? '');
@@ -117,14 +155,10 @@ public function getBranchHierarchy(int $branchId): string
         $stmt->bindValue(':mother1', $mother);
         $stmt->bindValue(':mother2', $mother);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Exclude Current Job Seeker (Edit Mode)
-        |--------------------------------------------------------------------------
-        */
-        if ($excludeJobseekerId !== null) {
+        if ($excludeJobseekerId !== null && $excludeSourceTable !== null) {
             for ($i = 1; $i <= 5; $i++) {
                 $stmt->bindValue(":exclude_id{$i}", $excludeJobseekerId);
+                $stmt->bindValue(":exclude_table{$i}", $excludeSourceTable);
             }
         }
 
@@ -170,6 +204,114 @@ public function logDuplicateAttempt(array $data): void
         error_log(__METHOD__ . ': ' . $e->getMessage());
     }
 }
+
+public function createJobseekerRenewal(array $data): bool {
+    try {
+        
+        // Start transaction
+        $this->db->beginTransaction();
+        // Insert employee
+        $sql = "INSERT INTO job_seekers (id, job_seeker_id, branch_id, first_name, father_name, 
+        last_name, gender, age, education_level_category, educational_level, 
+        educated_dpt, education_trmnet_finsh_year, g8id, CGPA, school_type, 
+        physical_condition, physical_condition_desc, kebele, mender, kebele_id_no, 
+        phone_number, choice_sector1, sub_choose1, choice_sector2, sub_choose2, 
+        choice_sector3, sub_choose3, meteleya_huneta, residence_status, 
+        srafelagi_huneta, housewife, graguation_catagory, maritalstatus, 
+       haveexp, workplace, experience, profession, nameofcountry, language,
+         wageorself, regstration_level, mothername, Labor_ID, 
+         FAN, fiscal_year, agri_business_experience, has_dependents, 
+         number_of_dependents, children_under_five, full_name_normalized, 
+         registered_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                     ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $stmt = $this->db->prepare($sql);
+        $result1 = $stmt->execute([
+            $data['uuid'],
+            $data['intid'],
+            $data['branch_id'],
+            $data['first_name'],
+            $data['father_name'],
+            $data['last_name'],
+            $data['gender'],
+            $data['age'],
+            $data['education_level_catagory'],
+            $data['educational_level'],
+            $data['educated_dpt'],
+            $data['education_trmnet_finsh_year'],
+            $data['g8id'],
+            $data['CGPA'],
+            $data['school_type'],
+            $data['physical_condition'],
+            $data['physical_condition_desc'],
+            $data['kebele'],
+            $data['mender'],
+            $data['kebele_id_no'],
+            $data['phone_number'],
+            $data['choice_sector1'],
+            $data['sub_choose1'],
+            $data['choice_sector2'],
+            $data['sub_choose2'],
+            $data['choice_sector3'],
+            $data['sub_choose3'],
+            $data['meteleya_huneta'],
+            $data['residence_status'],
+            $data['srafelagi_huneta'],
+            $data['housewife'],
+            $data['graguation_catagory'],
+            $data['maritalstatus'],
+            $data['haveexp'],
+            $data['workplace'],
+            $data['experience'],
+            $data['profession'],
+            $data['nameofcountry'],
+            $data['language'],
+            $data['wageorself'],
+            $data['regstration_level'],
+            $data['mothername'],
+            $data['Labor_ID'],
+            $data['FAN'],
+            $data['fiscal_year'],
+            $data['agri_business_experience'],
+            $data['has_dependents'],
+            $data['number_of_dependents'],
+            $data['children_under_five'],
+            $data['normalizedFullName'],
+            $data['reg_by'],
+            $data['created_at']
+        ]);
+
+        if (!$result1) {
+            throw new \Exception("Failed to insert employee");
+        }
+ $sql2 = "
+    UPDATE job_seekers_archive
+    SET renewal_year = :fiscal_year
+    WHERE job_seeker_id = :job_seeker_id
+";
+
+$stmt2 = $this->db->prepare($sql2);
+
+$result2 = $stmt2->execute([
+    'job_seeker_id' => $data['intid'],
+    'fiscal_year'   => $data['fiscal_year'],
+]);
+
+if (!$result2) {
+    throw new \Exception("Failed to update archive renewal year");
+}
+
+$this->db->commit();
+return true;
+
+    } catch (\Exception $e) {
+        // Rollback transaction on error
+        $this->db->rollBack();
+        error_log("Job seeker registration transaction failed: " . $e->getMessage());
+        return false;
+    }
+}
 public function createJobseeker(array $data): bool {
     try {
         
@@ -187,9 +329,9 @@ public function createJobseeker(array $data): bool {
          wageorself, regstration_level, mothername, Labor_ID, 
          FAN, fiscal_year, agri_business_experience, has_dependents, 
          number_of_dependents, children_under_five, full_name_normalized, 
-         registered_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?,
+         registered_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                     ?, ?, ?, ?, ?, ?, ?)";
+                     ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $stmt = $this->db->prepare($sql);
         $result1 = $stmt->execute([
@@ -420,7 +562,7 @@ public function updateJobseeker(array $data): bool
                     wageorself = ?, regstration_level = ?, mothername = ?, Labor_ID = ?,
                     FAN = ?, fiscal_year = ?, agri_business_experience = ?, has_dependents = ?,
                     number_of_dependents = ?, children_under_five = ?, full_name_normalized = ?
-                WHERE branch_id = ? AND id = ?";
+                WHERE branch_id = ? AND job_seeker_id = ?";
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
             $data['first_name'], $data['father_name'], $data['last_name'],
@@ -436,7 +578,7 @@ public function updateJobseeker(array $data): bool
             $data['mothername'], $data['Labor_ID'], $data['FAN'], $data['fiscal_year'],
             $data['agri_business_experience'], $data['has_dependents'], $data['number_of_dependents'],
             $data['children_under_five'], $data['normalizedFullName'],
-            $data['branch_id'], $data['uuid']
+            $data['branch_id'], $data['intid']
         ]);
 
         if (!$result) {
@@ -505,55 +647,101 @@ public function streamJobSeekersByHierarchy(string $myBranchId): \Generator
     }
 }
 
+
+public function countJobSeekersByHierarchyRenewal(string $myBranchId, int $fiscal_year): int
+{
+    $sql = "SELECT COUNT(*) AS total
+            FROM job_seekers_archive js
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%') AND renewal_year = :fiscal_year";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId);
+        $stmt->bindValue(':fiscal_year', $fiscal_year);
+        $stmt->execute();
+
+        return (int)$stmt->fetchColumn();
+    } catch (\PDOException $e) {
+        error_log("Count job seekers by hierarchy error: " . $e->getMessage());
+        return 0;
+    }
+}
+public function getJobSeekersByHierarchyRenewal(string $myBranchId, int $limit, int $offset, int $fiscal_year): array
+{
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.gender, js.last_name, js.employment_status, 
+                   b.name AS branch_name, b.level AS branch_level
+            FROM job_seekers_archive js
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%') AND renewal_year = :fiscal_year
+            ORDER BY js.created_at DESC
+            LIMIT :limit OFFSET :offset";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId);
+        $stmt->bindValue(':fiscal_year', $fiscal_year);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Get job seekers by hierarchy error: " . $e->getMessage());
+        return [];
+    }
+}
 /**
      * Searches job seekers by job_seeker_id (exact/LIKE) or full_name_normalized (FULLTEXT),
      * scoped to the user's branch hierarchy.
      */
-    public function search(string $query, string $myBranchId, int $limit = 20): array
-    {
-        $query = trim($query);
-        if ($query === '') {
-            return [];
-        }
-
-        // job_seeker_id lookups tend to be alphanumeric codes (e.g. "JS-2024-001234")
-        $looksLikeId = (bool) preg_match('/^[A-Za-z0-9\-\/]+$/', $query);
-
-        if ($looksLikeId) {
-            return $this->searchById($query, $myBranchId, $limit);
-        }
-
-        return $this->searchByName($query, $myBranchId, $limit);
+   public function search(string $query, int $myBranchId, int $limit = 20): array
+{
+    $query = trim($query);
+    if ($query === '') {
+        return [];
     }
 
-    private function searchById(string $query, string $myBranchId, int $limit): array
-    {
-        $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name,
-                       js.gender, js.phone_number, b.name AS branch_name
-                FROM job_seekers js
-                INNER JOIN branches b ON js.branch_id = b.internal_id
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-                  AND js.job_seeker_id LIKE :query
-                ORDER BY js.created_at DESC
-                LIMIT :limit";
+    // job_seeker_id is a numeric column — only pure digits should route here
+    $looksLikeId = (bool) preg_match('/^\d+$/', $query);
 
-        try {
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindValue(':my_branch', $myBranchId);
-            $stmt->bindValue(':query', $query . '%'); // prefix match on the ID
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            error_log("Job seeker search by ID error: " . $e->getMessage());
-            return [];
-        }
+    if ($looksLikeId) {
+        return $this->searchById((int) $query, $myBranchId, $limit);
     }
 
-    private function searchByName(string $query, int $myBranchId, int $limit): array
-    {
+    return $this->searchByName($query, $myBranchId, $limit);
+}
+
+private function searchById(int $jobSeekerId, int $myBranchId, int $limit): array
+{
+    // Exact match, since job_seeker_id is an int — no meaningful "prefix" search
+    // on a numeric ID unless you specifically want range-based prefix matching.
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name,
+                   js.gender, js.phone_number, b.name AS branch_name
+            FROM job_seekers js
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+              AND js.job_seeker_id = :job_seeker_id
+            LIMIT :limit";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->bindValue(':job_seeker_id', $jobSeekerId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Job seeker search by ID error: " . $e->getMessage());
+        return [];
+    }
+}
+   private function searchByName(string $query, int $myBranchId, int $limit): array
+{
         $normalized = \App\Helpers\AmharicNormalizer::normalize($query);
         $booleanQuery = $this->buildBooleanQuery($normalized);
 
@@ -593,21 +781,174 @@ public function streamJobSeekersByHierarchy(string $myBranchId): \Generator
         }
     }
 
+
+   
+public function searchArchive(string $query, int $myBranchId, int $fiscal_year, int $limit = 20): array
+{
+    $query = trim($query);
+    if ($query === '') {
+        return [];
+    }
+
+    $looksLikeId = (bool) preg_match('/^\d+$/', $query);
+
+    if ($looksLikeId) {
+        return $this->searchArchiveById((int) $query, $myBranchId, $fiscal_year, $limit);
+    }
+
+    return $this->searchArchiveByName($query, $myBranchId, $fiscal_year, $limit);
+}
+
+private function searchArchiveById(int $jobSeekerId, int $myBranchId, int $fiscal_year, int $limit): array
+{
+    $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name,
+                   jsa.gender, jsa.phone_number, b.name AS branch_name
+            FROM job_seekers_archive jsa
+            INNER JOIN branches b ON jsa.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+              AND jsa.job_seeker_id = :job_seeker_id
+              AND jsa.renewal_year != :fiscal_year
+            LIMIT :limit";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->bindValue(':job_seeker_id', $jobSeekerId, PDO::PARAM_INT);
+        $stmt->bindValue(':fiscal_year', $fiscal_year, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Archive search by ID error: " . $e->getMessage());
+        return [];
+    }
+}
+
+private function searchArchiveByName(string $query, int $myBranchId, int $fiscal_year, int $limit): array
+{
+    $normalized = \App\Helpers\AmharicNormalizer::normalize($query);
+    $booleanQuery = $this->buildBooleanQuery($normalized); // reused as-is
+
+    if ($booleanQuery === '') {
+        return [];
+    }
+
+    $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name,
+                   jsa.gender, jsa.phone_number, b.name AS branch_name,
+                   MATCH(jsa.full_name_normalized) AGAINST(:boolean_query IN BOOLEAN MODE) AS relevance
+            FROM job_seekers_archive jsa
+            INNER JOIN branches b ON jsa.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+              AND jsa.renewal_year != :fiscal_year
+              AND MATCH(jsa.full_name_normalized) AGAINST(:boolean_query2 IN BOOLEAN MODE)
+            ORDER BY relevance DESC
+            LIMIT :limit";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->bindValue(':fiscal_year', $fiscal_year, PDO::PARAM_INT);
+        $stmt->bindValue(':boolean_query', $booleanQuery);
+        $stmt->bindValue(':boolean_query2', $booleanQuery);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Archive search by name error: " . $e->getMessage());
+        return [];
+    }
+}
+
+public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId): ?array
+{
+    $t0 = microtime(true);
+    try {
+        $sql = "
+            SELECT
+                js.*,
+
+                s1.id        AS choice_sector1_uuid,
+                s1.sector    AS choice_sector1_name,
+                ss1.id       AS sub_choose1_uuid,
+                ss1.subsector AS sub_choose1_name,
+
+                s2.id        AS choice_sector2_uuid,
+                s2.sector    AS choice_sector2_name,
+                ss2.id       AS sub_choose2_uuid,
+                ss2.subsector AS sub_choose2_name,
+
+                s3.id        AS choice_sector3_uuid,
+                s3.sector    AS choice_sector3_name,
+                ss3.id       AS sub_choose3_uuid,
+                ss3.subsector AS sub_choose3_name,
+
+                CONCAT(u.first_name, ' ', u.father_name, ' ', u.grand_father_name) AS registered_by_name,
+
+                b.name AS branch_name
+
+            FROM job_seekers_archive js
+
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+
+            LEFT JOIN sector_table s1 ON js.choice_sector1 = s1.sectorid
+            LEFT JOIN sub_sector ss1 ON js.sub_choose1 = ss1.sub_sectorid
+            LEFT JOIN sector_table s2 ON js.choice_sector2 = s2.sectorid
+            LEFT JOIN sub_sector ss2 ON js.sub_choose2 = ss2.sub_sectorid
+            LEFT JOIN sector_table s3 ON js.choice_sector3 = s3.sectorid
+            LEFT JOIN sub_sector ss3 ON js.sub_choose3 = ss3.sub_sectorid
+            LEFT JOIN users u ON js.registered_by = u.user_id
+
+            WHERE b.path LIKE CONCAT(root.path, '%') AND js.id = :jobseeker_id
+            LIMIT 1
+        ";
+
+        $t1 = microtime(true);
+        $stmt = $this->db->prepare($sql);
+        $t2 = microtime(true);
+
+        $stmt->bindValue(':my_branch', $myBranchId);
+        $stmt->bindValue(':jobseeker_id', $jobseekerId);
+        $stmt->execute();
+        $t3 = microtime(true);
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $t4 = microtime(true);
+
+        error_log(sprintf(
+            "findById breakdown: buildSQL=%.2fms prepare=%.2fms execute=%.2fms fetch=%.2fms TOTAL=%.2fms",
+            ($t1-$t0)*1000, ($t2-$t1)*1000, ($t3-$t2)*1000, ($t4-$t3)*1000, ($t4-$t0)*1000
+        ));
+
+        return $result ?: null;
+
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return null;
+    }
+}
+
     /**
      * Converts a normalized search string into FULLTEXT boolean mode syntax,
      * requiring each word (prefix match with *) rather than OR-ing them.
      */
     private function buildBooleanQuery(string $normalized): string
-    {
-        $words = preg_split('/\s+/', trim($normalized), -1, PREG_SPLIT_NO_EMPTY);
+{
+    $words = preg_split('/\s+/', trim($normalized), -1, PREG_SPLIT_NO_EMPTY);
 
-        $terms = array_map(function ($word) {
-            // Escape FULLTEXT boolean operators that could break the query
-            $word = str_replace(['+', '-', '<', '>', '(', ')', '~', '*', '"'], '', $word);
-            return '+' . $word . '*';
-        }, $words);
-
-        return implode(' ', $terms);
+    $terms = [];
+    foreach ($words as $word) {
+        $word = str_replace(['+', '-', '<', '>', '(', ')', '~', '*', '"'], '', $word);
+        if ($word !== '') {
+            $terms[] = '+' . $word . '*';
+        }
     }
+
+    return implode(' ', $terms);
+}
     }
 

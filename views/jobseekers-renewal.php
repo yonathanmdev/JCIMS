@@ -2,11 +2,7 @@
 use App\Helpers\EthiopianDateHelper; 
 use App\Helpers\AuthHelper;
 $fiscal_year = AuthHelper::checkFiscalYear();
-$is_jobseeker_list_page = true; 
-$totalCount =0;
-$offset = 0;
-$currentPage =1;
-$totalPages =1;
+$is_jobseeker_renewal_page = true; 
 ?>
 <section class="content">
   <div class="container-fluid">
@@ -16,7 +12,7 @@ $totalPages =1;
   
      <div class="card-body">
       <small class="text-muted">
-        ጠቅላላ የመዘገቡት ስራ ፈላጊ ብዛት፦
+        ጠቅላላ በዚህ በጀት ዓመት እድሳት የተደረገላቸው ስራ ፈላጊዎች፦
      <span class="badge badge-primary"> 
         <?= $totalCount ?>
   </span>
@@ -36,12 +32,6 @@ $totalPages =1;
         </div>
         <div id="jobSeekerSearchResults" class="search-results-dropdown d-none"></div>
     </div>
-
-    <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/jobseekers-list-export-excel"
-       class="btn btn-secondary shadow-sm"
-       id="exportBtn">
-        <i class="fas fa-file-excel mr-1"></i> Export to Excel
-    </a>
 </div>
         <!-- Example Table (optional) -->
       <table id="example1" data-empty-msg="ምንም ስራ ፈላጊ የለም።" class="table table-bordered table-hover small">
@@ -55,38 +45,21 @@ $totalPages =1;
         </tr>
     </thead>
     <tbody>
-        <?php if (!empty($jobSeekers)): ?>
-            <?php foreach ($jobSeekers as $index => $js): ?>
-                <tr id="row-<?= $js['id'] ?>">
-                    <td><?=$js['job_seeker_id'] ?></td>
-                    <td><?= $offset + $index + 1 ?></td>
-                    <td><?= htmlspecialchars($js['first_name']) . ' ' . htmlspecialchars($js['father_name']) . ' ' . htmlspecialchars($js['last_name']) ?></td>
-                    <td><?= htmlspecialchars($js['gender']) ?></td>
-                    <td class="text-center align-middle">
-                        <button class="btn btn-outline-primary btn-sm view-jobseeker-btn"
-                                data-id="<?= htmlspecialchars($js['id']) ?>"
-                                title="ሙሉ መረጃ ይመልከቱ">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4])): ?>
-                            <button class="btn btn-outline-warning btn-sm edit-jobseeker-btn"
-                                    data-id="<?= htmlspecialchars($js['id']) ?>"
-                                    title="አስተካክል">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <tr>
-                <td colspan="4" class="text-center text-muted py-3">ዛሬ ምንም ስራ ፈላጊ አልመዘገቡም።</td>
+        <?php foreach ($jobSeekers as $index => $js): ?>
+            <tr id="row-<?= $js['id'] ?>">
+                <td><?= $offset + $index + 1 ?></td>
+                <td><?=$js['job_seeker_id'] ?></td>
+                <td><?= htmlspecialchars($js['first_name']) . ' ' . htmlspecialchars($js['father_name']) . ' ' . htmlspecialchars($js['last_name']) ?></td>
+                <td><?= htmlspecialchars($js['gender']) ?></td>
+                <td class="text-center align-middle">
+                    
+                </td>
             </tr>
-        <?php endif; ?>
+        <?php endforeach; ?>
     </tbody>
 </table>
 <?php
-$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual working route
+$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-renewal'; // your actual working route
 ?>
 
 <?php if ($totalPages > 1): ?>
@@ -113,4 +86,3 @@ $basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual w
   </div>
 </section>
 <?php include 'partials/jobseeker-modal.php'; ?>
-<?php include 'partials/jobseeker-views-modal.php'; ?>

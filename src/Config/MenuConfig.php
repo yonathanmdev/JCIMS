@@ -71,14 +71,20 @@ class MenuConfig
                     [
                         'label' => 'ስራ ፈላጊ መመዝገብ',
                         'url'   => '/jobseeker-registration',
-                        'roles' => ['officer'],
+                        'roles' => ['team_leader', 'officer'],
                         'levels' => [3, 4]
                     ],
                     [
                         'label' => 'ዝርዝር',
                         'url'   => '/jobseekers-list',
                         'roles' => ['team_leader', 'officer']
-                    ]
+                    ],
+                    [
+                        'label' => 'እድሳት',
+                        'url'   => '/jobseekers-renewal',
+                        'roles' => ['team_leader','officer'],
+                        'levels' => [3, 4]
+                    ],
                 ]
             ],
                 [
