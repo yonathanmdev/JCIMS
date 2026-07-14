@@ -16,6 +16,66 @@ class ReportgenerationController extends BaseController
         $this->reportModel = new ReportgenerationModel($this->db);
     }
 
+public function awarenessallanalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ?? ($_SESSION['branch_id'] ?? 1);
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsDataacall($branchId);
+
+    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
+    if (!$chartsData) {
+        $chartsData = [
+            'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
+            'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+            'education' => ['ያልተገለጸ' => 0],
+            'status'    => ['ያልተገለጸ' => 0]
+        ];
+    }
+
+    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
+    $this->render('/awareness-analytics', [
+        'title'      => 'የግንዛቤ ፈጠራ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
+
+
+public function awarnessAnalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ?? ($_SESSION['branch_id'] ?? 1);
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsDataac($branchId);
+
+    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
+    if (!$chartsData) {
+        $chartsData = [
+            'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
+            'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+            'education' => ['ያልተገለጸ' => 0],
+            'status'    => ['ያልተገለጸ' => 0]
+        ];
+    }
+
+    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
+    $this->render('/awareness-analytics', [
+        'title'      => 'የግንዛቤ ፈጠራ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
 
 public function seekerAnalyticsShow()
 {
@@ -27,7 +87,7 @@ public function seekerAnalyticsShow()
     $branchId = $_SESSION['user']['branch_id'] ?? ($_SESSION['branch_id'] ?? 1);
     
     // ከሞዴል ዳታውን መሳብ
-    $chartsData = $this->reportModel->getDashboardChartsData($branchId);
+    $chartsData = $this->reportModel->getDashboardChartsDatajs($branchId);
 
     // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
     if (!$chartsData) {

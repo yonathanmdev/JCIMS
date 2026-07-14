@@ -65,7 +65,209 @@ $sql = "WITH RECURSIVE SubBranches AS (
     }
 
 
-    public function getDashboardChartsData($branchId)
+public function getDashboardChartsDataacall($branchId)
+{
+    if (empty($branchId)) {
+        return [
+            'gender' => ['M' => 0, 'F' => 0],
+            'residence' => ['urban' => 0, 'rural' => 0],
+            'physical' => ['normal' => 0, 'disabled' => 0],
+            'education' => [],
+            'status' => []
+        ];
+    }
+
+// 1. መዋቅሩን በፓዝ መለየት
+$sqlBranches = "WITH RECURSIVE SubBranches AS (
+                    SELECT b.internal_id FROM branches b
+                    INNER JOIN branches root ON root.internal_id = :my_branch
+                    WHERE b.path LIKE CONCAT(root.path, '%')
+                ) SELECT internal_id FROM SubBranches";
+                
+$stmtB = $this->db->prepare($sqlBranches);
+$stmtB->execute(['my_branch' => $branchId]);
+$branchIds = $stmtB->fetchAll(PDO::FETCH_COLUMN);
+
+// ማሻሻያ 1፦ የንዑስ ቅርንጫፍ ፓዝ ባዶ ቢሆን እንኳ የወቅቱን ቅርንጫፍ ብቻ ወስዶ ዳታ እንዲያመጣ ማድረግ
+if (empty($branchIds)) {
+    $branchIds = [$branchId];
+}
+
+// አደገኛ ሁኔታን ለመከላከል (የቅርንጫፍ አይዲው ጭምር ባዶ ከሆነ)
+if (empty($branchIds) || $branchIds[0] === null) {
+    return [
+        'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
+        'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
+        'physical'  => ['0' => 0, '1' => 0],
+        'education' => [],
+        'status'    => []
+    ];
+}
+
+$inClause = implode(',', array_map('intval', $branchIds));
+
+// 2. ፆታ እና የመኖሪያ ቦታ ቆጠራ
+$res = $this->db->query("SELECT gender, residence_status, physical_condition, education_level_category, srafelagi_huneta 
+                         FROM job_seekers WHERE branch_id IN ($inClause) and awareness=1")->fetchAll(PDO::FETCH_ASSOC);
+
+$gender = ['ወንድ' => 0, 'ሴት' => 0];
+$residence = ['ከተማ' => 0, 'ገጠር' => 0];
+$physical = ['0' => 0, '1' => 0];
+$education = [];
+$status = [];
+
+foreach ($res as $row) {
+    // ማሻሻያ 2፦ የፆታ ማጣሪያን አስተማማኝ ማድረግ (የባዶ ቦታ ማስወገጃ እና የትንሽ/ትልቅ ሆሄያት መቆጣጠሪያ)
+    $g = isset($row['gender']) ? strtoupper(trim($row['gender'])) : '';
+    if ($g === 'M' || $g === 'ወንድ' || $g === 'MALE') {
+        $gender['ወንድ']++;
+    } else if ($g === 'F' || $g === 'ሴት' || $g === 'FEMALE') {
+        $gender['ሴት']++;
+    }
+
+    // ማሻሻያ 3፦ የመኖሪያ ሁኔታ ማጣሪያ (ዳታ መኖሩን ያረጋግጣል)
+    $r = isset($row['residence_status']) ? trim($row['residence_status']) : '';
+    if (!empty($r)) {
+        if (stripos($r, 'urban') !== false || $r == 'ከተማ') {
+            $residence['ከተማ']++;
+        } else if (stripos($r, 'rural') !== false || $r == 'ገጠር') {
+            $residence['ገጠር']++;
+        }
+    }
+
+    // ማሻሻያ 4፦ የአካል ጉዳት ማጣሪያ
+    $p = isset($row['physical_condition']) ? trim($row['physical_condition']) : '';
+    if (!empty($p)) {
+        if (stripos($p, '1') !== false){
+            $physical['1']++;
+        } else {
+            $physical['0']++;
+        }
+    } else {
+        $physical['0']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
+    }
+
+    // ትምህርት
+    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ሌሎች';
+    $education[$edu] = ($education[$edu] ?? 0) + 1;
+
+    // ሁኔታ
+    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ሌሎች';
+    $status[$st] = ($status[$st] ?? 0) + 1;
+}
+
+return [
+    'gender'    => $gender,
+    'residence' => $residence,
+    'physical'  => $physical,
+    'education' => $education,
+    'status'    => $status
+];
+}
+
+
+
+public function getDashboardChartsDataac($branchId)
+{
+    if (empty($branchId)) {
+        return [
+            'gender' => ['M' => 0, 'F' => 0],
+            'residence' => ['urban' => 0, 'rural' => 0],
+            'physical' => ['normal' => 0, 'disabled' => 0],
+            'education' => [],
+            'status' => []
+        ];
+    }
+
+// 1. መዋቅሩን በፓዝ መለየት
+$sqlBranches = "WITH RECURSIVE SubBranches AS (
+                    SELECT b.internal_id FROM branches b
+                    INNER JOIN branches root ON root.internal_id = :my_branch
+                    WHERE b.path LIKE CONCAT(root.path, '%')
+                ) SELECT internal_id FROM SubBranches";
+                
+$stmtB = $this->db->prepare($sqlBranches);
+$stmtB->execute(['my_branch' => $branchId]);
+$branchIds = $stmtB->fetchAll(PDO::FETCH_COLUMN);
+
+// ማሻሻያ 1፦ የንዑስ ቅርንጫፍ ፓዝ ባዶ ቢሆን እንኳ የወቅቱን ቅርንጫፍ ብቻ ወስዶ ዳታ እንዲያመጣ ማድረግ
+if (empty($branchIds)) {
+    $branchIds = [$branchId];
+}
+
+// አደገኛ ሁኔታን ለመከላከል (የቅርንጫፍ አይዲው ጭምር ባዶ ከሆነ)
+if (empty($branchIds) || $branchIds[0] === null) {
+    return [
+        'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
+        'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
+        'physical'  => ['0' => 0, '1' => 0],
+        'education' => [],
+        'status'    => []
+    ];
+}
+
+$inClause = implode(',', array_map('intval', $branchIds));
+
+// 2. ፆታ እና የመኖሪያ ቦታ ቆጠራ
+$res = $this->db->query("SELECT gender, residence_status, physical_condition, education_level_category, srafelagi_huneta 
+                         FROM job_seekers WHERE branch_id IN ($inClause) and awareness=1")->fetchAll(PDO::FETCH_ASSOC);
+
+$gender = ['ወንድ' => 0, 'ሴት' => 0];
+$residence = ['ከተማ' => 0, 'ገጠር' => 0];
+$physical = ['0' => 0, '1' => 0];
+$education = [];
+$status = [];
+
+foreach ($res as $row) {
+    // ማሻሻያ 2፦ የፆታ ማጣሪያን አስተማማኝ ማድረግ (የባዶ ቦታ ማስወገጃ እና የትንሽ/ትልቅ ሆሄያት መቆጣጠሪያ)
+    $g = isset($row['gender']) ? strtoupper(trim($row['gender'])) : '';
+    if ($g === 'M' || $g === 'ወንድ' || $g === 'MALE') {
+        $gender['ወንድ']++;
+    } else if ($g === 'F' || $g === 'ሴት' || $g === 'FEMALE') {
+        $gender['ሴት']++;
+    }
+
+    // ማሻሻያ 3፦ የመኖሪያ ሁኔታ ማጣሪያ (ዳታ መኖሩን ያረጋግጣል)
+    $r = isset($row['residence_status']) ? trim($row['residence_status']) : '';
+    if (!empty($r)) {
+        if (stripos($r, 'urban') !== false || $r == 'ከተማ') {
+            $residence['ከተማ']++;
+        } else if (stripos($r, 'rural') !== false || $r == 'ገጠር') {
+            $residence['ገጠር']++;
+        }
+    }
+
+    // ማሻሻያ 4፦ የአካል ጉዳት ማጣሪያ
+    $p = isset($row['physical_condition']) ? trim($row['physical_condition']) : '';
+    if (!empty($p)) {
+        if (stripos($p, '1') !== false){
+            $physical['1']++;
+        } else {
+            $physical['0']++;
+        }
+    } else {
+        $physical['0']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
+    }
+
+    // ትምህርት
+    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ሌሎች';
+    $education[$edu] = ($education[$edu] ?? 0) + 1;
+
+    // ሁኔታ
+    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ሌሎች';
+    $status[$st] = ($status[$st] ?? 0) + 1;
+}
+
+return [
+    'gender'    => $gender,
+    'residence' => $residence,
+    'physical'  => $physical,
+    'education' => $education,
+    'status'    => $status
+];
+}
+
+    public function getDashboardChartsDatajs($branchId)
 {
     if (empty($branchId)) {
         return [
@@ -148,11 +350,11 @@ foreach ($res as $row) {
     }
 
     // ትምህርት
-    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ያልተገለጸ';
+    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ሌሎች';
     $education[$edu] = ($education[$edu] ?? 0) + 1;
 
     // ሁኔታ
-    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ያልተገለጸ';
+    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ሌሎች';
     $status[$st] = ($status[$st] ?? 0) + 1;
 }
 
