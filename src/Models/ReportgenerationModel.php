@@ -503,7 +503,7 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId, $startdate, $
                 js.meteleya_huneta,
                 js.awareness
             FROM job_seekers js
-            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id WHERE js.created_at BETWEEN :start_date AND :end_date
+            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id WHERE js.reg_date BETWEEN :start_date AND :end_date
         )
         SELECT
             -- ምድብ 1 እና መጨረሻው ፦ የምክርና መረጃ አገልግሎት
