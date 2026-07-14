@@ -58,8 +58,8 @@ $totalPages =1;
         <?php if (!empty($jobSeekers)): ?>
             <?php foreach ($jobSeekers as $index => $js): ?>
                 <tr id="row-<?= $js['id'] ?>">
+                     <td><?= $offset + $index + 1 ?></td>
                     <td><?=$js['job_seeker_id'] ?></td>
-                    <td><?= $offset + $index + 1 ?></td>
                     <td><?= htmlspecialchars($js['first_name']) . ' ' . htmlspecialchars($js['father_name']) . ' ' . htmlspecialchars($js['last_name']) ?></td>
                     <td><?= htmlspecialchars($js['gender']) ?></td>
                     <td class="text-center align-middle">
@@ -68,13 +68,18 @@ $totalPages =1;
                                 title="ሙሉ መረጃ ይመልከቱ">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4])): ?>
-                            <button class="btn btn-outline-warning btn-sm edit-jobseeker-btn"
-                                    data-id="<?= htmlspecialchars($js['id']) ?>"
-                                    title="አስተካክል">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        <?php endif; ?>
+                      <?php 
+// Assume $myBranchId is available here, e.g., from a session or user object
+// $myBranchId = AuthHelper::getUserBranchId(); // Example of how you might get it
+
+if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $js['branch_id'] === $_SESSION['user']['branch_id']): ?>
+    <button class="btn btn-outline-warning btn-sm edit-jobseeker-btn"
+            data-id="<?= htmlspecialchars($js['id']) ?>"
+            title="አስተካክል">
+        <i class="fas fa-edit"></i>
+    </button>
+<?php endif; ?>
+
                     </td>
                 </tr>
             <?php endforeach; ?>
