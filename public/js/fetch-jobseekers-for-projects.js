@@ -5,14 +5,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const checklist = document.getElementById('jobseeker-checklist');
     const selectedCountEl = document.getElementById('selected-count');
     const searchInput = document.getElementById('jobseeker-search');
+    const removedDataInput = document.getElementById('removed-jobseekers-data');
+    const teamForm = document.getElementById('team-formation-form');
 
-    // Cache the originally server-rendered rows (used by family / self_interest),
-    // since the government_project path overwrites checklist.innerHTML with fetched rows.
     const originalChecklistHTML = checklist ? checklist.innerHTML : '';
     let allItems = Array.from(document.querySelectorAll('.jobseeker-item'));
 
     let govDebounceTimer = null;
     let govAbortController = null;
+
+    // Government-project-only state: currently shown ids + removal reasons.
+    let govCurrentIds = [];
+    let govRemovedReasons = {}; // { jobseeker_id: { name, reason } }
 
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -33,13 +37,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return null;
     }
 
-    // Client-side filter/limit — only used for family / self_interest,
-    // where the full list is preloaded in the DOM.
     function renderVisibleRows() {
         if (orgType && orgType.value === 'government_project') return;
 
         const term = searchInput?.value.toLowerCase().trim() || '';
-
         allItems.forEach(function (item) {
             const matchesSearch = !term || item.dataset.name.includes(term) || item.dataset.code.includes(term);
             item.style.display = matchesSearch ? '' : 'none';
@@ -56,23 +57,53 @@ document.addEventListener('DOMContentLoaded', function () {
             if (limit && !cb.checked && checked >= limit) {
                 cb.disabled = true;
             } else if (orgType.value !== 'government_project') {
-                // Don't re-enable the auto-selected, server-limited checkboxes for government_project.
                 cb.disabled = false;
             }
         });
     }
 
-    // Restore the original preloaded checklist markup (used when leaving government_project).
     function restoreOriginalChecklist() {
         checklist.innerHTML = originalChecklistHTML;
         allItems = Array.from(document.querySelectorAll('.jobseeker-item'));
         if (searchInput) searchInput.value = '';
+        govCurrentIds = [];
+        govRemovedReasons = {};
+        syncRemovedDataField();
         renderVisibleRows();
+    }
+
+    function syncRemovedDataField() {
+        if (removedDataInput) {
+            removedDataInput.value = JSON.stringify(Object.values(govRemovedReasons));
+        }
+    }
+
+    function renderGovRow(js) {
+        return `
+            <div class="form-check jobseeker-item d-flex align-items-center justify-content-between" data-id="${escapeHtml(js.id)}">
+                <div>
+                    <input class="form-check-input" type="checkbox" name="selected_jobseekers[]"
+                           value="${escapeHtml(js.id)}" id="js_${escapeHtml(js.id)}" checked disabled>
+                    <label class="form-check-label" for="js_${escapeHtml(js.id)}">
+                        ${escapeHtml(js.job_seeker_id)} - ${escapeHtml(js.first_name)} ${escapeHtml(js.father_name)} ${escapeHtml(js.last_name)}
+                    </label>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-gov-member"
+                        data-id="${escapeHtml(js.id)}"
+                        data-name="${escapeHtml(js.job_seeker_id + ' - ' + js.first_name + ' ' + js.father_name + ' ' + js.last_name)}"
+                        title="አስወግድ">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>`;
     }
 
     function fetchGovernmentProjectJobSeekers(limit) {
         if (govAbortController) govAbortController.abort();
         govAbortController = new AbortController();
+
+        govCurrentIds = [];
+        govRemovedReasons = {};
+        syncRemovedDataField();
 
         checklist.innerHTML = `<div class="text-muted small p-2">በመፈለግ ላይ...</div>`;
 
@@ -87,16 +118,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
 
-                checklist.innerHTML = data.results.map(js => `
-                    <div class="form-check jobseeker-item">
-                        <input class="form-check-input" type="checkbox" name="selected_jobseekers[]"
-                               value="${escapeHtml(js.id)}" id="js_${escapeHtml(js.id)}" checked disabled>
-                        <label class="form-check-label" for="js_${escapeHtml(js.id)}">
-                            ${escapeHtml(js.job_seeker_id)} - ${escapeHtml(js.first_name)} ${escapeHtml(js.father_name)} ${escapeHtml(js.last_name)}
-                        </label>
-                    </div>
-                `).join('');
-
+                govCurrentIds = data.results.map(js => String(js.id));
+                checklist.innerHTML = data.results.map(renderGovRow).join('');
                 updateSelectionState();
             })
             .catch(err => {
@@ -104,6 +127,70 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Government project jobseeker fetch error:', err);
                 checklist.innerHTML = `<div class="text-danger small p-2">መጫን አልተሳካም</div>`;
             });
+    }
+
+    // Fetch exactly one replacement, excluding everyone currently shown + everyone already removed.
+    function fetchReplacementMember() {
+        const excludeIds = govCurrentIds.concat(Object.keys(govRemovedReasons));
+        const rowPlaceholder = document.createElement('div');
+        rowPlaceholder.className = 'text-muted small p-2 gov-replacement-loading';
+        rowPlaceholder.textContent = 'ምትክ በመፈለግ ላይ...';
+        checklist.appendChild(rowPlaceholder);
+
+        fetch(`${window.BASE_URL}/jobseekers-for-government-project?limit=1&exclude=${encodeURIComponent(excludeIds.join(','))}`)
+            .then(res => res.json())
+            .then(data => {
+                rowPlaceholder.remove();
+
+                if (!data.success || !data.results.length) {
+                    const warn = document.createElement('div');
+                    warn.className = 'text-warning small p-2';
+                    warn.textContent = 'ምትክ ስራ ፈላጊ አልተገኘም';
+                    checklist.appendChild(warn);
+                    updateSelectionState();
+                    return;
+                }
+
+                const replacement = data.results[0];
+                govCurrentIds.push(String(replacement.id));
+                checklist.insertAdjacentHTML('beforeend', renderGovRow(replacement));
+                updateSelectionState();
+            })
+            .catch(err => {
+                rowPlaceholder.remove();
+                console.error('Replacement fetch error:', err);
+            });
+    }
+
+    function handleRemoveClick(e) {
+        const btn = e.target.closest('.remove-gov-member');
+        if (!btn) return;
+
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+
+        Swal.fire({
+            title: 'ለምን ማንሳት ፈለጉ?',
+            input: 'textarea',
+            inputPlaceholder: 'ምክንያት ያስገቡ...',
+            html: `<div class="text-left small text-muted mb-2">${escapeHtml(name)}</div>`,
+            showCancelButton: true,
+            confirmButtonText: 'አስወግድ',
+            cancelButtonText: 'ይቅር',
+            inputValidator: (value) => !value?.trim() ? 'ምክንያት ያስፈልጋል' : undefined
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            const reason = result.value.trim();
+            govRemovedReasons[id] = { id, name, reason };
+            syncRemovedDataField();
+
+            govCurrentIds = govCurrentIds.filter(x => x !== id);
+            const row = checklist.querySelector(`.jobseeker-item[data-id="${CSS.escape(id)}"]`);
+            if (row) row.remove();
+
+            fetchReplacementMember();
+        });
     }
 
     if (orgType) {
@@ -128,8 +215,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('govt-field-wrapper').style.display = '';
                 jobseekerCountInput.required = true;
                 document.getElementById('jobseeker-list-wrapper').style.display = '';
-                if (searchInput) searchInput.style.display = 'none'; // search doesn't apply here — selection is server-driven
+                if (searchInput) searchInput.style.display = 'none';
                 checklist.innerHTML = '';
+                govCurrentIds = [];
+                govRemovedReasons = {};
+                syncRemovedDataField();
                 selectedCountEl.textContent = '0';
 
             } else if (type === 'family' || type === 'self_interest') {
@@ -147,7 +237,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Government project: debounced fetch every time the count changes
     if (jobseekerCountInput) {
         jobseekerCountInput.addEventListener('input', function () {
             clearTimeout(govDebounceTimer);
@@ -155,6 +244,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!Number.isFinite(n) || n < 1) {
                 checklist.innerHTML = '';
+                govCurrentIds = [];
+                govRemovedReasons = {};
+                syncRemovedDataField();
                 selectedCountEl.textContent = '0';
                 return;
             }
@@ -163,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Search filter — only meaningful for family / self_interest (client-side preloaded list)
     if (searchInput) {
         searchInput.addEventListener('keyup', renderVisibleRows);
     }
@@ -174,5 +265,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateSelectionState();
             }
         });
+        checklist.addEventListener('click', handleRemoveClick);
+    }
+
+    if (teamForm) {
+        teamForm.addEventListener('submit', syncRemovedDataField);
     }
 });
