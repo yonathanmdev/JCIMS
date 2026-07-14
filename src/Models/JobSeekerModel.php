@@ -415,6 +415,7 @@ public function getLast24HoursCount(string $myBranchId, string $userId, int $lim
         FROM job_seekers js
         WHERE js.branch_id = :branch_id
           AND js.registered_by = :user_id
+          AND js.created_at >= NOW() - INTERVAL 24 HOUR
         ORDER BY js.created_at DESC
         LIMIT :limit OFFSET :offset";
 
@@ -431,6 +432,48 @@ try {
     error_log("Get job seekers by hierarchy error: " . $e->getMessage());
     return [];
 }
+}
+
+public function getJobSeekersForGovernmentProject(string $branchId, int $limit, array $excludeIds = []): array
+{
+    $params = [':branch_id' => $branchId, ':limit' => $limit];
+    $excludeClause = '';
+
+    if (!empty($excludeIds)) {
+        $placeholders = [];
+        foreach (array_values($excludeIds) as $i => $id) {
+            $key = ":exclude_{$i}";
+            $placeholders[] = $key;
+            $params[$key] = $id;
+        }
+        $excludeClause = 'AND js.id NOT IN (' . implode(',', $placeholders) . ')';
+    }
+
+    $sql = "SELECT
+                js.id,
+                js.job_seeker_id,
+                js.first_name,
+                js.father_name,
+                js.last_name,
+                js.gender,
+                js.created_at
+            FROM job_seekers js
+            WHERE js.branch_id = :branch_id
+              {$excludeClause}
+            ORDER BY js.created_at ASC
+            LIMIT :limit";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val, $key === ':limit' ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Get job seekers for government project error: " . $e->getMessage());
+        return [];
+    }
 }
 public function findById(string $myBranchId, string $jobseekerId): ?array
 {
@@ -525,6 +568,7 @@ public function countJobSeekersByHierarchy(string $myBranchId): int
 public function getJobSeekersByHierarchy(string $myBranchId, int $limit, int $offset): array
 {
     $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender, 
+                   js.branch_id, -- Added this line
                    b.name AS branch_name, b.level AS branch_level
             FROM job_seekers js
             INNER JOIN branches b ON js.branch_id = b.internal_id
@@ -546,6 +590,7 @@ public function getJobSeekersByHierarchy(string $myBranchId, int $limit, int $of
         return [];
     }
 }
+
 public function updateJobseeker(array $data): bool
 {
     try {

@@ -268,6 +268,16 @@ class MenuConfig
         ];
     }
 
+    /**
+     * Build the menu tree for a given role and level.
+     *
+     * Both $role and $level must be the caller's ACTUAL role/level.
+     * There is no "match everything" sentinel — every item that declares
+     * 'levels' is checked for real, every time. Callers who don't have
+     * a meaningful level for a given role should pass that role's real
+     * level value (e.g. 0 or whatever your app treats as "no restriction
+     * applies to this role"), not a magic bypass constant.
+     */
     public static function getMenuForRoleAndLevel(string $role, int $level): array
     {
         $filtered = [];
@@ -298,18 +308,12 @@ class MenuConfig
         return $filtered;
     }
 
-    public static function getMenuForRole(string $role): array
-    {
-        return self::getMenuForRoleAndLevel($role, PHP_INT_MAX);
-    }
-
     private static function matches(array $item, string $role, int $level): bool
     {
         $roleOk = in_array($role, $item['roles'] ?? [], true);
 
         $levelOk = !isset($item['levels'])
-            || in_array($level, $item['levels'], true)
-            || $level === PHP_INT_MAX;
+            || in_array($level, $item['levels'], true);
 
         return $roleOk && $levelOk;
     }

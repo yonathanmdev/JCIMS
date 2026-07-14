@@ -252,8 +252,7 @@ public function handleRegistration() {
             // FIX: edit must reuse the record's actual UUID (id), not the
             // int job_seeker_id — was previously assigned $jobseekerIdInt.
             'uuid'                             => $mode === 'edit' ? $jobseekerId : Uuid::uuid7()->toString(),
-            'intid'                            => $mode === 'renewal' ? $jobseekerIdInt : null,
-            'created_at'                       => $mode === 'renewal' ? $createdAt : null,
+            'intid' => in_array($mode, ['renewal', 'edit'], true) ? $jobseekerIdInt : null,            'created_at'                       => $mode === 'renewal' ? $createdAt : null,
             'first_name'                       => trim($_POST['first_name'] ?? ''),
             'father_name'                      => trim($_POST['father_name'] ?? ''),
             'last_name'                        => trim($_POST['last_name'] ?? ''),
@@ -724,7 +723,7 @@ private function validateJobseekerData(array $post): array
     $currentPage = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($currentPage - 1) * $limit;
 
-    $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchyRenewal($myBranchId, $limit, $offset,$fiscal_year);
+    $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchyRenewal($myBranchId, 10, $offset,$fiscal_year);
     $totalCount = $jobSeekerModel->countJobSeekersByHierarchyRenewal($myBranchId, $fiscal_year);
     $totalPages = (int)ceil($totalCount / $limit);
 
@@ -989,4 +988,29 @@ $jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
 
         $this->render('setting-up-team', $data);
     }
+
+
+public function getJobSeekersForGovernmentProject(): void
+{
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    session_write_close();
+
+    $limit = filter_input(INPUT_GET, 'limit', FILTER_VALIDATE_INT);
+    $excludeRaw = filter_input(INPUT_GET, 'exclude', FILTER_DEFAULT) ?? '';
+    $excludeIds = array_filter(array_map('trim', explode(',', $excludeRaw)));
+
+    if (!$limit || $limit < 1) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Invalid limit', 'results' => []]);
+        return;
+    }
+
+    $branchId = $_SESSION['user']['branch_id'];
+
+    $jobSeekerModel = new JobSeekerModel($this->db);
+    $results = $jobSeekerModel->getJobSeekersForGovernmentProject($branchId, $limit, $excludeIds);
+
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'results' => $results]);
+}
     }
