@@ -20,8 +20,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         spinner.classList.remove('d-none');
+        showLoadingState();
         debounceTimer = setTimeout(() => runSearch(query), 300);
     });
+
+    function showLoadingState() {
+        resultsBox.innerHTML = `
+            <div class="search-loading-state">
+                <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                በመፈለግ ላይ... (Searching...)
+            </div>`;
+        resultsBox.classList.remove('d-none');
+    }
 
     async function runSearch(query) {
         if (abortController) abortController.abort();
@@ -39,7 +49,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             if (err.name === 'AbortError') return;
             console.error('Renewal search error:', err);
-            resultsBox.classList.add('d-none');
+            resultsBox.innerHTML = `
+                <div class="search-empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    ፍለጋ አልተሳካም (Search failed)
+                </div>`;
+            resultsBox.classList.remove('d-none');
         } finally {
             spinner.classList.add('d-none');
         }
@@ -121,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 $('#jobseekerRegistrationModal').modal('show');
                 $('#jobseekerRegistrationModal').one('shown.bs.modal', function () {
-                   
+
                 });
             })
             .catch((err) => {

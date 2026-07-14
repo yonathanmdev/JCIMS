@@ -432,6 +432,33 @@ try {
     return [];
 }
 }
+public function getJobSeekersForGovernmentProject(string $branchId, int $limit): array
+{
+    $sql = "SELECT
+                js.id,
+                js.job_seeker_id,
+                js.first_name,
+                js.father_name,
+                js.last_name,
+                js.gender,
+                js.created_at
+            FROM job_seekers js
+            WHERE js.branch_id = :branch_id
+            ORDER BY js.created_at ASC
+            LIMIT :limit";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':branch_id', $branchId);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\PDOException $e) {
+        error_log("Get job seekers for government project error: " . $e->getMessage());
+        return [];
+    }
+}
 public function findById(string $myBranchId, string $jobseekerId): ?array
 {
     $t0 = microtime(true);
