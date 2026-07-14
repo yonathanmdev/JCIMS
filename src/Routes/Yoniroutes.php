@@ -50,8 +50,8 @@ return [
    'jobseekers-renewal'   => ['JobseekerController', 'renewalPage', true],
     'job-seekers-renewal-search' => ['JobseekerController', 'renewalSearch', true],
     'jobseeker-renewal-data' => ['JobseekerController', 'renewalData', true],
-     'setting-up-team'   => ['JobseekerController', 'settingUpTeam', true],
-
+    'setting-up-team'   => ['JobseekerController', 'settingUpTeam', true],
+    'jobseekers-for-government-project'   => ['JobseekerController', 'getJobSeekersForGovernmentProject', true],
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs

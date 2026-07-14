@@ -724,7 +724,7 @@ private function validateJobseekerData(array $post): array
     $currentPage = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($currentPage - 1) * $limit;
 
-    $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchyRenewal($myBranchId, $limit, $offset,$fiscal_year);
+    $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchyRenewal($myBranchId, 10, $offset,$fiscal_year);
     $totalCount = $jobSeekerModel->countJobSeekersByHierarchyRenewal($myBranchId, $fiscal_year);
     $totalPages = (int)ceil($totalCount / $limit);
 
@@ -989,4 +989,30 @@ $jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
 
         $this->render('setting-up-team', $data);
     }
+
+
+public function getJobSeekersForGovernmentProject(): void
+{
+    session_write_close();
+
+    $limit = filter_input(INPUT_GET, 'limit', FILTER_VALIDATE_INT);
+ AuthHelper::checkRole(
+    ['team_leader','officer'],
+    [3, 4]
+);
+    if (!$limit || $limit < 1) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Invalid limit', 'results' => []]);
+        return;
+    }
+
+    $branchId = $_SESSION['user']['branch_id'];
+    $userId   = $_SESSION['user']['id'];
+
+    $jobSeekerModel = new JobSeekerModel($this->db);
+    $results = $jobSeekerModel->getJobSeekersForGovernmentProject($branchId, $limit);
+
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'results' => $results]);
+}
     }
