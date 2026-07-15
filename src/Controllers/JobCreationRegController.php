@@ -86,5 +86,38 @@ public function processRegistration() {
     exit();
         }
     }
+    public function jobcreationcreatedview() {
+
+$branchid = $_SESSION['user']['branch_id'];
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    $JobCreationModel = new JobCreationModel($this->db);
+    $jobCreations = $JobCreationModel->getAllJobCreations($branchid);
+  
+    
+    $data = [
+        'title' => 'JCIMS - ስራ እድል ',
+        'jobCreations' => $jobCreations
+        
+    ];
+    $this->render('job-creation-list', $data);
+   
 }
-    ?>
+
+public function deletejobcretion($uuid) {
+    $model = new JobCreationModel($this->db);
+    if ($model->deleteJobCreation($uuid)) {
+        $_SESSION['success'] = "መረጃው ተሰርዟል";
+        
+         $data = [
+        'title' => 'JCIMS - ስራ እድል '
+        
+        
+    ];
+      $this->render('job-creation-list', $data);
+    }
+     
+       
+    
+}
+}
+     

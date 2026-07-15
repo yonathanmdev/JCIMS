@@ -35,4 +35,6 @@ return [
     'get-job-seeker' => ['JobCreationRegController', 'showRegisterForm', true],
     'get-job-seeker-route' => ['JobCreationRegController', 'getJobSeekerData', true],
     'jobcreation-registration-process' =>['JobCreationRegController', 'processRegistration', true],
+    'jobcreation-list' =>['JobCreationRegController', 'jobcreationcreatedview', true],
+    'job-creation-delete' =>['JobCreationRegController', 'deletejobcretion', true],
 ];

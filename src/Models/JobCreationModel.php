@@ -34,4 +34,18 @@ public function registerJobCreation($data) {
         $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
         return bin2hex($data);
     }
+    public function getAllJobCreations($branchId) {
+    // Foreign Table-ዎችን ከማያያዝህ በፊት (Join) መጀመሪያ መረጃውን ብቻ አምጣ
+    $sql = "SELECT * FROM code003sraedl WHERE branchid = :branchid ORDER BY created_at DESC";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['branchid' => $branchId]);
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+}
+
+public function deleteJobCreation($uuid) {
+    // UUIDን በUNHEX ማጥፋት አለብህ
+    $sql = "DELETE FROM code003sraedl WHERE uuid = UNHEX(:uuid)";
+    $stmt = $this->db->prepare($sql);
+    return $stmt->execute(['uuid' => $uuid]);
+}
 }
