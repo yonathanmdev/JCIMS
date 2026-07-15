@@ -33,11 +33,12 @@
         <!-- 2ኛ ረድፍ፦ የስራ ፈላጊዎች እና ወላጆች ሁኔታ -->
         <div class="row">
             <div class="col-md-6 mb-4">
-                <a href="awareness-analytics" class="text-decoration-none d-block h-100 text-dark">
+                <a href="awareness-analytics" class="text-decoration-none d-block h-100 text-dark"> 
                 <div class="card shadow-sm border-0 h-100" style="border-radius: 12px;">
                     <div class="card-body">
                         <h6 class="font-weight-bold text-muted mb-3">ግንዛቤ ፈጠራ በስራ ፈላጊዎች (በፆታ)</h6>
                         <canvas id="genderChart" style="max-height: 220px;"></canvas>
+                        <p style="text-align: center; font-style: italic; color: #8c6239;">በዝርዝር ያግኙ</p>
                     </div>
                 </div>
                 </a>
@@ -57,7 +58,7 @@
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm border-0 h-100" style="border-radius: 12px;">
                     <div class="card-body">
-                        <h6 class="font-weight-bold text-muted mb-3">ግንዛቤ ፈጠራ በሌሎች የማህበረሰብ ክፍሎች</h6>
+                        <h6 class="font-weight-bold text-muted mb-3">ግንዛቤ ፈጠራ በሌሎች የህ/ሰብ ክፍሎች</h6>
                         <canvas id="educationChart" style="max-height: 260px;"></canvas>
                     </div>
                 </div>
@@ -258,7 +259,66 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     }
+// ==========================================
+    // 5. ዋናው ትልቅ ቻርት (በምድብ - genderChart1)
+    // ==========================================
+    const canvasMain = document.getElementById('genderChart1');
+    if (canvasMain) {
+        const ctxMain = canvasMain.getContext('2d');
+        const mainData = chartsData.total_by_group || { 'ስራ ፈላጊዎች': 0, 'ወላጆች': 0, 'ሌሎች ክፍሎች': 0 };
 
+        new Chart(ctxMain, {
+            type: 'bar', // 📊 ይበልጥ እንዲያምር ባር ቻርት አድርገነዋል
+            plugins: [ChartDataLabels],
+            data: {
+                labels: Object.keys(mainData), // ['ስራ ፈላጊዎች', 'ወላጆች', 'ሌሎች ክፍሎች']
+                datasets: [{
+                    label: 'በሶስቱም የተፈጠረው ግንዛቤ',
+                    data: Object.values(mainData), // የየምድቡ ድምር ቁጥር
+                    backgroundColor: [
+                        '#3b82f6', // ሰማያዊ ለስራ ፈላጊዎች
+                        '#10b981', // አረንጓዴ ለወላጆች
+                        '#f59e0b'  // ብርቱካናማ ለሌሎች ክፍሎች
+                    ],
+                    borderRadius: 6, // የባሮቹ ጠርዝ እንዲታጠፍ
+                    borderWidth: 1,
+                    barPercentage: 0.5 // ባሮቹ በጣም እንዳይወፍሩ
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f1f5f9' // ከበስተጀርባው የሳሳ መስመር እንዲኖረው
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false // የቋሚ መስመሮችን ማጥፊያ
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false // አንድ አይነት መለያ ስለሆነ ሌጀንድ አያስፈልገውም
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#1e293b', // የቁጥሩ ጽሑፍ ቀለም (ጥቁር አድርገነዋል ከባሩ በላይ እንዲሆን)
+                        font: {
+                            weight: 'bold',
+                            size: 13
+                        },
+                        formatter: value => value
+                    }
+                }
+            }
+        });
+    }
 })();
 });
 </script>
