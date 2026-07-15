@@ -1,7 +1,7 @@
 <?php $is_organization_page = true; ?>
 <section class="content">
   <div class="container-fluid">
-   
+
     <div class="card card-default">
       <div class="card card-primary card-outline">
  
