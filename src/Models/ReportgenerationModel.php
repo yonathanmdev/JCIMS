@@ -146,9 +146,64 @@ if (is_array($rawParentsResults)) {
         }
     }
 }
+// --- 3. ለሌሎች ህብረተሰብ ክፍሎች ዳታ መግለጫ (አዲስ የሚጨመር) ---
+$sqlOthersGender = "SELECT sex, COUNT(*) as total 
+                     FROM awareness_creation_other 
+                     WHERE branch_id IN ($placeholders) 
+                       AND awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች' 
+                     GROUP BY sex";
+
+$stmtO = $this->db->prepare($sqlOthersGender);
+$stmtO->execute(array_map('intval', $branchIds));
+$rawOthersResults = $stmtO->fetchAll(PDO::FETCH_ASSOC);
+
+$othersGender = ['ወንድ' => 0, 'ሴት' => 0];
+
+if (is_array($rawOthersResults)) {
+    foreach ($rawOthersResults as $row) {
+        $raw_g = isset($row['sex']) ? trim($row['sex']) : '';
+        $g = strtoupper($raw_g); 
+        $total = (int)$row['total'];
+
+        if ($raw_g === 'ወንድ') {
+            $othersGender['ወንድ'] += $total;
+        } elseif ($raw_g === 'ሴት') {
+            $othersGender['ሴት'] += $total;
+        }
+    }
+}
+
+// --- 4. ግንዛቤ ፈጠራ ያላገኙ በጾታ (አዲስ የሚጨመር) ---
+$sqlNoAwareness = "SELECT gender, COUNT(*) as total 
+                   FROM job_seekers 
+                   WHERE branch_id IN ($placeholders) 
+                     AND awareness = 0
+                   GROUP BY gender";
+
+$stmtNoA = $this->db->prepare($sqlNoAwareness);
+$stmtNoA->execute(array_map('intval', $branchIds));
+$rawNoAwarenessResults = $stmtNoA->fetchAll(PDO::FETCH_ASSOC);
+
+$noAwarenessGender = ['ወንድ' => 0, 'ሴት' => 0];
+
+if (is_array($rawNoAwarenessResults)) {
+    foreach ($rawNoAwarenessResults as $row) {
+        $raw_g = isset($row['gender']) ? trim($row['gender']) : '';
+        $g = strtoupper($raw_g); 
+        $total = (int)$row['total'];
+
+        if ($raw_g === 'ወንድ' || $g === 'M' || $g === 'MALE') {
+            $noAwarenessGender['ወንድ'] += $total;
+        } elseif ($raw_g === 'ሴት' || $g === 'F' || $g === 'FEMALE') {
+            $noAwarenessGender['ሴት'] += $total;
+        }
+    }
+}
    return [
     'gender' => $gender,
-    'parents_gender' => $parentsGender // አዲስ የተጨመረ
+    'parents_gender' => $parentsGender, // አዲስ የተጨመረ
+    'others_gender' => $othersGender,
+    'no_awareness_gender' => $noAwarenessGender
 ];
 }
 

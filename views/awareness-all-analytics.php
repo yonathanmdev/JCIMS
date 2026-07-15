@@ -65,7 +65,7 @@
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm border-0 h-100" style="border-radius: 12px;">
                     <div class="card-body">
-                        <h6 class="font-weight-bold text-muted mb-3">ግንዛቤ ፈጠራ ከስራ ፈላጊዎች ውጭ በጾታ</h6>
+                        <h6 class="font-weight-bold text-muted mb-3">ግንዛቤ ፈጠራ ያላገኙ በጾታ</h6>
                         <canvas id="statusChart" style="max-height: 260px;"></canvas>
                     </div>
                 </div>
@@ -96,12 +96,14 @@ document.addEventListener("DOMContentLoaded", function() {
     if (!chartsData) {
         chartsData = {
             gender: { 'ወንድ': 0, 'ሴት': 0 },
-            parents_gender: { 'ወንድ': 0, 'ሴት': 0 }
+            parents_gender: { 'ወንድ': 0, 'ሴት': 0 },
+            others_gender: { 'ወንድ': 0, 'ሴት': 0 },
+            no_awareness_gender: { 'ወንድ': 0, 'ሴት': 0 }
         };
     }
 
     // ==========================================
-    // 1. የመጀመሪያው ቻርት (ስራ ፈላጊዎች - genderChart)
+    // 1ኛ ቻርት (ስራ ፈላጊዎች - genderChart)
     // ==========================================
     const canvas1 = document.getElementById('genderChart');
     if (canvas1) {
@@ -140,7 +142,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // ==========================================
-    // 2. ሁለተኛው አዲስ ቻርት (ወላጆች - physicalChart)
+    // 2ኛ ቻርት (ወላጆች - physicalChart)
     // ==========================================
     const canvas2 = document.getElementById('physicalChart');
     if (canvas2) {
@@ -155,6 +157,85 @@ document.addEventListener("DOMContentLoaded", function() {
                 datasets: [{
                     label: 'የወላጆች ብዛት',
                     data: Object.values(parentsData),
+                    backgroundColor: ['#3b82f6', '#ec4899'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    datalabels: {
+                        color: '#ffffff',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        borderRadius: 4,
+                        padding: 4,
+                        font: { weight: 'bold', size: 13 },
+                        formatter: value => value
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 3ኛ ቻርት (ሌሎች ህብረተሰብ ክፍሎች - educationChart)
+    // ==========================================
+    const canvas3 = document.getElementById('educationChart');
+    if (canvas3) {
+        const ctx3 = canvas3.getContext('2d');
+        const othersData = chartsData.others_gender || { 'ወንድ': 0, 'ሴት': 0 };
+
+        new Chart(ctx3, {
+            type: 'doughnut',
+            plugins: [ChartDataLabels],
+            data: {
+                labels: Object.keys(othersData),
+                datasets: [{
+                    label: 'የተሳታፊዎች ብዛት',
+                    data: Object.values(othersData),
+                    backgroundColor: ['#3b82f6', '#ec4899'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    datalabels: {
+                        color: '#ffffff',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        borderRadius: 4,
+                        padding: 4,
+                        font: { weight: 'bold', size: 13 },
+                        formatter: value => value
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 4ኛ ቻርት (ግንዛቤ ያላገኙ - statusChart)
+    // ==========================================
+    const canvas4 = document.getElementById('statusChart');
+    if (canvas4) {
+        const ctx4 = canvas4.getContext('2d');
+        // 💡 ከ PHP የመጣውን የዲበግ ዳታ 'no_awareness_gender' በትክክል ማንበብ
+        const noAwarenessData = chartsData.no_awareness_gender || { 'ወንድ': 0, 'ሴት': 0 };
+
+        new Chart(ctx4, {
+            type: 'doughnut',
+            plugins: [ChartDataLabels],
+            data: {
+                labels: Object.keys(noAwarenessData),
+                datasets: [{
+                    label: 'ያላገኙ ስራ ፈላጊዎች',
+                    data: Object.values(noAwarenessData),
                     backgroundColor: ['#3b82f6', '#ec4899'],
                     borderWidth: 2,
                     borderColor: '#ffffff'
