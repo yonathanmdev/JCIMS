@@ -31,4 +31,5 @@ return [
     'defense-print-profile' => ['SolgureController', 'printProfile', true],
     'processEdit' => ['SolgureController', 'processEdit', true],
     'job-creation-reg' => ['JobCreationRegController', 'showRegisterForm', true],
+    'get-sub-sectors' => ['JobCreationRegController', 'getSubSectors', true],
 ];

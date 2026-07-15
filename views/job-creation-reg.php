@@ -61,21 +61,68 @@
                     </div>
                     <div class="col-md-6 form-group">
                         <label>የስራ ዘርፍ *</label>
-                        <select class="form-control" name="sector" required>
-                            <option value="" selected="selected" disabled="disabled">-- ይምረጡ --</option>
-                        </select>
+                     <!-- views/sector_view.php -->
+ 
+<select class="form-control" name="sector" id="sector_select" required>
+    <option value="" selected disabled>-- ይምረጡ --</option>
+      <?php if (!empty($sectors)){ ?>
+    <?php foreach ($sectors as $sector): ?>
+        <option value="<?php echo htmlspecialchars($sector['sectorid']); ?>">
+            <?php echo htmlspecialchars($sector['sector']); ?>
+        </option>
+    <?php endforeach; ?>
+    <?php }else{ ?>
+        <option value="" disabled>የስራ ዘርፍ አልተገኘም</option>
+    <?php } ?>
+</select>
                     </div>
                 </div>
 
                 <div class="row mt-3">
                     <div class="col-md-6 form-group">
                         <label>ንዑስ ዘርፍ *</label>
-                        <select class="form-control" name="sub_sector" required>
-                            <option value="" selected="selected" disabled="disabled">-- ይምረጡ --</option>
-                        </select>
+                        <select class="form-control" name="sub_sector" id="sub_sector_select" required>
+    <option value="" selected disabled>-- ይምረጡ --</option>
+</select>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label> የተፈጠረለት የስራ መስክ*</label>
+                        <input type="text" class="form-control" name="job_field" placeholder="የስራ መስክ ያስገቡ" required>
                     </div>
                 </div>
+<div class="row">
+    <!-- 1. የስራ ፈጣሪ አካል ምርጫ -->
+    <div class="col-md-6 form-group">
+        <label>ስራ እዲፈጠርልት ድጋፍ ያደረገ ማን ነዉ  *</label>
+<!-- onchange ተወግዷል -->
+<select class="form-control" name="org_type" id="org-selectsuport" required>
+    <option value="" selected disabled>-- ይምረጡ --</option> 
+    <option value="bemengst">በመንግስት</option>
+    <option value="bgelu">በግል</option>
+    <option value="benterprise">በኢንተርፕራይዝ</option>
+    <option value="beproject">በፕሮጀክት(Ngo)</option>
+    <option value="belela">በሌላ</option>
+</select>
+    </div>
 
+    <!-- 2. የፕሮጀክት/NGO ምርጫ (መጀመሪያ ላይ ተደብቋል) -->
+    <div class="col-md-6 form-group" id="project_ngo_container" style="display: none;">
+        <label>የፕሮጀክት/NGO ስም *</label>
+        <select class="form-control" name="pid" id="project_select">
+            <option value="" selected disabled>-- ፕሮጀክት ይምረጡ --</option>
+            <?php if(!empty($projectNgos)) { ?>
+                <?php foreach ($projectNgos as $ngo): ?>
+                    <option value="<?php echo htmlspecialchars($ngo['pid']); ?>">
+                        <?php echo htmlspecialchars($ngo['pname']); ?>
+                    </option>
+                <?php endforeach; ?>
+            <?php } else { ?>
+                <option value="" disabled>የፕሮጀክት/NGO አልተገኙም</option>
+            <?php } ?>
+        </select>
+    </div>
+</div>
+ 
                 <div class="row mt-4">
                     <div class="col-md-12">
                         <button type="submit" class="btn btn-primary">መዝግብ</button>
@@ -159,6 +206,50 @@ function showInputForm() {
         inputForm.innerHTML = "";
     }
 }
- 
+ document.getElementById('sector_select').addEventListener('change', function() {
+    const sectorId = this.value;
+    const subSectorSelect = document.getElementById('sub_sector_select');
+    
+    // ንዑስ ዘርፍን ማፅዳት
+    subSectorSelect.innerHTML = '<option value="" disabled selected>ይጫናል...</option>';
+
+    if (sectorId) {
+        // የRouter አድራሻህን በዚህ ቀይረው
+      fetch('./get-sub-sectors?sector_id=' + sectorId)
+            .then(response => response.json())
+            .then(data => {
+                subSectorSelect.innerHTML = '<option value="" disabled selected>-- ይምረጡ --</option>';
+                data.forEach(item => {
+                    let option = document.createElement('option');
+                    option.value = item.sub_sectorid;
+                    option.text = item.subsector;
+                    subSectorSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                subSectorSelect.innerHTML = '<option value="">ስህተት ተፈጥሯል</option>';
+            });
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const orgSelect = document.getElementById('org-selectsuport');
+    const projectContainer = document.getElementById('project_ngo_container');
+    const projectSelect = document.getElementById('project_select');
+
+    orgSelect.addEventListener('change', function() {
+        const value = this.value;
+        
+        if (value === 'beproject') {
+            projectContainer.style.display = 'block';
+            projectSelect.setAttribute('required', 'required');
+        } else {
+            projectContainer.style.display = 'none';
+            projectSelect.removeAttribute('required');
+            projectSelect.value = ""; // ሲደበቅ ምርጫውን ያፅዳ
+        }
+    });
+});
 
 </script>

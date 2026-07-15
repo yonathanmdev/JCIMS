@@ -232,4 +232,23 @@ public function getAllSectorsAndSubsectors(): array
         return ['sectors' => [], 'subsectorsBySector' => []];
     }
 }
+public function getAllSectors() {
+        try {
+            // Prepared statement ለደህንነት ሲባል
+            $query = "SELECT sectorid, sector FROM sector_table ORDER BY sector ASC";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            // እዚህ ጋር በLog ፋይል ስህተቱን መመዝገብ ይሻላል
+            return [];
+        }
+    }
+    public function getSubSectorsBySector($sectorId) {
+    // Parameterized query ለደህንነት ሲባል
+    $query = "SELECT sub_sectorid, subsector FROM sub_sector WHERE sectorid = :sectorid ORDER BY subsector ASC";
+    $stmt = $this->db->prepare($query);
+    $stmt->execute(['sectorid' => $sectorId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
     }
