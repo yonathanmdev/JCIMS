@@ -18,6 +18,7 @@ class ReportgenerationController extends BaseController
 
 public function awarenessallanalyticsShow()
 {
+    // ሰሽን ቀድሞ ካልተጀመረ ብቻ እንዲጀምር ማድረግ (ፍሬምወርኩ ራሱ የሚጀምረው ከሆነ ይህንን ማጥፋት ትችላለህ)
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
@@ -28,15 +29,10 @@ public function awarenessallanalyticsShow()
     // ከሞዴል ዳታውን መሳብ
     $chartsData = $this->reportModel->getDashboardChartsDataacall($branchId);
 
-    // ዳታው በሆነ ምክንያት NULL ወይም ባዶ ከሆነ እንዳይበላሽ በአዲሱ የሞዴል መዋቅር መከላከል
-    if (!$chartsData) {
+    // ሞዴሉ የሰጠው ምላሽ ባዶ ከሆነ ወይም የተሳሳተ ፎርማት ከሆነ መከላከል (የቁልፍ ስሞችን ከሞዴሉ ጋር ማጣጣም)
+    if (empty($chartsData) || !isset($chartsData['gender'])) {
         $chartsData = [
-            'gender'           => ['በስራ ፈላጊዎች' => 0, 'በስራ ፈላጊ ወላጆች' => 0, 'በሌሎች የህብረተሰብ ክፍሎች' => 0],
-            'jobSeekersGender' => ['ወንድ' => 0, 'ሴት' => 0],
-            'residence'        => ['ወንድ' => 0, 'ሴት' => 0], // ለቪው 'residence' የሚለው በስራ ፈላጊዎች ጾታ ላይ ይሳላል
-            'physical'         => ['0' => 0, '1' => 0],
-            'education'        => ['ሌሎች' => 0],
-            'status'           => ['ሌሎች' => 0]
+            'gender' => ['ወንድ' => 0, 'ሴት' => 0]
         ];
     }
 
