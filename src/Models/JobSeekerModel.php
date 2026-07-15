@@ -996,5 +996,12 @@ public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId
 
     return implode(' ', $terms);
 }
+public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
+        $stmt = $this->db->prepare("SELECT job_seeker_id, first_name, father_name, last_name FROM job_seekers 
+                                    WHERE   branch_id = :bid and job_seeker_id LIKE :term and fiscal_year = :fiscal_year and (employment_status=0 or employment_status=2)
+                                    LIMIT 10");
+        $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     }
 
