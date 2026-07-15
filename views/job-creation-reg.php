@@ -12,12 +12,15 @@
     <div class="card">
        
         <div class="card-body">
-            <form action="index.php?controller=job&action=save" method="POST">
+            <form action="jobcreation-registration-process" method="POST">
                 <div class="row">
                     <!-- የመጀመሪያ ረድፍ -->
                     <div class="col-md-6 form-group">
                         <label>ስራ እድል የተፈጠረበት የስራ ፈላጊዉ መለያ ቁጥር *</label>
-                        <input type="text" class="form-control" name="jid" placeholder="መለያ ቁጥር ያስገቡ" required>
+                 <input type="text" id="jid" name="jid" class="form-control" list="job-seeker-list" required>
+<datalist id="job-seeker-list">
+    <!-- አማራጮች በ JavaScript በኩል ይሞላሉ -->
+</datalist>
                     </div>
                  <div class="col-md-6 form-group">
                     
@@ -95,7 +98,7 @@
     <div class="col-md-6 form-group">
         <label>ስራ እዲፈጠርልት ድጋፍ ያደረገ ማን ነዉ  *</label>
 <!-- onchange ተወግዷል -->
-<select class="form-control" name="org_type" id="org-selectsuport" required>
+<select class="form-control" name="org_type_suport" id="org-selectsuport" required>
     <option value="" selected disabled>-- ይምረጡ --</option> 
     <option value="bemengst">በመንግስት</option>
     <option value="bgelu">በግል</option>
@@ -139,6 +142,8 @@
 </section>
  
 <script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+
+
 function attachLiveSearch() {
     const input = document.getElementById("enterpriseSearch");
     // የፍለጋ አመክንዮው እዚህ ይኖራል...
@@ -251,5 +256,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+document.getElementById('jid').addEventListener('input', function() {
+    const q = this.value;
+    const datalist = document.getElementById('job-seeker-list');
 
+    if(q.length >= 3) {
+        fetch('get-job-seeker-route?q=' + q)
+            .then(res => res.json())
+            .then(data => {
+                datalist.innerHTML = ''; // የነበረውን አማራጭ አጽዳ
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    // value ለዳታቤዝ፣ የውስጥ ጽሁፍ ለተጠቃሚው (ስም)
+                    option.value = item.job_seeker_id;
+                    option.textContent = `${item.first_name} ${item.father_name} ${item.last_name}`;
+                    datalist.appendChild(option);
+                });
+            });
+    }
+});
 </script>
