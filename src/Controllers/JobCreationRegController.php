@@ -67,7 +67,7 @@ public function processRegistration() {
         'registered_by'        => $_SESSION['user']['id'] ?? null
     ];
     //error_log("DATA ARRAY TO INSERT: " . print_r($data, true));
-
+ 
     // ይህንን መረጃ በ Browser ላይ ለማየት (ለሙከራ ብቻ)
      //echo "<pre>"; print_r($data); echo "</pre>"; exit;
         $model = new JobCreationModel($this->db);
