@@ -13,7 +13,7 @@ public function registerJobCreation($data) {
         $sql = "INSERT INTO code003sraedl (
                     uuid, branchid, code003_id, jobseeker_id, sector, subsector, 
                     job_creation_reason, employment_type, employed_institution, 
-                    suportedby, fiscal_year, registered_by
+                    ssuportedname, fiscal_year, registered_by
                 ) VALUES (
                     UNHEX(:uuid), :branchid, :code003_id, :jobseeker_id, :sector, :subsector, 
                     :job_creation_reason, :employment_type, :employed_institution, 
