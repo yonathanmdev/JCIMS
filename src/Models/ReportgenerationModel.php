@@ -199,11 +199,49 @@ if (is_array($rawNoAwarenessResults)) {
         }
     }
 }
+
+// --- 5. ጠቅላላ ግንዛቤ ፈጠራ በየምድቡ (ለዋናው ትልቅ ቻርት አዲስ የሚጨመር) ---
+
+// ሀ. የስራ ፈላጊዎች ጠቅላላ ግንዛቤ ያገኙት ድምር
+$sqlJobSeekersTotal = "SELECT COUNT(*) as total 
+                       FROM job_seekers 
+                       WHERE branch_id IN ($placeholders) 
+                         AND awareness = 1";
+$stmtJST = $this->db->prepare($sqlJobSeekersTotal);
+$stmtJST->execute(array_map('intval', $branchIds));
+$totalJobSeekers = (int)($stmtJST->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+// ለ. የወላጆች ጠቅላላ ግንዛቤ ያገኙት ድምር
+$sqlParentsTotal = "SELECT COUNT(*) as total 
+                    FROM awareness_creation_other 
+                    WHERE branch_id IN ($placeholders) 
+                      AND awareness_type = 'ለስራ ፈላጊ ወላጆች'";
+$stmtPT = $this->db->prepare($sqlParentsTotal);
+$stmtPT->execute(array_map('intval', $branchIds));
+$totalParents = (int)($stmtPT->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+// ሐ. የሌሎች ማህበረሰብ ክፍሎች ጠቅላላ ድምር
+$sqlOthersTotal = "SELECT COUNT(*) as total 
+                   FROM awareness_creation_other 
+                   WHERE branch_id IN ($placeholders) 
+                     AND awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች'";
+$stmtOT = $this->db->prepare($sqlOthersTotal);
+$stmtOT->execute(array_map('intval', $branchIds));
+$totalOthers = (int)($stmtOT->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+// የሦስቱን ድምር በአንድ ላይ ማደራጀት
+$totalByGroup = [
+    'ስራ ፈላጊዎች' => $totalJobSeekers,
+    'ወላጆች' => $totalParents,
+    'ሌሎች ክፍሎች' => $totalOthers
+];
+
    return [
     'gender' => $gender,
     'parents_gender' => $parentsGender, // አዲስ የተጨመረ
     'others_gender' => $othersGender,
-    'no_awareness_gender' => $noAwarenessGender
+    'no_awareness_gender' => $noAwarenessGender,
+    'total_by_group' => $totalByGroup
 ];
 }
 
