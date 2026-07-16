@@ -37,4 +37,5 @@ return [
     'jobcreation-registration-process' =>['JobCreationRegController', 'processRegistration', true],
     'jobcreation-list' =>['JobCreationRegController', 'jobcreationcreatedview', true],
     'job-creation-delete' =>['JobCreationRegController', 'deletejobcretion', true],
+    
 ];
