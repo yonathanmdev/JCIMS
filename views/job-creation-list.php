@@ -110,7 +110,7 @@
                             <td><?= htmlspecialchars($row['subsector'] ?? 'አልተመረጠም') ?></td>
                         </tr>
                          <tr>
-                            <th>የተሰማራበት መስክ </th>
+                            <th>የተሰማራበት መስክ</th>
                             <td><?= htmlspecialchars($row['job_field'] ?? 'አልተመረጠም') ?></td>
                         </tr>
                         <tr>
