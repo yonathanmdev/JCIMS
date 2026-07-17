@@ -167,7 +167,7 @@ class MenuConfig
                     ],
                      [
                         'label' => 'የተፈጠረ ስራ እድል',
-                        'url'   => '/team-lists',
+                        'url'   => '/jobcreation-list',
                         'roles' => ['team_leader', 'officer'],
                         
                     ],
