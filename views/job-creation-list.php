@@ -1,4 +1,14 @@
-<?php $is_sra_edl_page = true; ?>
+ 
+<?php
+use App\Helpers\EthiopianDateHelper; 
+use App\Helpers\AuthHelper;
+$fiscal_year = AuthHelper::checkFiscalYear();
+ $is_sra_edl_page = true;
+$totalCount =0;
+$offset = 0;
+$currentPage =1;
+$totalPages =1;
+?>
 <section class="content">
   <div class="container-fluid">
     <div class="card card-default">
@@ -46,10 +56,26 @@
                                     ዝርዝር እይ
                                 </button>
                                 <!-- ሰርዝ አዝራር -->
-                                <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/job-creation-delete?uuid=<?= $row['uuid'] ?>&branchid=<?= $row['branchid'] ?>&jobseeker_id=<?= $row['jobseeker_id'] ?>" 
-                                   class="btn btn-danger btn-sm delete-btn">
-                                   ሰርዝ
-                                </a>
+          <?php
+// 1. የ Role/Level ማጣሪያ (እንግዲህ ይህ ኦፊሰር እና ሌቨል 4 መሆኑን ያረጋግጣል)
+$hasPermission = AuthHelper::hasRole(['officer'], [4]);
+
+// 2. የጊዜ ማጣሪያ
+// መረጃው የተመዘገበበት ቀን ከዛሬ 7 ቀን በታች ከሆነ (ማለትም አዲስ ከሆነ)
+$registrationDate = strtotime($row['created_at']);
+$sevenDaysAgo = strtotime('-7 days');
+
+// መረጃው ከ7 ቀን በታች ከሆነ (ማለትም እስካሁን አልሞላውም) እና መብቱ ካለው
+$isWithin7Days = ($registrationDate > $sevenDaysAgo);
+
+// ሁለቱም ሁኔታዎች ሲሟሉ ብቻ በተኑ ይታያል
+if ($hasPermission && $isWithin7Days): 
+?>
+    <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/job-creation-delete?uuid=<?= $row['uuid'] ?>&branchid=<?= $row['branchid'] ?>&jobseeker_id=<?= $row['jobseeker_id'] ?>" 
+       class="btn btn-danger btn-sm delete-btn">
+       ሰርዝ
+    </a>
+<?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -130,7 +156,7 @@
                             <td><?= htmlspecialchars($row['ngo_name'] ?? 'ምንም') ?></td>
                         </tr>
                         <tr>
-                            <th>ቅርንጫፍ</th>
+                            <th>ስራ እድሉ የተፈጠረበት ማእከል/ወረዳ</th>
                             <td><?= htmlspecialchars($row['branch_name'] ?? 'አልተጠቀሰም') ?></td>
                         </tr>
                         <tr>
