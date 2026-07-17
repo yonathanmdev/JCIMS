@@ -19,6 +19,7 @@ $report = $report1 ?? [
     'urban_m_ajstvt' => 0, 'urban_f_ajstvt' => 0, 'rural_m_ajstvt' => 0, 'rural_f_ajstvt' => 0,
     'urban_m_ajsdis' => 0, 'urban_f_ajsdis' => 0, 'rural_m_ajsdis' => 0, 'rural_f_ajsdis' => 0,
     'urban_m_ajsimmg' => 0, 'urban_f_ajsimmg' => 0, 'rural_m_ajsimmg' => 0, 'rural_f_ajsimmg' => 0,
+    'urban_m_ajsteff' => 0, 'urban_f_ajsteff' => 0, 'rural_m_ajsteff' => 0, 'rural_f_ajsteff' => 0,
     'urban_m_ajsnoh' => 0, 'urban_f_ajsnoh' => 0, 'rural_m_ajsnoh' => 0, 'rural_f_ajsnoh' => 0,
 ];
 
@@ -127,6 +128,12 @@ $totalMaleajsimmg  = $report['urban_m_ajsimmg'] + $report['rural_m_ajsimmg'];
 $totalFemaleajsimmg = $report['urban_f_ajsimmg'] + $report['rural_f_ajsimmg'];
 $grandTotalajsimmg = $totalUrbanajsimmg + $totalRuralajsimmg;
 
+$totalUrbanajsteff = $report['urban_m_ajsteff'] + $report['urban_f_ajsteff'];
+$totalRuralajsteff = $report['rural_m_ajsteff'] + $report['rural_f_ajsteff'];
+$totalMaleajsteff  = $report['urban_m_ajsteff'] + $report['rural_m_ajsteff'];
+$totalFemaleajsteff = $report['urban_f_ajsteff'] + $report['rural_f_ajsteff'];
+$grandTotalajsteff = $totalUrbanajsteff + $totalRuralajsteff;
+
 $totalUrbanajsnoh = $report['urban_m_ajsnoh'] + $report['urban_f_ajsnoh'];
 $totalRuralajsnoh = $report['rural_m_ajsnoh'] + $report['rural_f_ajsnoh'];
 $totalMaleajsnoh  = $report['urban_m_ajsnoh'] + $report['rural_m_ajsnoh'];
@@ -220,7 +227,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
         </thead>
         <tbody>
             <tr>
-                <td rowspan="19" class="font-weight-bold" style="background-color: #fff;">ዘላቂ የሥራ ዕድል በመፍጠር የዜጎችን ተጠቃሚነት ማረጋገጥ</td>
+                <td rowspan="20" class="font-weight-bold" style="background-color: #fff;">ዘላቂ የሥራ ዕድል በመፍጠር የዜጎችን ተጠቃሚነት ማረጋገጥ</td>
                 <td class="text-left">አጠቃላይ የተመዘገቡ ስራ ፈላጊዎች</td>
                 <td>በቁጥር</td>
                 <td><?= $report['urban_m_advice']; ?></td>
@@ -440,6 +447,19 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
                 <td><?= $totalMaleajsimmg; ?></td>
                 <td><?= $totalFemaleajsimmg; ?></td>
                 <td><strong><?= $grandTotalajsimmg; ?></strong></td>
+            </tr>
+            <tr>
+                <td class="text-left">የግንዛቤ ማስጨበጫ የወሰዱ ሀገር ውስጥ ተፈናቃዮች</td>
+                <td>በቁጥር</td>
+                <td><?= $report['urban_m_ajsteff']; ?></td>
+                <td><?= $report['urban_f_ajsteff']; ?></td>
+                <td><?= $totalUrbanajsimmg; ?></td>
+                <td><?= $report['rural_m_ajsteff']; ?></td>
+                <td><?= $report['rural_f_ajsteff']; ?></td>
+                <td><?= $totalRuralajsteff; ?></td>
+                <td><?= $totalMaleajsteff; ?></td>
+                <td><?= $totalFemaleajsteff; ?></td>
+                <td><strong><?= $grandTotalajsteff; ?></strong></td>
             </tr>
             <tr>
                 <td class="text-left">የግንዛቤ ማስጨበጫ የወሰዱ መኖሪያቸው ጎዳና የሆኑ ዜጎች</td>
