@@ -15,6 +15,31 @@ class ReportgenerationModel
         $this->db = $db;
     }
 
+    public function getTotalAwarenessCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የግንዛቤ ፈጠራ መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(js.id) as total 
+        FROM job_seekers js
+        INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id 
+        WHERE js.awareness = 1";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}
+
     public function getTotalJobSeekersCountByHierarchy($branchId)
     {
         if (empty($branchId)) {
@@ -40,7 +65,189 @@ class ReportgenerationModel
     }
 
 
-    public function getDashboardChartsData($branchId)
+public function getDashboardChartsDataacall($branchId)
+{
+    // ቅርንጫፍ አይዲው ባዶ ከሆነ 0 ይመልስ
+    if (empty($branchId)) {
+        return [
+            'gender' => ['ወንድ' => 0, 'ሴት' => 0],
+            'sex' => ['ወንድ' => 0, 'ሴት' => 0]
+        ];
+    }
+
+    // 1. መዋቅሩን በፓዝ መለየት
+    $sqlBranches = "SELECT b.internal_id FROM branches b
+                    INNER JOIN branches root ON root.internal_id = :my_branch
+                    WHERE b.path LIKE CONCAT(root.path, '%')";
+                    
+    $stmtB = $this->db->prepare($sqlBranches);
+    $stmtB->execute(['my_branch' => $branchId]);
+    $branchIds = $stmtB->fetchAll(PDO::FETCH_COLUMN);
+
+    // የንዑስ ቅርንጫፍ ፓዝ ባዶ ቢሆን የወቅቱን ቅርንጫፍ ብቻ መውሰድ
+    if (empty($branchIds)) {
+        $branchIds = [$branchId];
+    }
+
+    // 2. ፆታን በዳታቤዝ ደረጃ መቁጠር
+    $placeholders = implode(',', array_fill(0, count($branchIds), '?'));
+    
+    $sqlGender = "SELECT gender, COUNT(*) as total 
+                  FROM job_seekers 
+                  WHERE branch_id IN ($placeholders) 
+                    AND awareness = 1 
+                  GROUP BY gender";
+
+    $stmtG = $this->db->prepare($sqlGender);
+    $stmtG->execute(array_map('intval', $branchIds));
+    
+    // እዚህ ጋር ስሙ በትክክል መፈጠሩን እናረጋግጣለን
+    $rawResults = $stmtG->fetchAll(PDO::FETCH_ASSOC);
+
+    // የመጨረሻውን ውጤት ማዘጋጀት
+    $gender = ['ወንድ' => 0, 'ሴት' => 0];
+
+    // ጥሬ መረጃው በትክክል መምጣቱን እና ድርድር (array) መሆኑን ማረጋገጥ
+    if (is_array($rawResults)) {
+        foreach ($rawResults as $row) {
+            $g = isset($row['gender']) ? strtoupper(trim($row['gender'])) : '';
+            $total = (int)$row['total'];
+
+            if ($g === 'ወንድ') {
+                $gender['ወንድ'] += $total;
+            } elseif ($g === 'ሴት') {
+                $gender['ሴት'] += $total;
+            }
+        }
+    }
+// --- ይህ አዲስ የሚጨመር ነው (የወላጆች ዳታ መግለጫ) ---
+$sqlParentsGender = "SELECT sex, COUNT(*) as total 
+                     FROM awareness_creation_other 
+                     WHERE branch_id IN ($placeholders) 
+                       AND awareness_type = 'ለስራ ፈላጊ ወላጆች' 
+                     GROUP BY sex";
+
+$stmtP = $this->db->prepare($sqlParentsGender);
+$stmtP->execute(array_map('intval', $branchIds));
+$rawParentsResults = $stmtP->fetchAll(PDO::FETCH_ASSOC);
+
+$parentsGender = ['ወንድ' => 0, 'ሴት' => 0];
+
+if (is_array($rawParentsResults)) {
+    foreach ($rawParentsResults as $row) {
+        $raw_g = isset($row['sex']) ? trim($row['sex']) : '';
+        $g = strtoupper($raw_g); 
+        $total = (int)$row['total'];
+
+        if ($raw_g === 'ወንድ') {
+            $parentsGender['ወንድ'] += $total;
+        } elseif ($raw_g === 'ሴት') {
+            $parentsGender['ሴት'] += $total;
+        }
+    }
+}
+// --- 3. ለሌሎች ህብረተሰብ ክፍሎች ዳታ መግለጫ (አዲስ የሚጨመር) ---
+$sqlOthersGender = "SELECT sex, COUNT(*) as total 
+                     FROM awareness_creation_other 
+                     WHERE branch_id IN ($placeholders) 
+                       AND awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች' 
+                     GROUP BY sex";
+
+$stmtO = $this->db->prepare($sqlOthersGender);
+$stmtO->execute(array_map('intval', $branchIds));
+$rawOthersResults = $stmtO->fetchAll(PDO::FETCH_ASSOC);
+
+$othersGender = ['ወንድ' => 0, 'ሴት' => 0];
+
+if (is_array($rawOthersResults)) {
+    foreach ($rawOthersResults as $row) {
+        $raw_g = isset($row['sex']) ? trim($row['sex']) : '';
+        $g = strtoupper($raw_g); 
+        $total = (int)$row['total'];
+
+        if ($raw_g === 'ወንድ') {
+            $othersGender['ወንድ'] += $total;
+        } elseif ($raw_g === 'ሴት') {
+            $othersGender['ሴት'] += $total;
+        }
+    }
+}
+
+// --- 4. ግንዛቤ ፈጠራ ያላገኙ በጾታ (አዲስ የሚጨመር) ---
+$sqlNoAwareness = "SELECT gender, COUNT(*) as total 
+                   FROM job_seekers 
+                   WHERE branch_id IN ($placeholders) 
+                     AND awareness = 0
+                   GROUP BY gender";
+
+$stmtNoA = $this->db->prepare($sqlNoAwareness);
+$stmtNoA->execute(array_map('intval', $branchIds));
+$rawNoAwarenessResults = $stmtNoA->fetchAll(PDO::FETCH_ASSOC);
+
+$noAwarenessGender = ['ወንድ' => 0, 'ሴት' => 0];
+
+if (is_array($rawNoAwarenessResults)) {
+    foreach ($rawNoAwarenessResults as $row) {
+        $raw_g = isset($row['gender']) ? trim($row['gender']) : '';
+        $g = strtoupper($raw_g); 
+        $total = (int)$row['total'];
+
+        if ($raw_g === 'ወንድ' || $g === 'M' || $g === 'MALE') {
+            $noAwarenessGender['ወንድ'] += $total;
+        } elseif ($raw_g === 'ሴት' || $g === 'F' || $g === 'FEMALE') {
+            $noAwarenessGender['ሴት'] += $total;
+        }
+    }
+}
+
+// --- 5. ጠቅላላ ግንዛቤ ፈጠራ በየምድቡ (ለዋናው ትልቅ ቻርት አዲስ የሚጨመር) ---
+
+// ሀ. የስራ ፈላጊዎች ጠቅላላ ግንዛቤ ያገኙት ድምር
+$sqlJobSeekersTotal = "SELECT COUNT(*) as total 
+                       FROM job_seekers 
+                       WHERE branch_id IN ($placeholders) 
+                         AND awareness = 1";
+$stmtJST = $this->db->prepare($sqlJobSeekersTotal);
+$stmtJST->execute(array_map('intval', $branchIds));
+$totalJobSeekers = (int)($stmtJST->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+// ለ. የወላጆች ጠቅላላ ግንዛቤ ያገኙት ድምር
+$sqlParentsTotal = "SELECT COUNT(*) as total 
+                    FROM awareness_creation_other 
+                    WHERE branch_id IN ($placeholders) 
+                      AND awareness_type = 'ለስራ ፈላጊ ወላጆች'";
+$stmtPT = $this->db->prepare($sqlParentsTotal);
+$stmtPT->execute(array_map('intval', $branchIds));
+$totalParents = (int)($stmtPT->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+// ሐ. የሌሎች ማህበረሰብ ክፍሎች ጠቅላላ ድምር
+$sqlOthersTotal = "SELECT COUNT(*) as total 
+                   FROM awareness_creation_other 
+                   WHERE branch_id IN ($placeholders) 
+                     AND awareness_type = 'ለሌሎች ህብረተሰብ ክፍሎች'";
+$stmtOT = $this->db->prepare($sqlOthersTotal);
+$stmtOT->execute(array_map('intval', $branchIds));
+$totalOthers = (int)($stmtOT->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+// የሦስቱን ድምር በአንድ ላይ ማደራጀት
+$totalByGroup = [
+    'ስራ ፈላጊዎች' => $totalJobSeekers,
+    'ወላጆች' => $totalParents,
+    'ሌሎች ክፍሎች' => $totalOthers
+];
+
+   return [
+    'gender' => $gender,
+    'parents_gender' => $parentsGender, // አዲስ የተጨመረ
+    'others_gender' => $othersGender,
+    'no_awareness_gender' => $noAwarenessGender,
+    'total_by_group' => $totalByGroup
+];
+}
+
+
+
+public function getDashboardChartsDataac($branchId)
 {
     if (empty($branchId)) {
         return [
@@ -73,7 +280,7 @@ if (empty($branchIds) || $branchIds[0] === null) {
     return [
         'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
         'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
-        'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+        'physical'  => ['0' => 0, '1' => 0],
         'education' => [],
         'status'    => []
     ];
@@ -83,11 +290,11 @@ $inClause = implode(',', array_map('intval', $branchIds));
 
 // 2. ፆታ እና የመኖሪያ ቦታ ቆጠራ
 $res = $this->db->query("SELECT gender, residence_status, physical_condition, education_level_category, srafelagi_huneta 
-                         FROM job_seekers WHERE branch_id IN ($inClause)")->fetchAll(PDO::FETCH_ASSOC);
+                         FROM job_seekers WHERE branch_id IN ($inClause) and awareness=1")->fetchAll(PDO::FETCH_ASSOC);
 
 $gender = ['ወንድ' => 0, 'ሴት' => 0];
 $residence = ['ከተማ' => 0, 'ገጠር' => 0];
-$physical = ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0];
+$physical = ['0' => 0, '1' => 0];
 $education = [];
 $status = [];
 
@@ -113,21 +320,121 @@ foreach ($res as $row) {
     // ማሻሻያ 4፦ የአካል ጉዳት ማጣሪያ
     $p = isset($row['physical_condition']) ? trim($row['physical_condition']) : '';
     if (!empty($p)) {
-        if (stripos($p, 'disabled') !== false || stripos($p, 'ጉዳተኛ') !== false || stripos($p, 'አካል') !== false) {
-            $physical['አካል ጉዳተኛ']++;
+        if (stripos($p, '1') !== false){
+            $physical['1']++;
         } else {
-            $physical['መደበኛ']++;
+            $physical['0']++;
         }
     } else {
-        $physical['መደበኛ']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
+        $physical['0']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
     }
 
     // ትምህርት
-    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ያልተገለጸ';
+    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ሌሎች';
     $education[$edu] = ($education[$edu] ?? 0) + 1;
 
     // ሁኔታ
-    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ያልተገለጸ';
+    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ሌሎች';
+    $status[$st] = ($status[$st] ?? 0) + 1;
+}
+
+return [
+    'gender'    => $gender,
+    'residence' => $residence,
+    'physical'  => $physical,
+    'education' => $education,
+    'status'    => $status
+];
+}
+
+    public function getDashboardChartsDatajs($branchId)
+{
+    if (empty($branchId)) {
+        return [
+            'gender' => ['M' => 0, 'F' => 0],
+            'residence' => ['urban' => 0, 'rural' => 0],
+            'physical' => ['normal' => 0, 'disabled' => 0],
+            'education' => [],
+            'status' => []
+        ];
+    }
+
+// 1. መዋቅሩን በፓዝ መለየት
+$sqlBranches = "WITH RECURSIVE SubBranches AS (
+                    SELECT b.internal_id FROM branches b
+                    INNER JOIN branches root ON root.internal_id = :my_branch
+                    WHERE b.path LIKE CONCAT(root.path, '%')
+                ) SELECT internal_id FROM SubBranches";
+                
+$stmtB = $this->db->prepare($sqlBranches);
+$stmtB->execute(['my_branch' => $branchId]);
+$branchIds = $stmtB->fetchAll(PDO::FETCH_COLUMN);
+
+// ማሻሻያ 1፦ የንዑስ ቅርንጫፍ ፓዝ ባዶ ቢሆን እንኳ የወቅቱን ቅርንጫፍ ብቻ ወስዶ ዳታ እንዲያመጣ ማድረግ
+if (empty($branchIds)) {
+    $branchIds = [$branchId];
+}
+
+// አደገኛ ሁኔታን ለመከላከል (የቅርንጫፍ አይዲው ጭምር ባዶ ከሆነ)
+if (empty($branchIds) || $branchIds[0] === null) {
+    return [
+        'gender'    => ['ወንድ' => 0, 'ሴት' => 0],
+        'residence' => ['ከተማ' => 0, 'ገጠር' => 0],
+        'physical'  => ['0' => 0, '1' => 0],
+        'education' => [],
+        'status'    => []
+    ];
+}
+
+$inClause = implode(',', array_map('intval', $branchIds));
+
+// 2. ፆታ እና የመኖሪያ ቦታ ቆጠራ
+$res = $this->db->query("SELECT gender, residence_status, physical_condition, education_level_category, srafelagi_huneta 
+                         FROM job_seekers WHERE branch_id IN ($inClause)")->fetchAll(PDO::FETCH_ASSOC);
+
+$gender = ['ወንድ' => 0, 'ሴት' => 0];
+$residence = ['ከተማ' => 0, 'ገጠር' => 0];
+$physical = ['0' => 0, '1' => 0];
+$education = [];
+$status = [];
+
+foreach ($res as $row) {
+    // ማሻሻያ 2፦ የፆታ ማጣሪያን አስተማማኝ ማድረግ (የባዶ ቦታ ማስወገጃ እና የትንሽ/ትልቅ ሆሄያት መቆጣጠሪያ)
+    $g = isset($row['gender']) ? strtoupper(trim($row['gender'])) : '';
+    if ($g === 'M' || $g === 'ወንድ' || $g === 'MALE') {
+        $gender['ወንድ']++;
+    } else if ($g === 'F' || $g === 'ሴት' || $g === 'FEMALE') {
+        $gender['ሴት']++;
+    }
+
+    // ማሻሻያ 3፦ የመኖሪያ ሁኔታ ማጣሪያ (ዳታ መኖሩን ያረጋግጣል)
+    $r = isset($row['residence_status']) ? trim($row['residence_status']) : '';
+    if (!empty($r)) {
+        if (stripos($r, 'urban') !== false || $r == 'ከተማ') {
+            $residence['ከተማ']++;
+        } else if (stripos($r, 'rural') !== false || $r == 'ገጠር') {
+            $residence['ገጠር']++;
+        }
+    }
+
+    // ማሻሻያ 4፦ የአካል ጉዳት ማጣሪያ
+    $p = isset($row['physical_condition']) ? trim($row['physical_condition']) : '';
+    if (!empty($p)) {
+        if (stripos($p, '1') !== false){
+            $physical['1']++;
+        } else {
+            $physical['0']++;
+        }
+    } else {
+        $physical['0']++; // ባዶ ከሆነ እንደ መደበኛ ይቆጠራል
+    }
+
+    // ትምህርት
+    $edu = !empty($row['education_level_category']) ? trim($row['education_level_category']) : 'ሌሎች';
+    $education[$edu] = ($education[$edu] ?? 0) + 1;
+
+    // ሁኔታ
+    $st = !empty($row['srafelagi_huneta']) ? trim($row['srafelagi_huneta']) : 'ሌሎች';
     $status[$st] = ($status[$st] ?? 0) + 1;
 }
 
@@ -276,7 +583,7 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId, $startdate, $
                 js.meteleya_huneta,
                 js.awareness
             FROM job_seekers js
-            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id WHERE js.created_at BETWEEN :start_date AND :end_date
+            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id WHERE js.reg_date BETWEEN :start_date AND :end_date
         )
         SELECT
             -- ምድብ 1 እና መጨረሻው ፦ የምክርና መረጃ አገልግሎት

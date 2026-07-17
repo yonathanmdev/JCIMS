@@ -2,7 +2,7 @@
     <div class="container-fluid">
         <div class="row mb-2">
             <div class="col-sm-6">
-                <h5 class="font-weight-bold" style="color: #1a365d;"><i class="fas fa-chart-bar mr-2"></i>የስራ ፈላጊዎች ስታቲስቲካዊ ትንታኔ (በመዋቅሩ መሠረት)</h5>
+                <h5 class="font-weight-bold" style="color: #1a365d;"><i class="fas fa-chart-bar mr-2"></i>የግንዛቤ ፈጠራ ስታቲስቲካዊ ትንታኔ (በመዋቅሩ መሠረት)</h5>
             </div>
             <div class="col-sm-6 text-right">
                 <a href="dashboard" class="btn btn-sm btn-secondary style="border-radius: 8px;"><i class="fas fa-arrow-left mr-1"></i> ወደ ዳሽቦርድ ተመለስ</a>
@@ -82,8 +82,8 @@ document.addEventListener("DOMContentLoaded", function() {
         gender: { 'ወንድ': 0, 'ሴት': 0 },
         residence: { 'ከተማ': 0, 'ገጠር': 0 },
         physical: { '0': 0, '1': 0 },
-        education: { 'ያልተገለጸ': 0 },
-        status: { 'ያልተገለጸ': 0 }
+        education: { 'ሌሎች': 0 },
+        status: { 'ሌሎች': 0 }
     };
 
     // ከባሩ በላይ ቁጥሩን በቀጥታ ለመጻፍ የሚያስችል የ Chart.js ፕለጊን ሎጂክ

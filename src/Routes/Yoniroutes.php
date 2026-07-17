@@ -52,6 +52,10 @@ return [
     'jobseeker-renewal-data' => ['JobseekerController', 'renewalData', true],
     'setting-up-team'   => ['JobseekerController', 'settingUpTeam', true],
     'jobseekers-for-government-project'   => ['JobseekerController', 'getJobSeekersForGovernmentProject', true],
+    'jobseekers-record-removal'   => ['JobseekerController', 'recordJobSeekerRemoval', true],
+    'jobseekers-search-for-organizing' => ['JobseekerController', 'searchJobSeekersForOrganizing', true],
+    'team-formation'   => ['TeamFormationController', 'teamFormation', true],
+    'team-lists'       => ['TeamFormationController', 'listGroups', true],
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs

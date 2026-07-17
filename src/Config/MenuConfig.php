@@ -154,6 +154,26 @@ class MenuConfig
                     
                 ]
             ],  
+            [
+                'label' => 'ስራ እድል',
+                'icon'  => 'fas fa-users',
+                'roles' => ['team_leader', 'officer'],
+                'children' => [
+                    [
+                        'label' => 'ስራ እድል መመዝገብ',
+                        'url'   => '/job-creation-reg',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                     [
+                        'label' => 'የተፈጠረ ስራ እድል',
+                        'url'   => '/jobcreation-list',
+                        'roles' => ['team_leader', 'officer'],
+                        
+                    ],
+                    
+                ]
+            ], 
              [
                 'label' => 'ዝዉዉር',
                 'icon'  => 'fas fa-users',

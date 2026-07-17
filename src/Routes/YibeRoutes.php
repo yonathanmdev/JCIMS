@@ -12,4 +12,8 @@ return [
 
     // የስራ ፈላጊዎች ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
     'seeker-analytics' => ['ReportgenerationController', 'seekerAnalyticsShow', true],
+    // የግንዛቤ ፈጠራ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
+    'awareness-all-analytics' => ['ReportgenerationController', 'awarenessallanalyticsShow', true],
+    'awareness-analytics' => ['ReportgenerationController', 'awarnessAnalyticsShow', true],
+
 ];

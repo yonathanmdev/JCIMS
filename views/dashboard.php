@@ -119,11 +119,11 @@ $role = $_SESSION['user']['role'] ?? '';
 
         <div class="col-md-4 col-sm-6 mb-3">
   <!-- ሲነካ በቀጥታ ወደ አዲሱ ቻርት ገጽ ይወስዳል -->
-<a href="seeker-analytics" style="text-decoration: none; color: inherit;">
+<a href="awareness-all-analytics" style="text-decoration: none; color: inherit;">
   <div class="report-type-card card card-outline card-primary h-100 shadow-sm" style="border-radius: 12px; cursor: pointer;">
     <div class="card-body text-center py-4 d-flex flex-column align-items-center justify-content-center position-relative">
       <span class="badge badge-primary float-right position-absolute px-2 py-1" style="top: 12px; right: 12px; font-size: 11px; border-radius: 20px;">
-         <?= number_format($total_job_seekers) ?> Total
+         <?= number_format($total_awareness) ?> Total
       </span>
       <i class="far fa-lightbulb fa-2x text-primary mb-3 mt-2"></i>
       <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የግንዛቤ ፈጠራ ሁኔታ</h6>

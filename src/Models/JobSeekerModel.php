@@ -1,5 +1,6 @@
 <?php
 namespace App\Models;
+use App\Helpers\AmharicNormalizer;
 use PDO;
 class JobSeekerModel {
     private $db;
@@ -58,6 +59,33 @@ public function getJobSeekerById(string $id): ?array
         return null;
     }
 }
+public function getJobSeekerIds(array $uuids): array
+{
+    if (empty($uuids)) return [];
+
+    // 1. Reset keys to be 0, 1, 2... to prevent parameter index mismatches
+    $cleanUuids = array_values(array_unique($uuids));
+    
+    // 2. Create the correct number of placeholders
+    $placeholders = implode(',', array_fill(0, count($cleanUuids), '?'));
+
+    $sql = "SELECT id, job_seeker_id FROM job_seekers WHERE id IN ($placeholders)";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        // 3. Execute using the clean, indexed array
+        $stmt->execute($cleanUuids);
+
+        // This returns [ "UUID" => INT_JOB_SEEKER_ID ]
+        return $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+
+    } catch (\PDOException $e) {
+        error_log("JobSeekerModel Error: " . $e->getMessage());
+        return [];
+    }
+}
+
  /**
  * @param array       $data
  * @param string|null $excludeJobseekerId  job_seeker_id to exclude from matching, or null for create mode
@@ -434,45 +462,157 @@ try {
 }
 }
 
-public function getJobSeekersForGovernmentProject(string $branchId, int $limit, array $excludeIds = []): array
+public function getJobSeekersForGovernmentProject(int $branchId, int $limit, array $excludeIds = []): array
 {
-    $params = [':branch_id' => $branchId, ':limit' => $limit];
+    $params = [
+        ':branch_id' => $branchId,
+        ':limit'     => $limit
+    ];
+
     $excludeClause = '';
 
     if (!empty($excludeIds)) {
         $placeholders = [];
+
         foreach (array_values($excludeIds) as $i => $id) {
-            $key = ":exclude_{$i}";
+            $key = ":exclude_$i";
             $placeholders[] = $key;
             $params[$key] = $id;
         }
-        $excludeClause = 'AND js.id NOT IN (' . implode(',', $placeholders) . ')';
+
+        $excludeClause = ' AND js.id NOT IN (' . implode(',', $placeholders) . ')';
     }
 
-    $sql = "SELECT
-                js.id,
-                js.job_seeker_id,
-                js.first_name,
-                js.father_name,
-                js.last_name,
-                js.gender,
-                js.created_at
-            FROM job_seekers js
-            WHERE js.branch_id = :branch_id
-              {$excludeClause}
-            ORDER BY js.created_at ASC
-            LIMIT :limit";
+    $sql = "
+        SELECT
+            js.id,
+            js.job_seeker_id,
+            js.first_name,
+            js.father_name,
+            js.last_name,
+            js.gender,
+            js.created_at
+        FROM job_seekers js
+        WHERE js.branch_id = :branch_id
+        AND (js.employment_status IS NULL OR js.employment_status IN (0, 2))
+        {$excludeClause}
+        ORDER BY js.created_at ASC
+        LIMIT :limit
+    ";
 
     try {
         $stmt = $this->db->prepare($sql);
-        foreach ($params as $key => $val) {
-            $stmt->bindValue($key, $val, $key === ':limit' ? PDO::PARAM_INT : PDO::PARAM_STR);
+
+        foreach ($params as $key => $value) {
+            if ($key === ':limit') {
+                $stmt->bindValue($key, (int)$value, PDO::PARAM_INT);
+            } elseif ($key === ':branch_id') {
+                $stmt->bindValue($key, (int)$value, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($key, $value, PDO::PARAM_STR);
+            }
         }
+
         $stmt->execute();
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     } catch (\PDOException $e) {
-        error_log("Get job seekers for government project error: " . $e->getMessage());
+        error_log(__METHOD__ . ': ' . $e->getMessage());
         return [];
+    }
+}
+public function searchJobSeekersForOrganizing(int $branchId, string $term): array
+{
+    $normalized = AmharicNormalizer::normalize($term);
+    $words = preg_split('/\s+/', trim($normalized), -1, PREG_SPLIT_NO_EMPTY);
+    $booleanTerm = implode(' ', array_map(fn($w) => $w . '*', $words));
+
+    // MySQL/MariaDB silently returns 0 rows for prefix searches shorter than
+    // innodb_ft_min_token_size (default 3) — skip MATCH() entirely below that.
+    $useMatch = mb_strlen($normalized) >= 3;
+
+    $params = [
+        ':branch_id' => $branchId,
+        ':term_like' => '%' . $term . '%',
+    ];
+
+    $matchClause = '';
+    if ($useMatch) {
+        $matchClause = "MATCH(js.full_name_normalized) AGAINST (:term_bool IN BOOLEAN MODE) OR ";
+        $params[':term_bool'] = $booleanTerm;
+    }
+
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name
+            FROM job_seekers js
+            WHERE js.branch_id = :branch_id
+              AND ({$matchClause}CAST(js.job_seeker_id AS CHAR) LIKE :term_like
+                   OR js.full_name_normalized LIKE :term_like)
+              AND (js.employment_status IS NULL OR js.employment_status IN (0, 2))
+            LIMIT 15";
+
+    $stmt = $this->db->prepare($sql);
+    foreach ($params as $key => $val) {
+        $type = ($key === ':branch_id') ? PDO::PARAM_INT : PDO::PARAM_STR;
+        $stmt->bindValue($key, $val, $type);
+    }
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+public function recordSingleRemoval(
+    string $branchId,
+    string $removedBy,
+    string $jobSeekerUuid,
+    string $reason,
+    ?string $replacedByUuid = null
+): string {
+    $jobseekerData = $this->getJobSeekerById($jobSeekerUuid);
+    $jobseekerIdInt = $jobseekerData['job_seeker_id'] ?? null;
+
+    if ($jobseekerIdInt === null) {
+        throw new \RuntimeException("No job_seeker_id found for id={$jobSeekerUuid}");
+    }
+
+    $replacedByInt = null;
+    if ($replacedByUuid) {
+        $replacementData = $this->getJobSeekerById($replacedByUuid);
+        $replacedByInt = $replacementData['job_seeker_id'] ?? null;
+    }
+
+    $this->db->beginTransaction();
+    try {
+        $sql = "INSERT INTO team_member_removals
+                    (job_seeker_id, team_id, branch_id, removed_by, reason, replaced_by_job_seeker_id, removed_at)
+                VALUES
+                    (:job_seeker_id, NULL, :branch_id, :removed_by, :reason, :replaced_by_job_seeker_id, NOW())";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':job_seeker_id' => $jobseekerIdInt,
+            ':branch_id' => $branchId,
+            ':removed_by' => $removedBy,
+            ':reason' => $reason,
+            ':replaced_by_job_seeker_id' => $replacedByInt,
+        ]);
+
+        $removalId = $this->db->lastInsertId();
+
+        $updateSql = "UPDATE job_seekers
+                      SET employment_status = 3
+                      WHERE job_seeker_id = :job_seeker_id";
+
+        $updateStmt = $this->db->prepare($updateSql);
+        $updateStmt->execute([
+            ':job_seeker_id' => $$jobseekerIdInt,
+        ]);
+
+        $this->db->commit();
+
+        return $removalId;
+    } catch (\Throwable $e) {
+        $this->db->rollBack();
+        throw $e;
     }
 }
 public function findById(string $myBranchId, string $jobseekerId): ?array
@@ -996,5 +1136,12 @@ public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId
 
     return implode(' ', $terms);
 }
+public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
+        $stmt = $this->db->prepare("SELECT job_seeker_id, first_name, father_name, last_name FROM job_seekers 
+                                    WHERE   branch_id = :bid and job_seeker_id LIKE :term and fiscal_year = :fiscal_year and (employment_status=0 or employment_status=2)
+                                    LIMIT 10");
+        $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     }
 

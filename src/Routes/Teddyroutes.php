@@ -30,4 +30,11 @@ return [
     'defense-get-details' => ['SolgureController', 'getDetails', true],
     'defense-print-profile' => ['SolgureController', 'printProfile', true],
     'processEdit' => ['SolgureController', 'processEdit', true],
+    'job-creation-reg' => ['JobCreationRegController', 'showRegisterForm', true],
+    'get-sub-sectors' => ['JobCreationRegController', 'getSubSectors', true],
+    'get-job-seeker' => ['JobCreationRegController', 'showRegisterForm', true],
+    'get-job-seeker-route' => ['JobCreationRegController', 'getJobSeekerData', true],
+    'jobcreation-registration-process' =>['JobCreationRegController', 'processRegistration', true],
+    'jobcreation-list' =>['JobCreationRegController', 'jobcreationcreatedview', true],
+    'job-creation-delete' =>['JobCreationRegController', 'deletejobcretion', true],
 ];

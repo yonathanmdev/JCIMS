@@ -168,7 +168,11 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
-    <script src="<?= myAsset('js/fetch-jobseekers-for-projects.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/core.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/government-project.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/search-select.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/submit.js') ?>"></script>
+
     <?php endif; ?>
  
 
@@ -177,11 +181,11 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script> 
     <?php endif; ?>
-<?php if (isset($is_employee_scholarship_edit_page) && $is_employee_scholarship_edit_page === true): ?>
+<?php if (isset($is_sra_edl_page) && $is_sra_edl_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-    <script src="<?= myAsset('js/employee-scholarship.js') ?>"></script>
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     
     <?php endif; ?>
 

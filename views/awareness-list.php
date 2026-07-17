@@ -1,10 +1,10 @@
 <?php $is_organization_page = true; ?>
 <section class="content">
   <div class="container-fluid">
-   
+
     <div class="card card-default">
       <div class="card card-primary card-outline">
-
+ 
         <div class="card-body">
         <?php
 // 🔒 ከኮንትሮለር የሚመጡ ቫሪያብሎችን ደህንነታቸውን አረጋግጦ ዝግጁ ማድረግ
