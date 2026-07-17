@@ -88,20 +88,24 @@ public function registerJobCreation($data) {
     public function getJobCreationsWithDetails($branchId, $offset, $limit) {
     // ትክክለኛዎቹን የሰንጠረዥ ስሞች ተጠቅመን Join አደረግን
     $sql = "SELECT c.*, 
-                   j.first_name, j.father_name, 
-                   s.sector, 
-                   sub.subsector,
-                   p.pname as ngo_name,
-                   b.name as branch_name 
-            FROM code003sraedl c
-            LEFT JOIN job_seekers j ON c.jobseeker_id = j.job_seeker_id
-            LEFT JOIN sector_table s ON c.sector = s.sectorid
-            LEFT JOIN sub_sector sub ON c.subsector = sub.sub_sectorid
-            LEFT JOIN projectngos p ON c.ssuportedname = p.pid
-            LEFT JOIN branches b ON c.branchid = b.internal_id
-            WHERE c.branchid = :branchid
-            ORDER BY c.created_at DESC
-            LIMIT :offset, :limit";
+       j.first_name, j.father_name, 
+       s.sector, 
+       sub.subsector,
+       p.pname as ngo_name,
+       b.name as branch_name 
+FROM code003sraedl c
+LEFT JOIN job_seekers j ON c.jobseeker_id = j.job_seeker_id
+LEFT JOIN sector_table s ON c.sector = s.sectorid
+LEFT JOIN sub_sector sub ON c.subsector = sub.sub_sectorid
+LEFT JOIN projectngos p ON c.ssuportedname = p.pid
+/* የቅርንጫፍ መዋቅር ለማግኘት branches ቴብልን መጀመሪያ እናያይዛለን */
+INNER JOIN branches b ON c.branchid = b.internal_id
+/* የሂራርኪካል ማጣሪያውን ለማድረግ root ቅርንጫፍን እናያይዛለን */
+INNER JOIN branches root ON root.internal_id = :branchid
+/* የሂራርኪ ማጣሪያው፦ የዳታው ቅርንጫፍ (b.path) የroot ቅርንጫፍ (root.path) አካል መሆኑን እናረጋግጣለን */
+WHERE b.path LIKE CONCAT(root.path, '%')
+ORDER BY c.created_at DESC
+LIMIT :offset, :limit";
             
     $stmt = $this->db->prepare($sql);
     $stmt->bindValue(':branchid', $branchId, \PDO::PARAM_INT);
