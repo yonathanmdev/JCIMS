@@ -67,7 +67,6 @@ $sevenDaysAgo = strtotime('-7 days');
 
 // መረጃው ከ7 ቀን በታች ከሆነ (ማለትም እስካሁን አልሞላውም) እና መብቱ ካለው
 $isWithin7Days = ($registrationDate > $sevenDaysAgo);
-
 // ሁለቱም ሁኔታዎች ሲሟሉ ብቻ በተኑ ይታያል
 if ($hasPermission && $isWithin7Days): 
 ?>
