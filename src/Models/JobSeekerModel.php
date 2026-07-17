@@ -861,7 +861,7 @@ public function getJobSeekersByHierarchyRenewal(string $myBranchId, int $limit, 
             FROM job_seekers_archive js
             INNER JOIN branches b ON js.branch_id = b.internal_id
             INNER JOIN branches root ON root.internal_id = :my_branch
-            WHERE b.path LIKE CONCAT(root.path, '%') AND renewal_year = :fiscal_year
+            WHERE b.path LIKE CONCAT(root.path, '%') AND js.renewal_year = :fiscal_year
             ORDER BY js.created_at DESC
             LIMIT :limit OFFSET :offset";
 
