@@ -3,6 +3,7 @@ namespace App\Controllers;
 use App\Helpers\AuthHelper;
 use App\Helpers\AmharicNormalizer;
 use App\Models\JobSeekerModel;
+use App\Models\ProjectNgoModel;
 use App\Models\SectorModel;
 use Ramsey\Uuid\Uuid;
 use Exception;
@@ -252,7 +253,8 @@ public function handleRegistration() {
             // FIX: edit must reuse the record's actual UUID (id), not the
             // int job_seeker_id — was previously assigned $jobseekerIdInt.
             'uuid'                             => $mode === 'edit' ? $jobseekerId : Uuid::uuid7()->toString(),
-            'intid' => in_array($mode, ['renewal', 'edit'], true) ? $jobseekerIdInt : null,            'created_at'                       => $mode === 'renewal' ? $createdAt : null,
+            'intid' => in_array($mode, ['renewal', 'edit'], true) ? $jobseekerIdInt : null,
+            'created_at'                       => $mode === 'renewal' ? $createdAt : null,
             'first_name'                       => trim($_POST['first_name'] ?? ''),
             'father_name'                      => trim($_POST['father_name'] ?? ''),
             'last_name'                        => trim($_POST['last_name'] ?? ''),
@@ -978,12 +980,12 @@ public function settingUpTeam()
 $sectorModel = new SectorModel($this->db);
 $sectors  = $sectorModel->getSectors();
         
-        $jobSeekerModel = new JobSeekerModel($this->db);
-$jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
+        $projectModel = new ProjectNgoModel($this->db);
+$projects  = $projectModel->getAllProjectNgos();
         $data = [
             'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
             'sectors' => $sectors,
-            'jobSeekers' => $jobSeekers
+            'projects' => $projects
         ];
 
         $this->render('setting-up-team', $data);
@@ -1013,4 +1015,68 @@ public function getJobSeekersForGovernmentProject(): void
     header('Content-Type: application/json');
     echo json_encode(['success' => true, 'results' => $results]);
 }
+
+public function recordJobSeekerRemoval(): void
+{
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    session_write_close();
+
+    $jobSeekerId = filter_input(INPUT_POST, 'job_seeker_id', FILTER_DEFAULT);
+    $reason = filter_input(INPUT_POST, 'reason', FILTER_DEFAULT);
+    $replacedById = filter_input(INPUT_POST, 'replaced_by_job_seeker_id', FILTER_DEFAULT) ?: null;
+
+    if (!$jobSeekerId || !$reason) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Missing job_seeker_id or reason']);
+        return;
+    }
+
+    $branchId = $_SESSION['user']['branch_id'];
+    $userId = $_SESSION['user']['id'];
+
+    $jobSeekerModel = new JobSeekerModel($this->db);
+
+    try {
+        $removalId = $jobSeekerModel->recordSingleRemoval($branchId, $userId, $jobSeekerId, $reason, $replacedById);
+    } catch (\Throwable $e) {
+        error_log('recordJobSeekerRemoval failed: ' . $e->getMessage());
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'ስህተት ተከስቷል']);
+        return;
+    }
+
+    \App\Helpers\AuditHelper::log(
+        action: 'team_member_removed',
+        entityType: 'job_seeker_selection',
+        entityId: $jobSeekerId,
+        oldValues: ['job_seeker_id' => $jobSeekerId],
+        newValues: ['replaced_by_job_seeker_id' => $replacedById],
+        metadata: ['reason' => $reason]
+    );
+
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'removal_id' => $removalId]);
+}
+
+public function searchJobSeekersForOrganizing(): void
+{
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    session_write_close();
+
+    $term = trim(filter_input(INPUT_GET, 'term', FILTER_DEFAULT) ?? '');
+    if (mb_strlen($term) < 2) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'results' => []]);
+        return;
+    }
+
+    $branchId = $_SESSION['user']['branch_id'];
+
+    $jobSeekerModel = new JobSeekerModel($this->db);
+    $results = $jobSeekerModel->searchJobSeekersForOrganizing($branchId, $term);
+
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'results' => $results]);
+}
+
     }
