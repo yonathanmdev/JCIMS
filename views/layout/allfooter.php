@@ -101,6 +101,7 @@ function myAsset($path) {
 <?php endif; ?>
 
    <?php if (isset($is_register_user_page) && $is_register_user_page === true): ?>
+   
     <script src="<?= myAsset('js/edit-user.js') ?>"></script>
    <script nonce="<?php echo $GLOBALS['nonce']; ?>">
     const SESSION_ROLE    = <?= json_encode($_SESSION['user']['role'] ?? '') ?>;
@@ -240,7 +241,7 @@ function myAsset($path) {
     <?php endif; ?>
 
     <?php if ($_SESSION['user']['role']==='team_leader'): ?>
-   <script nonce="<?php echo $GLOBALS['nonce']; ?>">
+     <script nonce="<?php echo $GLOBALS['nonce']; ?>">
    /* const NOTIFICATION_URLS = {
         onboarding: BASE_URL + '/onBoardingEmployees',
         scholarship: BASE_URL + '/on-leave-scholarship-count',
