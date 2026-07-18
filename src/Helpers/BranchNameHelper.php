@@ -20,9 +20,9 @@ class BranchNameHelper
         }
 
         if ($isKetemaAstedader) {
-            return "በአብክመ {$level1} {$level2} ከተማ አስተዳደር የ{$level3} ክፍለ ከተማ የ{$level4} አንድ ማዕከል መስጫ ጣቢያ";
+            return "{$level1}፣{$level2}፣{$level3}፣{$level4}";
         }
 
-        return "በአብክመ {$level1} {$level2} መምሪያ የ{$level3} ወረዳ የ{$level4} አንድ ማዕከል መስጫ ጣቢያ";
+        return "{$level1}፣{$level2}፣{$level3}፣{$level4}";
     }
 }
