@@ -15,6 +15,31 @@ class ReportgenerationModel
         $this->db = $db;
     }
 
+public function getTotalCreationCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የስራ እድል የተፈጠረላቸውን መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(js.id) as total 
+        FROM job_seekers js
+        INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id 
+        WHERE (js.employment_status = 1 or js.employment_status = 2)";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}
+
     public function getTotalAwarenessCountByHierarchy($branchId)
 {
     if (empty($branchId)) {
