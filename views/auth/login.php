@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <base href="/JCIMS/">
+    <base href="<?= $_ENV['BASE_URL'] ?>/">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Log in — Warka Hub JCIMS</title>
