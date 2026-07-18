@@ -62,8 +62,10 @@ $last24HoursCount = !empty($jobSeekers) ? $jobSeekers[0]['total_job_seekers'] : 
     <i class="fas fa-edit"></i>
 </button>
              
-  </div>
-            </td>
+
+
+  </div>            
+</td>
           </tr>
         <?php endforeach; ?>
       <?php endif; ?>

@@ -58,33 +58,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         resultsBox.innerHTML = results.map(r => `
-            <div class="search-result-item" data-jobseeker-id="${escapeHtml(r.id)}" role="button" tabindex="0">
-                <span class="search-result-name">
-                    ${escapeHtml(r.first_name)} ${escapeHtml(r.father_name)} ${escapeHtml(r.last_name)}
-                </span>
-                <span class="search-result-meta">
-                    <span class="search-result-badge">${escapeHtml(r.job_seeker_id)}</span>
-                    <span class="dot"></span>
-                    ${escapeHtml(r.branch_name)}
-                </span>
+            <div class="search-result-item" data-jobseeker-id="${escapeHtml(r.id)}">
+                <div class="search-result-info" role="button" tabindex="0">
+                    <span class="search-result-name">
+                        ${escapeHtml(r.first_name)} ${escapeHtml(r.father_name)} ${escapeHtml(r.last_name)}
+                    </span>
+                    <span class="search-result-meta">
+                        <span class="search-result-badge">${escapeHtml(r.job_seeker_id)}</span>
+                        <span class="dot"></span>
+                        ${escapeHtml(r.branch_name)}
+                    </span>
+                </div>
+                <div class="search-result-actions">
+                    <button type="button"
+                            class="btn btn-outline-warning btn-sm edit-jobseeker-btn"
+                            data-id="${escapeHtml(r.id)}"
+                            title="አስተካክል">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
             </div>
         `).join('');
 
         resultsBox.classList.remove('d-none');
     }
 
-    // Click a result -> same view flow as .view-jobseeker-btn
+    // Click handling within the dropdown itself.
+    // NOTE: the edit button is intentionally NOT stopPropagation()'d here —
+    // it must bubble up to document so the existing delegated handler in
+    // jobseeker-form-validation.js ($(document).on('click', '.edit-jobseeker-btn', ...))
+    // catches it and runs the real fetch/populate/modal flow. We only close
+    // the search dropdown here as a side effect; we don't reimplement the edit logic.
     resultsBox.addEventListener('click', (e) => {
-        const item = e.target.closest('.search-result-item');
-        if (!item) return;
-        openJobseekerView(item.dataset.jobseekerId);
+        const editBtn = e.target.closest('.edit-jobseeker-btn');
+        if (editBtn) {
+            closeSearchDropdown();
+            return; // let the click continue bubbling to document
+        }
+
+        const infoArea = e.target.closest('.search-result-info');
+        if (infoArea) {
+            const item = infoArea.closest('.search-result-item');
+            if (item) openJobseekerView(item.dataset.jobseekerId);
+        }
     });
 
     resultsBox.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
-        const item = e.target.closest('.search-result-item');
-        if (!item) return;
-        openJobseekerView(item.dataset.jobseekerId);
+        const infoArea = e.target.closest('.search-result-info');
+        if (!infoArea) return;
+        const item = infoArea.closest('.search-result-item');
+        if (item) openJobseekerView(item.dataset.jobseekerId);
     });
 
     function openJobseekerView(jobseekerId) {
@@ -110,7 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     '<p class="text-danger text-center">መረጃ መጫን አልተሳካም</p>';
             });
 
-        // Close the search dropdown once a result is selected
+        closeSearchDropdown();
+    }
+
+    function closeSearchDropdown() {
         resultsBox.classList.add('d-none');
         input.value = '';
     }
