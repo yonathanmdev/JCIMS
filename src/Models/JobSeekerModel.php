@@ -861,7 +861,7 @@ public function getJobSeekersByHierarchyRenewal(string $myBranchId, int $limit, 
             FROM job_seekers_archive js
             INNER JOIN branches b ON js.branch_id = b.internal_id
             INNER JOIN branches root ON root.internal_id = :my_branch
-            WHERE b.path LIKE CONCAT(root.path, '%') AND renewal_year = :fiscal_year
+            WHERE b.path LIKE CONCAT(root.path, '%') AND js.renewal_year = :fiscal_year
             ORDER BY js.created_at DESC
             LIMIT :limit OFFSET :offset";
 
@@ -1138,7 +1138,7 @@ public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId
 }
 public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
         $stmt = $this->db->prepare("SELECT job_seeker_id, first_name, father_name, last_name FROM job_seekers 
-                                    WHERE   branch_id = :bid and job_seeker_id LIKE :term and fiscal_year = :fiscal_year and (employment_status=0 or employment_status=2)
+                                    WHERE   branch_id = :bid and job_seeker_id LIKE :term and fiscal_year = :fiscal_year and employment_status!=1
                                     LIMIT 10");
         $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

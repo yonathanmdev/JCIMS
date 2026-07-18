@@ -174,8 +174,8 @@ public function seekerAnalyticsShow()
 
     // 2. ተጠቃሚው ካልመረጠው (ባዶ ከሆነ) default ቀናትን እዚህ ላይ እንሰጣለን
     // መጀመሪያ ቀን ካልተመረጠ Default '2026-07-07' ይሆናል
-    $startdate = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-07';
-    $firstchoice='2026-07-07';
+    $startdate = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-08';
+    $firstchoice='2026-07-08';
     
     // መጨረሻ ቀን ካልተመረጠ Default የዛሬ ቀን ($today) ይሆናል
     $enddate = (!empty(trim($rawEndDate))) ? trim($rawEndDate) : $today;
@@ -230,30 +230,75 @@ public function report10Show()
 {
     AuthHelper::checkRole(['team_leader', 'officer']);
     
-    $sessionBranchId = $_SESSION['user']['branch_id'] ?? '';
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
     $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
     
+    $branchData = [];
     $branchModel = new Branch($this->db);
-    $myBranchId = !empty($postedBranchId) ? $postedBranchId : $sessionBranchId;
+
+    if (!empty($postedBranchId)) {
+        $myBranchId = $postedBranchId;
+    } else {
+        $myBranchId = $sessionBranchId;
+    }
+
     $myBranchId = (string)$myBranchId;
 
-    $branchData = [];
     if (!empty($myBranchId)) {
         $branchData = $branchModel->getBranchById($myBranchId);
     }
 
-    $startdate = $_POST['start_date'] ?? ($_GET['start_date'] ?? date('Y-m-d'));
-    $enddate = $_POST['end_date'] ?? ($_GET['end_date'] ?? date('Y-m-d'));
+    $today = date('Y-m-d');
 
-    // 💡 ማስታወሻ፦ እዚህ ጋር የ Model ኮድህን ጠርተህ ዳታቤዝ ውስጥ ያሉትን የከተማ/ገጠር ስብጥሮች ታመጣለህ
-    $reportModel = new ReportgenerationModel($this->db);
-    // $reportData = $reportModel->getReport10Data($myBranchId, $startdate, $enddate);
+    $rawStartDate = $_POST['start_date'] ?? ($_GET['start_date'] ?? '');
+    $rawEndDate = $_POST['end_date'] ?? ($_GET['end_date'] ?? '');
 
+    $startdate = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-08';
+    $firstchoice = '2026-07-08';
+    $enddate = (!empty(trim($rawEndDate))) ? trim($rawEndDate) : $today;
+
+    // የቅርንጫፍ ስም ማስተካከያ
+    $selectedBranchName = $branchData['name'] ?? ($branchData['branch_name'] ?? 'ያልታወቀ መዋቅር');
+
+    // የኢትዮጵያ ቀናትን እዚህ ኮንትሮለሩ ላይ እናስላለን
+    $ethstartDate = null;
+    $ethendDate = null;
+
+    if (class_exists('EthiopianDateHelper')) {
+        // የጀማሪ ቀን ቅያሬ
+        $startDateParts = explode('-', $startdate);
+        if (count($startDateParts) === 3) {
+            $ethstartDate = EthiopianDateHelper::toEthiopian((int)$startDateParts[0], (int)$startDateParts[1], (int)$startDateParts[2]);
+        }
+
+        // የማጠናቀቂያ ቀን ቅያሬ
+        $endDateParts = explode('-', $enddate);
+        if (count($endDateParts) === 3) {
+            $ethendDate = EthiopianDateHelper::toEthiopian((int)$endDateParts[0], (int)$endDateParts[1], (int)$endDateParts[2]);
+        }
+    }
+
+    $startDateTime = $startdate . ' 00:00:00';
+    $endDateTime = $enddate . ' 23:59:59';
+
+     $awarenessModel = new ReportgenerationModel($this->db);
+
+    // 1. ከመጀመሪያው ቴብል ዳታውን ያመጣል (ሰዓት የተጨመረበትን ተለዋዋጭ በመጠቀም)
+    $awarenessReport = $awarenessModel->getReport1ByHierarchy($myBranchId, $startDateTime, $endDateTime);
+
+    // 2. ከሁለተኛው (ከአዲሱ) ቴብል የምክርና መረጃ ዳታውን ያመጣል (ሰዓት የተጨመረበትን ተለዋዋጭ በመጠቀም)
+    $adviceReport = $awarenessModel->getJobSeekersAdviceByHierarchy($myBranchId, $startDateTime, $endDateTime);
+
+    // 3. ሁለቱንም የሪፖርት ውጤቶች በአንድ አሬይ (Array) ላይ ያዋህዳል
+    $finalReport = array_merge($awarenessReport, $adviceReport);
+
+    // 4. የተዋሃደውን ሙሉ ዳታ ለቪው (report-1) ያስተላልፋል
     $this->renderPrintable('report-10', [
+        'report1'    => $finalReport,
         'branchData' => $branchData,
         'startdate'  => $startdate,
         'enddate'    => $enddate,
-        'myBranchId' => $myBranchId
+        'myBranchId' => $myBranchId // 💡 ይህ ለቪው ሊንክ መስሪያ እንዲያገለግል ወደ ቪው ተልኳል
     ]);
 }
 }
