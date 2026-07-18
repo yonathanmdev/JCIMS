@@ -60,7 +60,7 @@ php -v
 
 From the project root:
 ```bash
-cd /var/www/html/JCIMS        # or whichever project
+cd /var/www/html<base href="<?= $_ENV['BASE_URL'] ?>">        # or whichever project
 composer install --no-dev --optimize-autoloader
 ```
 
@@ -90,13 +90,13 @@ Check the size — `phpoffice/phpspreadsheet` pulls in several sub-dependencies
 
 If you have SSH (as with `ltbdevmy@acapulco`), prefer `scp` over File Manager upload:
 ```bash
-scp vendor-deploy.zip ltbdevmy@acapulco:~/path/to/JCIMS/
+scp vendor-deploy.zip ltbdevmy@acapulco:~/path/to<base href="<?= $_ENV['BASE_URL'] ?>">
 ```
 
 Then SSH in and extract:
 ```bash
 ssh ltbdevmy@acapulco
-cd ~/path/to/JCIMS
+cd ~/path/to<base href="<?= $_ENV['BASE_URL'] ?>">
 unzip vendor-deploy.zip
 ```
 
@@ -117,15 +117,15 @@ workflow. Only use the zip-and-ship method here if:
 
 If so:
 ```bash
-scp vendor-deploy.zip user@server:/var/www/html/JCIMS/
+scp vendor-deploy.zip user@server:/var/www/html<base href="<?= $_ENV['BASE_URL'] ?>">
 ssh user@server
-cd /var/www/html/JCIMS
+cd /var/www/html<base href="<?= $_ENV['BASE_URL'] ?>">
 unzip vendor-deploy.zip
 ```
 
 `rsync` is a good alternative to `scp` for repeat deploys (only transfers diffs):
 ```bash
-rsync -avz vendor/ user@server:/var/www/html/JCIMS/vendor/
+rsync -avz vendor/ user@server:/var/www/html<base href="<?= $_ENV['BASE_URL'] ?>">vendor/
 ```
 
 ---

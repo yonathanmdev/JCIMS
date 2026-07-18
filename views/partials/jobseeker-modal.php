@@ -205,7 +205,7 @@
     <div class="col-12 col-sm-6 col-md-3 field-grade8">
       <div class="form-group mb-2">
         <label class="mb-1" for="g8id"><small class="font-weight-bold">የ8ኛ ክፍል መለያ ቁጥር <span class="text-danger">*</span></small></label>
-        <input type="text" name="g8id" id="g8id" class="form-control form-control-sm" placeholder="የ8ኛ ክፍል መለያ ቁጥር" data-validate="numeric-only" data-length="7">
+        <input type="text" name="g8id" id="g8id" class="form-control form-control-sm" placeholder="የ8ኛ ክፍል መለያ ቁጥር" data-validate="numeric-only">
       </div>
     </div>
 

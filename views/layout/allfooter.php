@@ -101,7 +101,7 @@ function myAsset($path) {
 <?php endif; ?>
 
    <?php if (isset($is_register_user_page) && $is_register_user_page === true): ?>
-    <script>const BASE_URL = "<?= '/JCIMS' ?>"; // or use $_ENV['BASE_URL'] if you have .env</script>
+   
     <script src="<?= myAsset('js/edit-user.js') ?>"></script>
    <script nonce="<?php echo $GLOBALS['nonce']; ?>">
     const SESSION_ROLE    = <?= json_encode($_SESSION['user']['role'] ?? '') ?>;
@@ -168,7 +168,11 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
-    <script src="<?= myAsset('js/fetch-jobseekers-for-projects.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/core.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/government-project.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/search-select.js') ?>"></script>
+    <script src="<?= myAsset('js/team-formation/submit.js') ?>"></script>
+
     <?php endif; ?>
  
 
@@ -237,8 +241,7 @@ function myAsset($path) {
     <?php endif; ?>
 
     <?php if ($_SESSION['user']['role']==='team_leader'): ?>
-    <script nonce="<?php echo $GLOBALS['nonce']; ?>">const BASE_URL = "<?= '/JCIMS' ?>"; // or use $_ENV['BASE_URL'] if you have .env</script>
-   <script nonce="<?php echo $GLOBALS['nonce']; ?>">
+     <script nonce="<?php echo $GLOBALS['nonce']; ?>">
    /* const NOTIFICATION_URLS = {
         onboarding: BASE_URL + '/onBoardingEmployees',
         scholarship: BASE_URL + '/on-leave-scholarship-count',
