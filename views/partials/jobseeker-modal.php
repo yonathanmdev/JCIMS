@@ -536,7 +536,7 @@
               <div class="col-12 col-sm-6 col-md-3 field-agri-experience">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="agri_business_experience"><small class="font-weight-bold">በግብርና ዘርፍ ያለው ልምድ <span class="text-danger">*</span></small></label>
-                   <input type="number" step="any" class="form-control form-control-sm" id="agri_business_experience" name="agri_business_experience" data-validate="numeric-only" data-length="4">
+                   <input type="number" step="any" class="form-control form-control-sm" id="agri_business_experience" name="agri_business_experience" data-validate="decimal">
                 </div>        
               </div>
                <div class="col-12 col-sm-6 col-md-3 field-has-dependents d-none">
