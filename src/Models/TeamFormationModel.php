@@ -182,14 +182,15 @@ public function getTeamWithMembers(string $teamId): ?array
  *                                NOT the UUID g.id used in URLs.
  * @param string $jobSeekerId     job_seekers.job_seeker_id of the person to add.
  */
-public function addMember(string $teamUUID, string $jobSeekerId): array
+public function addMember(int $branchId, string $teamUUID, string $jobSeekerId): array
 {
     try {
         // 1. Confirm the team exists and get its project_type, so we know
         //    whether to mirror the NGO employment_status update from
         //    createTeamFormation().
-        $sqlTeam = "SELECT table_id, project_type FROM group_table WHERE id = :team_id LIMIT 1";
+        $sqlTeam = "SELECT table_id, project_type FROM group_table WHERE branch_id = :branch_id AND id = :team_id LIMIT 1";
         $stmtTeam = $this->db->prepare($sqlTeam);
+        $stmtTeam->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
         $stmtTeam->bindValue(':team_id', $teamUUID, PDO::PARAM_STR);
         $stmtTeam->execute();
         $teamRow = $stmtTeam->fetch(PDO::FETCH_ASSOC);

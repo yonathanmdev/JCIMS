@@ -42,9 +42,17 @@ $members = $team['members'] ?? [];
             <div><?= htmlspecialchars($team['manager_phone'] ?? '—') ?></div>
           </div>
           <div class="col-md-4 mb-3">
-            <strong>የተመዘገበበት ቀን</strong>
-            <div><?= htmlspecialchars($team['created_at'] ?? '—') ?></div>
-          </div>
+    <strong>የተመዘገበበት ቀን</strong>
+    <div>
+        <?php 
+        $createdat = $team['created_at']; $createdatdateParts = explode('-', $createdat);
+$ethiopianDate = EthiopianDateHelper::toEthCalendar($createdatdateParts[2], $createdatdateParts[1], $createdatdateParts[0]);?>
+     
+        <?= EthiopianDateHelper::getMonthName($ethiopianDate['month']) ?>
+        <?= $ethiopianDate['day'] ?>
+        <?= $ethiopianDate['year'] ?>
+    </div>
+</div>
         </div>
 
         <hr>

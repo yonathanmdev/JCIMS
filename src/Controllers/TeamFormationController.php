@@ -204,9 +204,9 @@ public function addMember(): void
         echo json_encode(['status' => 'error', 'message' => 'የግቤት ውሂብ ትክክል አይደለም']);
         exit();
     }
-
+$branchId = $_SESSION['user']['branch_id'] ?? null;
     $teamModel = new TeamFormationModel($this->db);
-    $result = $teamModel->addMember($teamId, $jobSeekerId);
+    $result = $teamModel->addMember($branchId, $teamId, $jobSeekerId);
 
     echo json_encode($result);
     exit();
