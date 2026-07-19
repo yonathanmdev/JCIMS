@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!openBtn || !modalEl || !input || !resultsBox) return;
 
-    const teamInternalId = openBtn.dataset.teamTableId; // int table_id, set on the button in the view
+    const teamId = openBtn.dataset.teamId; // int table_id, set on the button in the view
 
     let debounceTimer = null;
     let abortController = null;
@@ -60,8 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <small class="text-muted">${escapeHtml(r.job_seeker_id)} — ${escapeHtml(r.branch_name)}</small>
                 </div>
                 <button type="button"
-                        class="btn btn-success btn-sm add-member-pick-btn"
-                        data-job-seeker-id="${escapeHtml(r.job_seeker_id)}">
+                        class="btn btn-primary btn-sm add-member-pick-btn"
+                        data-job-seeker-id="${escapeHtml(r.id)}">
                     <i class="fas fa-plus"></i> ጨምር
                 </button>
             </div>
@@ -79,12 +79,12 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
         try {
-            const response = await fetch(`${window.BASE_URL}/?action=add-team-member`, {
+            const response = await fetch(`${window.BASE_URL}/add-team-member`, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    team_id: teamInternalId,
+                    team_id: teamId,
                     job_seeker_id: jobSeekerId,
                 }),
             });
