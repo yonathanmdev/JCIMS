@@ -3,10 +3,6 @@ use App\Helpers\EthiopianDateHelper;
 use App\Helpers\AuthHelper;
 $fiscal_year = AuthHelper::checkFiscalYear();
 $is_jobseeker_list_page = true; 
-$totalCount =0;
-$offset = 0;
-$currentPage =1;
-$totalPages =1;
 ?>
 <section class="content">
   <div class="container-fluid">

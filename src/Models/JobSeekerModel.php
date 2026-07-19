@@ -97,18 +97,26 @@ public function checkDuplicateJobSeeker(
     ?string $excludeJobseekerId = null,
     ?string $excludeSourceTable = null
 ): array {
-    // Excludes the caller's own record from matching itself — but ONLY
-    // on the specified source table. This lets edit and renewal use the
-    // same method with opposite exclusion targets:
-    //   - edit:     exclude the 'active' row (the record being edited)
-    //   - renewal:  exclude the 'archive' row (the record being renewed);
-    //               if the same job_seeker_id also exists in 'active',
-    //               that's a real duplicate and must still be flagged.
+    // Exclusion behavior is inferred from $excludeSourceTable:
+    //   - null:     create — no exclusion, any match anywhere is real.
+    //   - 'active':  edit — exclude own id on BOTH tables (editing
+    //               shouldn't be blocked by its own active row, nor by
+    //               an archive row sharing the same id).
+    //   - 'archive': renewal — exclude own id, ARCHIVE row only. If the
+    //               same id already exists in active, that's a real
+    //               duplicate (already renewed) and must still surface.
     $exclude = function (string $suffix) use ($excludeJobseekerId, $excludeSourceTable): string {
         if (!$excludeJobseekerId || !$excludeSourceTable) {
             return "";
         }
-        return " AND NOT (job_seeker_id = :exclude_id{$suffix} AND source_table = :exclude_table{$suffix}) ";
+
+        if ($excludeSourceTable === 'active') {
+            // edit: exclude the id regardless of which table it's on.
+            return " AND job_seeker_id <> :exclude_id{$suffix} ";
+        }
+
+        // renewal: only exclude the archive-table match.
+        return " AND NOT (job_seeker_id = :exclude_id{$suffix} AND source_table = 'archive') ";
     };
 
     $sql = "
@@ -186,7 +194,6 @@ public function checkDuplicateJobSeeker(
         if ($excludeJobseekerId !== null && $excludeSourceTable !== null) {
             for ($i = 1; $i <= 5; $i++) {
                 $stmt->bindValue(":exclude_id{$i}", $excludeJobseekerId);
-                $stmt->bindValue(":exclude_table{$i}", $excludeSourceTable);
             }
         }
 
@@ -926,47 +933,42 @@ private function searchById(int $jobSeekerId, int $myBranchId, int $limit): arra
         return [];
     }
 }
-   private function searchByName(string $query, int $myBranchId, int $limit): array
+  private function searchByName(string $query, int $myBranchId, int $limit): array
 {
-        $normalized = \App\Helpers\AmharicNormalizer::normalize($query);
-        $booleanQuery = $this->buildBooleanQuery($normalized);
+    $normalized = \App\Helpers\AmharicNormalizer::normalize($query);
+    $booleanQuery = $this->buildBooleanQuery($normalized);
 
-        $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name,
-                       js.gender, js.phone_number, b.name AS branch_name,
-                       MATCH(js.full_name_normalized) AGAINST(:boolean_query IN BOOLEAN MODE) AS relevance
-                FROM job_seekers js
-                INNER JOIN branches b ON js.branch_id = b.internal_id
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-                  AND MATCH(js.full_name_normalized) AGAINST(:boolean_query2 IN BOOLEAN MODE)
-                ORDER BY relevance DESC, js.created_at DESC
-                LIMIT :limit";
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name,
+                   js.gender, js.phone_number, js.branch_id, b.name AS branch_name,
+                   MATCH(js.full_name_normalized) AGAINST(:boolean_query IN BOOLEAN MODE) AS relevance
+            FROM job_seekers js
+            INNER JOIN branches b ON js.branch_id = b.internal_id
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+              AND MATCH(js.full_name_normalized) AGAINST(:boolean_query2 IN BOOLEAN MODE)
+            ORDER BY relevance DESC, js.created_at DESC
+            LIMIT :limit";
 
-        try {
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindValue(':my_branch', $myBranchId);
-            $stmt->bindValue(':boolean_query', $booleanQuery);
-            $stmt->bindValue(':boolean_query2', $booleanQuery);
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->execute();
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId);
+        $stmt->bindValue(':boolean_query', $booleanQuery);
+        $stmt->bindValue(':boolean_query2', $booleanQuery);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
 
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Fallback: FULLTEXT can return nothing for very short or stop-word-only
-            // queries (MySQL's default ft_min_word_len is often 3-4 chars). Try a
-            // LIKE fallback on job_seeker_id in case the "name" was actually an ID
-            // that didn't match the earlier regex (e.g. contains Amharic digits).
-            if (empty($results) && mb_strlen($normalized) < 4) {
-                return $this->searchById($query, $myBranchId, $limit);
-            }
-
-            return $results;
-        } catch (\PDOException $e) {
-            error_log("Job seeker search by name error: " . $e->getMessage());
-            return [];
+        if (empty($results) && mb_strlen($normalized) < 4 && ctype_digit($query)) {
+            return $this->searchById((int) $query, $myBranchId, $limit);
         }
-    }
 
+        return $results;
+    } catch (\PDOException $e) {
+        error_log("Job seeker search by name error: " . $e->getMessage());
+        return [];
+    }
+}
 
    
 public function searchArchive(string $query, int $myBranchId, int $fiscal_year, int $limit = 20): array

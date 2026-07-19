@@ -56,7 +56,9 @@ return [
     'jobseekers-search-for-organizing' => ['JobseekerController', 'searchJobSeekersForOrganizing', true],
     'team-formation'   => ['TeamFormationController', 'teamFormation', true],
     'team-lists'       => ['TeamFormationController', 'listGroups', true],
-    'serve-file' => ['FileController', 'serveFile', true], // true = auth required
+     'team-members-view'    => ['TeamFormationController', 'retrieveTeamMembers', true],
+    'add-team-member' => ['TeamFormationController', 'addMember', true],
+     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs
     'audit-logs'         => ['AuditController', 'index', true],

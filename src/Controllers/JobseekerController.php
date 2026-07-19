@@ -693,7 +693,7 @@ private function validateJobseekerData(array $post): array
     $sectors = $sectorModel->getSectors();
 
     $jobSeekerModel = new JobSeekerModel($this->db);
-    $limit = 50;
+    $limit = 10;
     $currentPage = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($currentPage - 1) * $limit;
 
@@ -766,6 +766,22 @@ public function liveSearch(): void
     $searchModel = new JobSeekerModel($this->db);
     $results = $searchModel->search($query, $myBranchId, 20);
 
+    // Mirror the same role + branch check used by the .edit-jobseeker-btn
+    // in the table view, so the search dropdown shows/hides the edit
+    // button consistently with the rest of the app.
+    $canEditRole = AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]);
+    foreach ($results as &$row) {
+        $rowBranchId = is_array($row) ? ($row['branch_id'] ?? null) : ($row->branch_id ?? null);
+        $canEdit = $canEditRole && $rowBranchId !== null && (int)$rowBranchId === (int)$myBranchId;
+
+        if (is_array($row)) {
+            $row['can_edit'] = $canEdit;
+        } else {
+            $row->can_edit = $canEdit;
+        }
+    }
+    unset($row);
+
     echo json_encode([
         'results' => $results,
         'query' => $query,
@@ -773,7 +789,6 @@ public function liveSearch(): void
     ]);
     exit;
 }
-
 public function renewalSearch()
 {
     AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);

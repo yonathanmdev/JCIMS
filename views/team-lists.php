@@ -1,13 +1,11 @@
 <?php
 use App\Helpers\AuthHelper;
-
-// Assuming $data is passed from the controller, which contains: 
-// ['data' => [...], 'total' => X, 'page' => X, 'last_page' => X]
-$teams = $data['data'] ?? [];
-$totalCount = $data['total'] ?? 0;
-$currentPage = $data['page'] ?? 1;
-$totalPages = $data['last_page'] ?? 1;
-$offset = ($currentPage - 1) * ($data['per_page'] ?? 15);
+$is_team_list_page = true;
+$teams = $data['teams'] ?? [];
+$totalCount = $data['pagination']['total'] ?? 0;
+$currentPage = $data['pagination']['current'] ?? 1;
+$totalPages = $data['pagination']['last_page'] ?? 1;
+$offset = ($currentPage - 1) * 15;
 ?>
 
 <section class="content">
@@ -23,13 +21,13 @@ $offset = ($currentPage - 1) * ($data['per_page'] ?? 15);
           <span class="badge badge-primary"><?= $totalCount ?></span>
         </small>
 
-        <table class="table table-bordered table-hover small mt-3">
+        <table class="table table-bordered table-hover small mt-3" id="example1">
           <thead class="thead-light">
             <tr>
               <th>#</th>
+              <th>የማህበሩ መለያ</th>
               <th>የማህበሩ ስም</th>
               <th>የአደረጃጀት ዓይነት</th>
-              <th>ዘርፍ/ንዑስ ዘርፍ</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -38,20 +36,30 @@ $offset = ($currentPage - 1) * ($data['per_page'] ?? 15);
               <?php foreach ($teams as $index => $team): ?>
                 <tr>
                   <td><?= $offset + $index + 1 ?></td>
+                  <td><?= htmlspecialchars($team['table_id']) ?></td>
                   <td><?= htmlspecialchars($team['association_name']) ?></td>
-                  <td><?= htmlspecialchars($team['project_type']) ?></td>
-                  <td><?= htmlspecialchars($team['sub_sector']) ?></td>
+                  <td><?= htmlspecialchars($team['project_type'] ?? '') ?></td>
                   <td class="text-center align-middle">
-                    <button class="btn btn-outline-primary btn-sm" title="ሙሉ መረጃ ይመልከቱ">
-                      <i class="fas fa-eye"></i>
-                    </button>
+ <a href="<?= $_ENV['BASE_URL'] ?>/team-members-view/<?= urlencode($team['id']) ?>"
+   class="btn btn-outline-primary btn-sm"
+   title="ሙሉ መረጃ ይመልከቱ">
+    <i class="fas fa-eye"></i>
+</a>
+                       <?php 
+// Assume $myBranchId is available here, e.g., from a session or user object
+// $myBranchId = AuthHelper::getUserBranchId(); // Example of how you might get it
+
+if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id']): ?>
+    <button class="btn btn-outline-danger btn-sm delete-team-btn"
+        data-id="<?= htmlspecialchars($team['id']) ?>"
+        data-name="<?= htmlspecialchars($team['association_name']) ?>"
+        title="አጥፋ">
+    <i class="fas fa-trash"></i>
+</button>
+<?php endif; ?>
                   </td>
                 </tr>
               <?php endforeach; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="5" class="text-center text-muted py-3">ምንም የተደራጀ ቡድን አልተገኘም።</td>
-              </tr>
             <?php endif; ?>
           </tbody>
         </table>
