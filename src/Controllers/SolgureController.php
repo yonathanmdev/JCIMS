@@ -175,4 +175,27 @@ public function processEdit() {
         }
         exit;
     }
+    public function showListByBranch() {
+        AuthHelper::checkRole(['team_leader', 'officer']);
+        $myBranchId = $_SESSION['user']['branch_id'];
+        
+        $model = new SolgureModel($this->db);
+        $raw_data = $model->getPivotReport($myBranchId);
+        
+        // Pivot ማቀነባበር
+        $report = [];
+        $sectors = [];
+        foreach ($raw_data as $row) {
+            $report[$row['zone_name']][$row['sector']] = $row['total'];
+            if (!in_array($row['sector'], $sectors)) $sectors[] = $row['sector'];
+        }
+        
+        $data = [
+            'title'   => 'የመዋቅር እና የመከላከያ ሪፖርት',
+            'report'  => $report,
+            'sectors' => $sectors
+        ];
+        
+        $this->render('solgure-list-by-branch', $data);
+    }
 }

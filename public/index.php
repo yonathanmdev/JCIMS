@@ -44,6 +44,7 @@ $db = \App\Config\Database::getConnection();
 $baseRoutes = [
     'login' => ['AuthController', 'showLoginForm', false],
     'login_process' => ['AuthController', 'handleLogin', false],
+    'logout' => ['AuthController', 'logout', false],
     'dashboard' => ['DashboardController', 'index', true],
 ];
 
