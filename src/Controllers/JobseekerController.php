@@ -693,7 +693,7 @@ private function validateJobseekerData(array $post): array
     $sectors = $sectorModel->getSectors();
 
     $jobSeekerModel = new JobSeekerModel($this->db);
-    $limit = 10;
+    $limit = 30;
     $currentPage = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($currentPage - 1) * $limit;
 

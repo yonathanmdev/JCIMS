@@ -30,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (abortController) abortController.abort();
         abortController = new AbortController();
 
+        resultsBox.innerHTML = `<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i></div>`;
+
         try {
             const response = await fetch(
                 `${window.BASE_URL}/job-seekers-search?q=${encodeURIComponent(query)}`,

@@ -24,18 +24,16 @@ class BaseController {
     $basePath = __DIR__ . "/../../views/";
     $viewPath = $basePath . $viewName . ".php";
 
-    // 1. የሎጊን ገጽ መሆኑን መለየት (ለምሳሌ 'auth/login' ከሆነ)
-    $isLogin = ($viewName === 'auth/login' || $viewName === 'login');
+    // ገጾች ያለ Header/Footer የሚታዩ (auth flow pages)
+    $isStandalone = in_array($viewName, ['auth/login', 'login', 'auth/password-change']);
 
-    if ($isLogin) {
-        // ለሎጊን ገጽ ከሆነ ቪው ፋይሉን ብቻ አሳይ
+    if ($isStandalone) {
         if (file_exists($viewPath)) {
             require_once $viewPath;
         } else {
-            die("ስህተት: የሎጊን ቪው ፋይል አልተገኘም: " . $viewPath);
+            die("ስህተት: ቪው ፋይል አልተገኘም: " . $viewPath);
         }
     } else {
-        // ለሌሎች ገጾች (Dashboard, ወዘተ) Header እና Footer ጨምር
         $headerPath = $basePath . "layout/header.php";
         $footerPath = $basePath . "layout/allfooter.php";
 
@@ -48,7 +46,6 @@ class BaseController {
         require_once $footerPath;
     }
 }
-
 /**
  * ቪው ፋይሎችን ያለ ሄደር እና ፉተር ለህትመት ወይም ለፖፕ-አፕ ለማሳየት
  */
