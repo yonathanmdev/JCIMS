@@ -96,7 +96,7 @@ class MenuConfig
                     [
                         'label' => 'መከላከያ መመዝገብ',
                         'url'   => '/solgure-registration',
-                        'roles' => ['officer'],
+                        'roles' => ['team_leader','officer'],
                         'levels' => [3]
                     ],
                     [
@@ -104,7 +104,14 @@ class MenuConfig
                         'url'   => '/solgure-registration',
                         'roles' => ['team_leader', 'officer'],
                         'levels' => [1, 2, 3]
+                    ],
+                    [
+                        'label' => 'ሪፖርት በቁጥር',
+                        'url'   => '/solgure-list-by-branch',
+                        'roles' => ['team_leader', 'officer'],
+                        'levels' => [1,2]
                     ]
+
                 ]
             ],
 

@@ -20,9 +20,9 @@ class BranchNameHelper
         }
 
         if ($isKetemaAstedader) {
-            return "{$level1}፣{$level2}፣{$level3}፣{$level4}";
+            return "{$level2}፣{$level3}፣{$level4}";
         }
 
-        return "{$level1}፣{$level2}፣{$level3}፣{$level4}";
+        return "{{$level2}፣{$level3}፣{$level4}";
     }
 }

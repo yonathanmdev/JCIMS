@@ -35,6 +35,7 @@ class BaseController {
             die("ስህተት: የሎጊን ቪው ፋይል አልተገኘም: " . $viewPath);
         }
     } else {
+        
         // ለሌሎች ገጾች (Dashboard, ወዘተ) Header እና Footer ጨምር
         $headerPath = $basePath . "layout/header.php";
         $footerPath = $basePath . "layout/allfooter.php";
@@ -53,6 +54,17 @@ class BaseController {
  * ቪው ፋይሎችን ያለ ሄደር እና ፉተር ለህትመት ወይም ለፖፕ-አፕ ለማሳየት
  */
 protected function renderPrintable($viewName, $data = []) {
+    extract($data);
+    
+    $viewPath = __DIR__ . "/../../views/" . $viewName . ".php";
+
+    if (file_exists($viewPath)) {
+        require_once $viewPath;
+    } else {
+        die("ስህተት: የህትመት ቪው ፋይል አልተገኘም: " . $viewPath);
+    }
+}
+protected function renderwithoutlogin($viewName, $data = []) {
     extract($data);
     
     $viewPath = __DIR__ . "/../../views/" . $viewName . ".php";
