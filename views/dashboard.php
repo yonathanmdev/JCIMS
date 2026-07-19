@@ -46,7 +46,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_users) ?> Total
               </span>
               <i class="fas fa-users-cog fa-2x text-info mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ ፈላጊዎች መረጃ ሁኔታ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">ጠቅላላ ተጠቃሚዎች</h6>
             </div>
           </div>
         </div>
@@ -58,7 +58,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($active_users) ?> Active
               </span>
               <i class="fas fa-user-check fa-2x text-success mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የኢንተርፕራይዞች ሁኔታ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">እየተጠቀሙ ያሉ</h6>
             </div>
           </div>
         </div>
@@ -70,7 +70,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_branches) ?> Managed
               </span>
               <i class="fas fa-network-wired fa-2x text-secondary mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ እድል ሁኔታ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">በስሩ ያሉ ቅርንጫፎች</h6>
             </div>
           </div>
         </div>
@@ -79,7 +79,7 @@ $role = $_SESSION['user']['role'] ?? '';
       <?php if ($role === 'team_leader' || $role === 'officer'): ?>
 
         <div class="col-md-4 col-sm-6 mb-3">
-  <!-- ሲነካ በቀጥታ ወደ አዲሱ ቻርት ገጽ ይወስዳል -->
+  <!-- ሲነካ በቀጥታ ወደ አዲሱ ቻርት ገጽ ይወስዳል ።-->
 <a href="seeker-analytics" style="text-decoration: none; color: inherit;">
   <div class="report-type-card card card-outline card-primary h-100 shadow-sm" style="border-radius: 12px; cursor: pointer;">
     <div class="card-body text-center py-4 d-flex flex-column align-items-center justify-content-center position-relative">
