@@ -40,6 +40,7 @@ class DashboardController extends BaseController {
             
             // ለአስተዳዳሪውም የስራ ፈላጊውን ቁጥር ይቆጥራል
             $total_job_seekers = $reportModel->getTotalJobSeekersCountByHierarchy($branch_id);
+            $total_creation = $reportModel->getTotalCreationCountByHierarchy($branch_id);
         }
         
         // 2. ለባለሙያዎች (HR / Operation Roles)

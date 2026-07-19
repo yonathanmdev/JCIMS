@@ -46,7 +46,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_users) ?> Total
               </span>
               <i class="fas fa-users-cog fa-2x text-info mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ ፈላጊዎች መረጃ ሁኔታ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">ጠቅላላ ተጠቃሚዎች</h6>
             </div>
           </div>
         </div>
@@ -58,7 +58,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($active_users) ?> Active
               </span>
               <i class="fas fa-user-check fa-2x text-success mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የኢንተርፕራይዞች ሁኔታ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">እየተጠቀሙ ያሉ</h6>
             </div>
           </div>
         </div>
@@ -70,7 +70,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_branches) ?> Managed
               </span>
               <i class="fas fa-network-wired fa-2x text-secondary mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የስራ እድል ሁኔታ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">በስሩ ያሉ ቅርንጫፎች</h6>
             </div>
           </div>
         </div>
