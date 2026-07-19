@@ -81,6 +81,7 @@ $ethiopianDate = EthiopianDateHelper::toEthCalendar($createdatdateParts[2], $cre
     <div class="card card-primary card-outline">
       <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
         <h3 class="card-title">አባላት</h3>
+ <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id']): ?>
         <div class="ml-md-auto mt-2 mt-md-0">
           <button type="button"
                   id="addMemberBtn"
@@ -91,6 +92,7 @@ $ethiopianDate = EthiopianDateHelper::toEthCalendar($createdatdateParts[2], $cre
             <i class="fas fa-user-plus"></i> አባል ጨምር
           </button>
         </div>
+          <?php endif; ?>
       </div>
 
       <div class="card-body">
@@ -100,37 +102,49 @@ $ethiopianDate = EthiopianDateHelper::toEthCalendar($createdatdateParts[2], $cre
         </small>
 
         <table class="table table-bordered table-hover small mt-3">
-          <thead class="thead-light">
-            <tr>
-              <th>#</th>
-              <th>የስራ ፈላጊ መ/ቁ</th>
-              <th>ሙሉ ስም</th>
-              <th>ጾታ</th>
-              <th>ስልክ ቁጥር</th>
-            </tr>
-          </thead>
-          <tbody id="membersTableBody">
-            <?php if (!empty($members)): ?>
-              <?php foreach ($members as $index => $m): ?>
-                <tr>
-                  <td><?= $index + 1 ?></td>
-                  <td><?= htmlspecialchars($m['job_seeker_id']) ?></td>
-                  <td>
-                    <?= htmlspecialchars(
-                        trim(($m['first_name'] ?? '') . ' ' . ($m['father_name'] ?? '') . ' ' . ($m['last_name'] ?? ''))
-                    ) ?>
-                  </td>
-                  <td><?= htmlspecialchars($m['gender'] ?? '—') ?></td>
-                  <td><?= htmlspecialchars($m['phone_number'] ?? '—') ?></td>
-                </tr>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <tr class="empty-members-row">
-                <td colspan="5" class="text-center text-muted py-3">አባላት አልተመዘገቡም</td>
-              </tr>
+  <thead class="thead-light">
+    <tr>
+      <th>#</th>
+      <th>የስራ ፈላጊ መ/ቁ</th>
+      <th>ሙሉ ስም</th>
+      <th>ጾታ</th>
+      <th>ስልክ ቁጥር</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="membersTableBody">
+    <?php if (!empty($members)): ?>
+      <?php foreach ($members as $index => $m): ?>
+        <tr>
+          <td><?= $index + 1 ?></td>
+          <td><?= htmlspecialchars($m['job_seeker_id']) ?></td>
+          <td>
+            <?= htmlspecialchars(
+                trim(($m['first_name'] ?? '') . ' ' . ($m['father_name'] ?? '') . ' ' . ($m['last_name'] ?? ''))
+            ) ?>
+          </td>
+          <td><?= htmlspecialchars($m['gender'] ?? '—') ?></td>
+          <td><?= htmlspecialchars($m['phone_number'] ?? '—') ?></td>
+          <td>
+            <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id']): ?>
+              <button class="btn btn-outline-danger btn-sm remove-team-member-btn"
+                      data-team-id="<?= htmlspecialchars($team['id']) ?>"
+                      data-job-seeker-id="<?= htmlspecialchars($m['job_seeker_id']) ?>"
+                      data-name="<?= htmlspecialchars(trim(($m['first_name'] ?? '') . ' ' . ($m['father_name'] ?? ''))) ?>"
+                      title="ከቡድኑ አስወግድ">
+                <i class="fas fa-user-minus"></i>
+              </button>
             <?php endif; ?>
-          </tbody>
-        </table>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <tr class="empty-members-row">
+        <td colspan="6" class="text-center text-muted py-3">አባላት አልተመዘገቡም</td>
+      </tr>
+    <?php endif; ?>
+  </tbody>
+</table>
         <!-- No pagination here — this is a single team's member list, not paginated. -->
       </div>
     </div>

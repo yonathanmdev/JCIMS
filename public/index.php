@@ -43,8 +43,11 @@ $db = \App\Config\Database::getConnection();
 /* ---------------- ROUTES ---------------- */
 $baseRoutes = [
     'login' => ['AuthController', 'showLoginForm', false],
+    'password-change' => ['AuthController', 'showPasswordChange', false],
     'login_process' => ['AuthController', 'handleLogin', false],
+    'password-change-process' => ['AuthController', 'handlePasswordChange', false],
     'dashboard' => ['DashboardController', 'index', true],
+    'logout' => ['AuthController', 'logout', false],
 ];
 
 $teddyRoutes = require __DIR__ . '/../src/Routes/Teddyroutes.php';

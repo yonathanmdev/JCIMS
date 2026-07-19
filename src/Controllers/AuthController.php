@@ -34,7 +34,31 @@ class AuthController extends BaseController {
             // 3. ተጠቃሚው መኖሩን እና ፓስወርዱን ማረጋገጥ
             if ($user && password_verify($password, $user['password'])) {
                 
-                // ለደህንነት ሴሽን ማደስ
+               
+            // ← ADD THE STATUS CHECK HERE, before session_regenerate_id / building $_SESSION['user']
+
+  if (is_null($user['status'])) {
+    // default password still active — force password change first
+    unset($_SESSION['pending_user_id']);
+  
+    session_regenerate_id(true);
+    $_SESSION['pending_user_id'] = $user['id'];// confirm this matches your actual PK column
+   
+    \App\Helpers\AuditHelper::logAs($user['user_id'], 'forced_password_change_redirect', 'auth', $user['id']);
+
+    header("Location: " . $_ENV['BASE_URL'] . "/password-change?forced=1");
+    exit();
+
+} elseif ($user['status'] !== 'active') {
+    // any other non-active status (suspended, disabled, etc.)
+    \App\Helpers\AuditHelper::logAs($user['user_id'], 'login_blocked_inactive', 'auth', $user['id']);
+    $_SESSION['error'] = "የመለያዎ ሁኔታ ንቁ አይደለም። እባክዎ አስተዳዳሪውን ያግኙ!";
+    header("Location: " . $_ENV['BASE_URL'] . "/login");
+    exit();
+}
+
+// status === 'active' — proceed to normal login (session build, etc.)
+            // ለደህንነት ሴሽን ማደስ
                 session_regenerate_id(true);
 
                 $_SESSION['user'] = [
@@ -96,10 +120,106 @@ class AuthController extends BaseController {
             }
         }
     }
+ /**
+     * GET /password-change — ፎርሙን ማሳየት
+     */
+    public function showPasswordChange() {
+        // pending_user_id ካልተገኘ ወደ login መልስ (ገጹ በቀጥታ URL ተደርሶበት ከሆነ)
+        if (empty($_SESSION['pending_user_id'])) {
+          $this->render('auth/login', [
+            'title' => "JCIMS - Login"
+        ]);
+        }
 
+        $this->render('auth/password-change', [
+            'title' => "JCIMS - Login"
+        ]);
+    }
     /**
      * ተጠቃሚው መግባቱን ማረጋገጫ (Middleware)
      */
+
+    public function handlePasswordChange() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header("Location: " . $_ENV['BASE_URL'] . "/login");
+        exit();
+    }
+
+    if (empty($_SESSION['pending_user_id'])) {
+        header("Location: " . $_ENV['BASE_URL'] . "/login");
+        exit();
+    }
+
+    $userUuid        = $_SESSION['pending_user_id'];
+    $currentPassword = $_POST['current_password'] ?? '';
+    $newPassword     = $_POST['new_password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
+$userModel = new User($this->db);
+$userRow = $userModel->findById($userUuid);
+
+if (!$userRow) {
+    $_SESSION['error'] = "ተጠቃሚ አልተገኘም!"; // user not found
+    header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+    exit();
+}
+
+$intUserId = $userRow['user_id'];
+
+// --- Verify the current (default) password is actually correct ---
+if (empty($currentPassword) || !$userModel->verifyPassword($intUserId, $currentPassword)) {
+    $_SESSION['error'] = "የአሁኑ ፓስወርድ ትክክል አይደለም!";
+    header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+    exit();
+}
+
+    // --- Validation ---
+    if (empty($newPassword) || empty($confirmPassword)) {
+        $_SESSION['error'] = "እባክዎ ሁሉንም መስኮች ይሙሉ!";
+        header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+        exit();
+    }
+
+    if ($newPassword !== $confirmPassword) {
+        $_SESSION['error'] = "ፓስወርዶቹ አይመሳሰሉም። እባክዎ እንደገና ይሞክሩ!";
+        header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+        exit();
+    }
+
+    if (strlen($newPassword) < 8) {
+    $_SESSION['error'] = "ፓስወርዱ ቢያንስ 8 ፊደላት/ቁጥሮች ሊኖረው ይገባል!";
+    header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+    exit();
+}
+
+if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/', $newPassword)) {
+    $_SESSION['error'] = "ፓስወርዱ ትልቅ ፊደል፣ ትንሽ ፊደል፣ ቁጥር እና ልዩ ምልክት (ለምሳሌ !@#$%) ማካተት አለበት!";
+    header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+    exit();
+}
+
+if ($newPassword === $currentPassword) {
+    $_SESSION['error'] = "አዲሱ ፓስወርድ ከነባሩ የተለየ መሆን አለበት!";
+    header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+    exit();
+}
+
+    // --- Update ---
+     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+    $result = $userModel->completeForcedPasswordChange($userUuid, $hash, $newPassword);
+
+    if (!$result) {
+        $_SESSION['error'] = "ፓስወርድ ማዘመን አልተሳካም። እባክዎ እንደገና ይሞክሩ!";
+        header("Location: " . $_ENV['BASE_URL'] . "/password-change");
+        exit();
+    }
+
+    unset($_SESSION['pending_user_id']);
+    \App\Helpers\AuditHelper::logAs($userUuid, 'forced_password_change_success', 'auth', $userUuid);
+
+    $_SESSION['success'] = "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል። እባክዎ በአዲሱ ፓስወርድ ይግቡ!";
+    header("Location: " . $_ENV['BASE_URL'] . "/login");
+    exit();
+}
  public static function checkAuth() {
     // ተጠቃሚው Login ካላደረገ
     if (!isset($_SESSION['user'])) {
