@@ -211,7 +211,7 @@ class MenuConfig
                 'label' => 'የተሰረዙ',
                 'icon'  => 'fas fa-trash-restore',
                 'class' => 'text-warning',
-                'roles' => ['system_admin', 'org_admin', 'team_leader', 'officer'],
+                'roles' => ['system_admin'],
                 'children' => [
 
                     [
