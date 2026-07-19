@@ -139,10 +139,12 @@ public function updateRecruitment(array $data): bool {
             (int)$data['branch_id'] // ለደህንነት ሲባል ተጠቃሚው የገዛ ቅርንጫፉን ብቻ እንዲያስተካክል
         ]);
     }
-    public function getPivotReport($my_branch) {
-        $sql = "SELECT 
+        public function getPivotReport($my_branch) {
+    $sql = "SELECT 
                 z.name AS zone_name, 
                 dr.sector, 
+                dr.sex,
+                anc.name AS display_branch_name,
                 COUNT(dr.id) AS total
             FROM defense_recruitment dr
             -- የሰራተኛውን ቅርንጫፍ ከዞን (Level 2) ጋር ለማገናኘት
@@ -152,11 +154,15 @@ public function updateRecruitment(array $data): bool {
             -- የዞን (Level 2) መረጃን ለመለየት
             INNER JOIN branches z ON (b.path LIKE CONCAT(z.path, '%') AND z.level = 2)
             -- ሪፖርቱ ከገባህበት ቅርንጫፍ በታች ብቻ እንዲሆን
+            LEFT JOIN branches anc
+                   ON anc.level = root.level + 1
+                  AND anc.path LIKE CONCAT(root.path, '%')
+                  AND b.path LIKE CONCAT(anc.path, '%')
             WHERE b.path LIKE CONCAT(root.path, '%')
-            GROUP BY z.name, dr.sector";
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['my_branch' => $my_branch]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+            GROUP BY z.name, dr.sector, dr.sex";
+    
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $my_branch]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 }
