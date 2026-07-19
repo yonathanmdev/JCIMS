@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+    
 <head>
     <base href="<base href="<?= $_ENV['BASE_URL'] ?>">">
     <meta charset="utf-8">

@@ -29,6 +29,7 @@ class TeamFormationController extends BaseController {
         // 2. Input Sanitization
         $sector_id   = trim($_POST['sector_id'] ?? '');
         $sub_sector_name = trim($_POST['sector_name'] ?? '');
+        $yesramesk   = trim($_POST['yesra_mesk'] ?? '');   
         $orgType     = trim($_POST['organization_type'] ?? '');
         $place       = trim($_POST['place'] ?? '');
         $assoName    = trim($_POST['asso_name'] ?? '');
@@ -57,7 +58,7 @@ class TeamFormationController extends BaseController {
             return;
         }
         // 3. Validation
-        $requiredValues = compact('place', 'assoName', 'leaderId', 'coId', 'financeId', 'procId', 'phone');
+        $requiredValues = compact('sector_id', 'sub_sector_name', 'yesra_mesk', 'orgType','place', 'assoName', 'leaderId', 'coId', 'financeId', 'procId', 'phone');
         foreach ($requiredValues as $value) {
             if ($value === '') {
                 echo json_encode(['success' => false, 'message' => 'እባክዎ ሁሉንም መስኮች ይሙሉ']);
@@ -96,6 +97,7 @@ class TeamFormationController extends BaseController {
             $payload = [
                 'team_id'              => Uuid::uuid7()->toString(),
                 'org_type'        => $orgType,
+                'yesra_mesk'       => $yesramesk,
                 'ngo_id'          => $ngoId ?: null,
                 'place'           => $place,
                 'asso_name'       => $assoName,
@@ -134,20 +136,19 @@ class TeamFormationController extends BaseController {
 
         
     }
-
-    public function listGroups()
+public function listGroups()
 {
     // Authorization check
-   AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
 
     $branchId = $_SESSION['user']['branch_id'] ?? null;
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     
     // Fetch data
-     $teamFormationModel = new TeamFormationModel($this->db);
-    $result = $teamFormationModel ->getGroupsByBranch((int)$branchId, $page, 15);
+    $teamFormationModel = new TeamFormationModel($this->db);
+    $result = $teamFormationModel->getGroupsByBranch((int)$branchId, $page, 10);
 
-    // Pass $result to your view (adjust 'render' to your specific framework)
+    // Pass $result to your view
     $this->render('team-lists', [
         'teams' => $result['data'],
         'pagination' => [
@@ -156,5 +157,58 @@ class TeamFormationController extends BaseController {
             'last_page' => $result['last_page']
         ]
     ]);
+}
+
+public function retrieveTeamMembers(array $params = []): void
+{
+    $teamId = $params['uuid'] ?? $_GET['id'] ?? '';
+ 
+    if ($teamId === '') {
+        $_SESSION['error'] = 'የቡድን መታወቂያ አልተገኘም።';
+        header('Location: ' . $_ENV['BASE_URL'] . '/team-lists');
+        exit();
+    }
+ 
+    $teamModel = new TeamFormationModel($this->db);
+    $team = $teamModel->getTeamWithMembers($teamId);
+ 
+    if (!$team) {
+        $_SESSION['error'] = 'የተጠየቀው ቡድን አልተገኘም።';
+        header('Location: ' . $_ENV['BASE_URL'] . '/team-lists');
+        exit();
+    }
+ 
+    $this->render('team-members-view', [
+        'team' => $team,
+    ]);
+}
+ 
+/**
+ * Route (add to your $routes table, matching the pattern already used):
+ *   'add-team-member' => ['TeamFormationController', 'addMember', true]
+ *
+ * POST JSON body: { "team_id": <int table_id>, "job_seeker_id": "<string>" }
+ */
+public function addMember(): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    $teamId = isset($input['team_id']) ?  $input['team_id'] : null;
+    $jobSeekerId = isset($input['job_seeker_id']) ? trim($input['job_seeker_id']) : '';
+
+    if ($teamId <= 0 || $jobSeekerId === '') {
+        echo json_encode(['status' => 'error', 'message' => 'የግቤት ውሂብ ትክክል አይደለም']);
+        exit();
+    }
+$branchId = $_SESSION['user']['branch_id'] ?? null;
+    $teamModel = new TeamFormationModel($this->db);
+    $result = $teamModel->addMember($branchId, $teamId, $jobSeekerId);
+
+    echo json_encode($result);
+    exit();
 }
 }

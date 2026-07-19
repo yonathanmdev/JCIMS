@@ -45,6 +45,14 @@ $is_jobseeker_team_page = true;
   </div>
 
   <div class="row">
+
+     <div class="col-md-6">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="yesra_mesk"><small class="font-weight-bold">የስራ መስክ</small></label>
+        <input type="text" class="form-control form-control-sm" id="yesra_mesk" name="yesra_mesk" required>
+      </div>
+    </div>
+
     <div class="col-md-6">
       <div class="form-group mb-2">
         <label class="mb-1" for="organization_type"><small class="font-weight-bold">የአደረጃጀት ዓይነት</small></label>
@@ -184,7 +192,7 @@ $is_jobseeker_team_page = true;
         <div class="row">
           <div class="col-md-6">
             <div class="form-group mb-2">
-              <label class="mb-1" for="leaderid"><small class="font-weight-bold">የሊቀመንበሩ</small></label>
+              <label class="mb-1" for="leaderid"><small class="font-weight-bold">ሊቀመንበር</small></label>
               <select class="form-control form-control-sm role-select" id="leaderid" name="leader_id" required>
                 <option value="">-- ይምረጡ --</option>
               </select>
@@ -193,7 +201,7 @@ $is_jobseeker_team_page = true;
           </div>
           <div class="col-md-6">
             <div class="form-group mb-2">
-              <label class="mb-1" for="co_name"><small class="font-weight-bold">የም/ሊቀመንበር</small></label>
+              <label class="mb-1" for="co_name"><small class="font-weight-bold">ም/ሊቀመንበር</small></label>
               <select class="form-control form-control-sm role-select" id="co_name" name="co_id" required>
                 <option value="">-- ይምረጡ --</option>
               </select>
