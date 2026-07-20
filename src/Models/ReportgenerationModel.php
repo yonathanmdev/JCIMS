@@ -1064,4 +1064,57 @@ public function getReportTenByHierarchy(string $myBranchId, string $startdate, s
     }
 }
 
+
+
+
+
+
+
+
+
+public function getJobSeekers04ByHierarchy(string $myBranchId, $startdate, $enddate, $residenceStatus, string $sectorName): array
+{
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        ),
+        FilteredJobSeekers AS (
+            SELECT
+                c.subsector AS sub_sector_id,
+                c.employment_type,
+                js.gender
+            FROM code003sraedl c
+            INNER JOIN job_seekers js ON c.jobseeker_id = js.job_seeker_id
+            INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
+            WHERE js.residence_status = :residence_status
+        )
+        SELECT 
+            sub.subsector AS sub_sector_name,
+            COUNT(fjs.sub_sector_id) AS total_joined_seekers,
+            SUM(CASE WHEN fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS m_perm,
+            SUM(CASE WHEN fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS f_perm,
+            SUM(CASE WHEN fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS m_temp,
+            SUM(CASE WHEN fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS f_temp
+        FROM sub_sector sub
+        INNER JOIN sector_table sec ON sub.sectorid = sec.sectorid
+        LEFT JOIN FilteredJobSeekers fjs ON sub.sub_sectorid = fjs.sub_sector_id 
+        GROUP BY sub.sub_sectorid, sub.subsector
+        ORDER BY sub.subsector ASC
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    } catch (\PDOException $e) {
+        return [];
+    }
+}
 }

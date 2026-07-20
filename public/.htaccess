@@ -6,7 +6,7 @@
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
 </IfModule>
 RewriteEngine On
-RewriteBase /public/
+RewriteBase /JCIMS/public/
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
