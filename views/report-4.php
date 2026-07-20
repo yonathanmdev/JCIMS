@@ -44,7 +44,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
 
 <div class="table-container">
     <center class="mb-4">
-        <h3 class="font-weight-bold" style="margin-bottom: 5px;">አጠቃላይ <?= htmlspecialchars($residenceStatus ?? 'የለም'); ?> የተፈጠረ የሥራ ዕድል ሪፖርት <?php  if($residenceStatus=="ከተማ"){ echo "4"; } else{  echo "5"; } ?> </h3>
+        <h3 class="font-weight-bold" style="margin-bottom: 5px;">አጠቃላይ በ<?= htmlspecialchars($residenceStatus ?? 'የለም'); ?> የተፈጠረ የሥራ ዕድል ሪፖርት <?php  if($residenceStatus=="ከተማ"){ echo "4"; } else{  echo "5"; } ?> </h3>
         <h5 style="margin-top: 0; color: #475569;">የመዋቅር ደረጃ፦ <strong><?= htmlspecialchars($selectedBranchName ?? 'የለም'); ?></strong></h5>
         <h6 style="color: #64748b;">
             የሪፖርት ዘመን፦ 
