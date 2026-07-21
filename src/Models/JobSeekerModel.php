@@ -97,104 +97,91 @@ public function checkDuplicateJobSeeker(
     ?string $excludeJobseekerId = null,
     ?string $excludeSourceTable = null
 ): array {
-    // Exclusion behavior is inferred from $excludeSourceTable:
-    //   - null:     create — no exclusion, any match anywhere is real.
-    //   - 'active':  edit — exclude own id on BOTH tables (editing
-    //               shouldn't be blocked by its own active row, nor by
-    //               an archive row sharing the same id).
-    //   - 'archive': renewal — exclude own id, ARCHIVE row only. If the
-    //               same id already exists in active, that's a real
-    //               duplicate (already renewed) and must still surface.
-    $exclude = function (string $suffix) use ($excludeJobseekerId, $excludeSourceTable): string {
-        if (!$excludeJobseekerId || !$excludeSourceTable) {
-            return "";
+    // Each rule: match_type label => list of [column => value] that must ALL match
+    $rules = [
+        'kebele'   => ['kebele_id_no' => trim($data['kebele_id_no'] ?? '')],
+        'fan'      => ['FAN' => trim($data['FAN'] ?? '')],
+        'labor'    => ['Labor_ID' => trim($data['Labor_ID'] ?? '')],
+        'g8id'     => [
+            'g8id' => trim($data['g8id'] ?? ''),
+            'full_name_normalized' => trim($data['full_name_normalized'] ?? ''),
+        ],
+        'identity' => [
+            'full_name_normalized' => trim($data['full_name_normalized'] ?? ''),
+            'phone_number'         => trim($data['phone_number'] ?? ''),
+            'mothername'           => trim($data['mothername'] ?? ''),
+        ],
+    ];
+
+    $branchId = (int) ($data['branch_id'] ?? 0);
+
+    $excludeClause = '';
+    if ($excludeJobseekerId && $excludeSourceTable) {
+        $excludeClause = $excludeSourceTable === 'active'
+            ? ' AND job_seeker_id <> :exclude_id '
+            : " AND NOT (job_seeker_id = :exclude_id AND source_table = 'archive') ";
+    }
+
+    $unionBlocks = [];
+    $bindings = [];
+    $hasAnyValue = false;
+
+    foreach ($rules as $matchType => $fields) {
+        // Skip a rule entirely if any of its required fields is blank
+        if (in_array('', $fields, true)) {
+            continue;
+        }
+        $hasAnyValue = true;
+
+        $conditions = [];
+        foreach ($fields as $column => $value) {
+            $param = ":{$matchType}_{$column}";
+            $conditions[] = "{$column} = {$param}";
+            $bindings[$param] = $value;
         }
 
-        if ($excludeSourceTable === 'active') {
-            // edit: exclude the id regardless of which table it's on.
-            return " AND job_seeker_id <> :exclude_id{$suffix} ";
+        // Only the kebele rule is scoped to branch_id
+        $branchCondition = '';
+        if ($matchType === 'kebele') {
+            $branchCondition = ' AND branch_id = :branch_id';
+            $bindings[':branch_id'] = $branchId;
         }
 
-        // renewal: only exclude the archive-table match.
-        return " AND NOT (job_seeker_id = :exclude_id{$suffix} AND source_table = 'archive') ";
-    };
+        $where = implode(' AND ', $conditions) . $branchCondition . $excludeClause;
+
+        $unionBlocks[] = "(SELECT job_seeker_id, branch_id, source_table, '{$matchType}' AS match_type
+                            FROM source WHERE {$where})";
+    }
+
+    if (!$hasAnyValue) {
+        return [];
+    }
+
+    $unionSql = implode(' UNION ALL ', $unionBlocks);
 
     $sql = "
         WITH source AS (
-            SELECT
-               job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
-                full_name_normalized, phone_number, mothername,
-                'active' AS source_table
+            SELECT job_seeker_id, branch_id, kebele_id_no, FAN, g8id, Labor_ID,
+                   full_name_normalized, phone_number, mothername, 'active' AS source_table
             FROM job_seekers
             UNION ALL
-            SELECT
-                job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID, FAN,
-                full_name_normalized, phone_number, mothername,
-                'archive' AS source_table
+            SELECT job_seeker_id, branch_id, kebele_id_no, FAN, g8id, Labor_ID,
+                   full_name_normalized, phone_number, mothername, 'archive' AS source_table
             FROM job_seekers_archive
         )
-        SELECT job_seeker_id, branch_id, match_type, source_table FROM (
-            (SELECT job_seeker_id, branch_id, source_table, 'kebele' AS match_type
-             FROM source
-             WHERE branch_id = :branch_id AND kebele_id_no = :kebele_id_no {$exclude('1')})
-            UNION ALL
-            (SELECT job_seeker_id, branch_id, source_table, 'g8id' AS match_type
-             FROM source
-             WHERE :g8id1 <> '' AND g8id = :g8id2 {$exclude('2')})
-            UNION ALL
-            (SELECT job_seeker_id, branch_id, source_table, 'labor' AS match_type
-             FROM source
-             WHERE :labor_id1 <> '' AND Labor_ID = :labor_id2 {$exclude('3')})
-            UNION ALL
-            (SELECT job_seeker_id, branch_id, source_table, 'fan' AS match_type
-             FROM source
-             WHERE :fan1 <> '' AND FAN = :fan2 {$exclude('4')})
-            UNION ALL
-            (SELECT job_seeker_id, branch_id, source_table, 'identity' AS match_type
-             FROM source
-             WHERE :full_name1 <> '' AND :phone1 <> '' AND :mother1 <> ''
-               AND full_name_normalized = :full_name2
-               AND phone_number = :phone2
-               AND mothername = :mother2 {$exclude('5')})
-        ) matches
+        SELECT job_seeker_id, branch_id, match_type, source_table
+        FROM ({$unionSql}) matches
         LIMIT 1
     ";
 
     try {
         $stmt = $this->db->prepare($sql);
 
-        $branchId = (int) ($data['branch_id'] ?? 0);
-        $kebeleId = trim($data['kebele_id_no'] ?? '');
-        $g8id     = trim($data['g8id'] ?? '');
-        $laborId  = trim($data['Labor_ID'] ?? '');
-        $fan      = trim($data['FAN'] ?? '');
-        $fullName = trim($data['full_name_normalized'] ?? '');
-        $phone    = trim($data['phone_number'] ?? '');
-        $mother   = trim($data['mothername'] ?? '');
-
-        $stmt->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
-        $stmt->bindValue(':kebele_id_no', $kebeleId);
-
-        $stmt->bindValue(':g8id1', $g8id);
-        $stmt->bindValue(':g8id2', $g8id);
-
-        $stmt->bindValue(':labor_id1', $laborId);
-        $stmt->bindValue(':labor_id2', $laborId);
-
-        $stmt->bindValue(':fan1', $fan);
-        $stmt->bindValue(':fan2', $fan);
-
-        $stmt->bindValue(':full_name1', $fullName);
-        $stmt->bindValue(':full_name2', $fullName);
-        $stmt->bindValue(':phone1', $phone);
-        $stmt->bindValue(':phone2', $phone);
-        $stmt->bindValue(':mother1', $mother);
-        $stmt->bindValue(':mother2', $mother);
-
-        if ($excludeJobseekerId !== null && $excludeSourceTable !== null) {
-            for ($i = 1; $i <= 5; $i++) {
-                $stmt->bindValue(":exclude_id{$i}", $excludeJobseekerId);
-            }
+        foreach ($bindings as $param => $value) {
+            $stmt->bindValue($param, $value);
+        }
+        if ($excludeClause !== '') {
+            $stmt->bindValue(':exclude_id', $excludeJobseekerId);
         }
 
         $stmt->execute();
@@ -714,19 +701,12 @@ public function countJobSeekersByHierarchy(string $myBranchId): int
 }
 public function getJobSeekersByHierarchy(string $myBranchId, int $limit, int $offset): array
 {
-    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender,
-                   js.branch_id,
-                   b.name AS branch_name, b.level AS branch_level,
-                   anc.internal_id AS display_branch_id,
-                   anc.name AS display_branch_name,
-                   anc.level AS display_branch_level
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender, 
+                   js.branch_id, -- Added this line
+                   b.name AS branch_name, b.level AS branch_level
             FROM job_seekers js
             INNER JOIN branches b ON js.branch_id = b.internal_id
             INNER JOIN branches root ON root.internal_id = :my_branch
-            LEFT JOIN branches anc
-                   ON anc.level = root.level + 1
-                  AND anc.path LIKE CONCAT(root.path, '%')
-                  AND b.path LIKE CONCAT(anc.path, '%')
             WHERE b.path LIKE CONCAT(root.path, '%')
             ORDER BY js.created_at DESC
             LIMIT :limit OFFSET :offset";

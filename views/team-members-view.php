@@ -10,17 +10,32 @@ $members = $team['members'] ?? [];
   <div class="container-fluid">
 
     <div class="card card-primary card-outline">
-      <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
-        <h3 class="card-title">የማህበሩ ስም፡ <?= htmlspecialchars($team['association_name']) ?></h3>
-        <div class="ml-md-auto mt-2 mt-md-0">
-          <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/team-lists" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left"></i> 
-          </a>
-        </div>
-      </div>
+      <div class="card card-primary card-outline">
+  <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
+    <h3 class="card-title">የማህበሩ ስም፡ <?= htmlspecialchars($team['association_name']) ?></h3>
+    <div class="ml-md-auto mt-2 mt-md-0">
+      <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id']): ?>
+       <button type="button"
+        class="editTeamBtn btn btn-outline-primary btn-sm"
+        data-toggle="modal"
+        data-target="#editTeamModal"
+        data-id="<?= htmlspecialchars($team['id']) ?>">
+    <i class="fas fa-edit"></i> አስተካክል
+</button>
+      <?php endif; ?>
+      <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/team-lists" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+    </div>
+  </div>
+  <!-- rest of card-body unchanged -->
 
       <div class="card-body">
         <div class="row">
+          <div class="col-md-4 mb-3">
+            <strong>የተደራጁበት አካባቢ</strong>
+            <div><?= htmlspecialchars($team['yetederajubet_akababi'] ?? '—') ?></div>
+          </div>
           <div class="col-md-4 mb-3">
             <strong>ዘርፍ (Sector)</strong>
             <div><?= htmlspecialchars($team['sector'] ?? '—') ?></div>
@@ -33,10 +48,18 @@ $members = $team['members'] ?? [];
             <strong>የስራ መስክ </strong>
             <div><?= htmlspecialchars($team['yesra_mesk'] ?? '—') ?></div>
           </div>
+          
           <div class="col-md-4 mb-3">
             <strong>የአደረጃጀት ዓይነት </strong>
             <div><?= htmlspecialchars($team['project_type'] ?? '—') ?></div>
           </div>
+         <?php if ($team['project_type'] === 'NGO'): ?>
+    <div class="col-md-4 mb-3">
+        <strong>NGO</strong>
+        <div><?= htmlspecialchars($team['project_name'] ?? '—') ?></div>
+    </div>
+<?php endif; ?>
+           
           <div class="col-md-4 mb-3">
             <strong>የስራ አስኪያጅ ስልክ ቁጥር</strong>
             <div><?= htmlspecialchars($team['manager_phone'] ?? '—') ?></div>
@@ -59,11 +82,11 @@ $ethiopianDate = EthiopianDateHelper::toEthCalendar($createdatdateParts[2], $cre
 
         <div class="row">
           <div class="col-md-3 mb-3">
-            <strong>የቡድን መሪ</strong>
+            <strong>ሊቀመንበር</strong>
             <div><?= htmlspecialchars(trim($team['teamleader_name'] ?? '') !== '' ? $team['teamleader_name'] : '—') ?></div>
           </div>
           <div class="col-md-3 mb-3">
-            <strong>ም/የቡድን መሪ</strong>
+            <strong>ም/ሊቀመንበር</strong>
             <div><?= htmlspecialchars(trim($team['vice_teamleader_name'] ?? '') !== '' ? $team['vice_teamleader_name'] : '—') ?></div>
           </div>
           <div class="col-md-3 mb-3">
@@ -128,11 +151,11 @@ $ethiopianDate = EthiopianDateHelper::toEthCalendar($createdatdateParts[2], $cre
           <td>
             <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id']): ?>
               <button class="btn btn-outline-danger btn-sm remove-team-member-btn"
-                      data-team-id="<?= htmlspecialchars($team['id']) ?>"
-                      data-job-seeker-id="<?= htmlspecialchars($m['job_seeker_id']) ?>"
+                      data-id="<?= htmlspecialchars($m['id']) ?>"
+                       data-team-id="<?= htmlspecialchars($team['id']) ?>"
                       data-name="<?= htmlspecialchars(trim(($m['first_name'] ?? '') . ' ' . ($m['father_name'] ?? ''))) ?>"
                       title="ከቡድኑ አስወግድ">
-                <i class="fas fa-user-minus"></i>
+                <i class="fas fa-trash-alt me-1"></i>
               </button>
             <?php endif; ?>
           </td>
@@ -176,3 +199,5 @@ $ethiopianDate = EthiopianDateHelper::toEthCalendar($createdatdateParts[2], $cre
     </div>
   </div>
 </div>
+
+<?php include 'partials/edit-team-set-up-modal.php'; ?>

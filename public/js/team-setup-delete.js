@@ -10,12 +10,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const teamId   = archiveBtn.dataset.id;
 
             confirmDelete({
-                endpoint:    'team-delete',
+                endpoint:    'team-purge',
                 id:          teamId,
                 type:        'team',
                 task:        'delete',
                 title:       `"${teamName}" ${label}?`,
-                warning:     `<strong>${teamName}</strong> የተባለ አደረጃጀት ይሰረዛል።`,
+                warning:     `<strong>${teamName}</strong> የተባለ አደረጃጀት ይሰረዛል! ከሰረዙት በኋላ መመለስ አይችሉም። History ላይ ግን በስመዎት ይቀመጣል`,
                 confirmText: `<i class="fas fa-trash-alt"></i> አዎ፣ ${label}!`,
                 successText: `${teamName} ተሰርዟል።`,
                 requireReason:   true,

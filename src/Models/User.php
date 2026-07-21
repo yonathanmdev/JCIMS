@@ -129,9 +129,21 @@ private function generateBaseUsername(?string $phone, ?string $email): string
     }
 }
 public function findById($id){
-    $stmt = $this->db->prepare("SELECT id, user_id, first_name, father_name, grand_father_name, phone, email FROM users WHERE id = ?");
+    $stmt = $this->db->prepare("SELECT id, user_id, first_name, father_name, grand_father_name, phone, email, username, status FROM users WHERE id = ?");
     $stmt->execute([$id]);
     return $stmt->fetch();
+}
+public function resetPassword(string $id, string $hashedPassword): bool
+{
+    $expiresAt = (new \DateTime('+30 minutes'))->format('Y-m-d H:i:s');
+
+    $stmt = $this->db->prepare(
+        "UPDATE users SET password = :password, status='', temp_password_expires_at = :expires WHERE id = :id"
+    );
+    $stmt->bindValue(':password', $hashedPassword);
+    $stmt->bindValue(':expires', $expiresAt);
+    $stmt->bindValue(':id', $id, PDO::PARAM_STR);
+    return $stmt->execute();
 }
 public function completeForcedPasswordChange(string $userUuid, string $hash, string $newPassword): bool {
    

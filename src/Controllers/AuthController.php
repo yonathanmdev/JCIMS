@@ -37,7 +37,7 @@ class AuthController extends BaseController {
                
             // ← ADD THE STATUS CHECK HERE, before session_regenerate_id / building $_SESSION['user']
 
-  if (is_null($user['status'])) {
+  if (empty($user['status'])) {
     // default password still active — force password change first
     unset($_SESSION['pending_user_id']);
   
@@ -114,7 +114,7 @@ class AuthController extends BaseController {
                 // Log failed login attempt
                 \App\Helpers\AuditHelper::logAs(null, 'login_failed', 'auth', null);
 
-                $_SESSION['error'] = "ኢሜይል ወይም ፓስወርድ አልተዛመደም። እባክዎ እንደገና ይሞክሩ!";
+                $_SESSION['error'] = "የተሳሳተ Username እና Password። እባክዎ እንደገና ይሞክሩ!";
                 header("Location: " . $_ENV['BASE_URL'] . "/login");
                 exit();
             }

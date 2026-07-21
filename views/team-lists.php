@@ -54,7 +54,7 @@ if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'
         data-id="<?= htmlspecialchars($team['id']) ?>"
         data-name="<?= htmlspecialchars($team['association_name']) ?>"
         title="አጥፋ">
-    <i class="fas fa-trash"></i>
+   <i class="fas fa-trash-alt me-1"></i>
 </button>
 <?php endif; ?>
                   </td>
