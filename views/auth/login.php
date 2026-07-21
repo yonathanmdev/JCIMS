@@ -379,6 +379,27 @@ if (session_status() === PHP_SESSION_NONE) {
             .panel-left { display: none; }
             .panel-right { padding: 3rem 1.5rem; }
         }
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.1rem;
+}
+.alert-success {
+    background: #eafaf1;
+    color: #1e4d38;
+    border: 1px solid #b7e4c7;
+}
+.alert-success svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke: #2d6a4f;
+}
+
     </style>
 </head>
 <body>
@@ -426,6 +447,17 @@ if (session_status() === PHP_SESSION_NONE) {
             <?php unset($_SESSION['error']); ?>
             <?php endif; ?>
 
+
+<?php if (!empty($_SESSION['success'])): ?>
+    <div class="alert alert-success" role="alert">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span><?= htmlspecialchars($_SESSION['success']) ?></span>
+    </div>
+    <?php unset($_SESSION['success']); ?>
+<?php endif; ?>
             <form action="login_process" method="post" novalidate>
 
                 <div class="field">
@@ -434,7 +466,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <i class="fas fa-envelope field-icon" aria-hidden="true"></i>
                         <input
                             type="text"
-                            id="email"
+                            id="text"
                             name="email"
                             placeholder="ANRS000001"
                             required

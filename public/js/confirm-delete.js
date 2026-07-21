@@ -15,7 +15,7 @@ function confirmDelete({
     onSuccess,
     requireReason   = true,
     requirePassword = true,
-   
+
 }) {
     const isDelete = (task === 'delete');
     const iconClass = isDelete ? 'fa-trash-alt' : 'fa-undo';
@@ -30,11 +30,11 @@ function confirmDelete({
                     margin:0 auto 12px;
                     box-shadow:0 4px 15px rgba(220,53,69,0.4);
                 ">
-                
+
                     <i class="fas ${iconClass}" style="color:#fff; font-size:28px;"></i>
                 </div>
                 <p style="color:#c0392b; font-weight:700; font-size:15px; margin:0;">
-                    
+
                 </p>
             </div>
 
@@ -63,8 +63,6 @@ function confirmDelete({
                         transition:border-color 0.2s;
                         box-sizing:border-box;
                     "
-                    onfocus="this.style.borderColor='#dc3545'"
-                    onblur="this.style.borderColor='#ffaaaa'"
                 ></textarea>
             </div>` : ''}
 
@@ -95,8 +93,6 @@ function confirmDelete({
                             transition:border-color 0.2s;
                             box-sizing:border-box;
                         "
-                        onfocus="this.style.borderColor='#dc3545'"
-                        onblur="this.style.borderColor='#ffaaaa'"
                     >
                     <i
                         class="fas fa-eye"
@@ -105,17 +101,6 @@ function confirmDelete({
                             position:absolute; right:12px; top:50%;
                             transform:translateY(-50%);
                             cursor:pointer; color:#aaa; font-size:14px;
-                        "
-                        onclick="
-                            const inp  = document.getElementById('swalPassword');
-                            const icon = document.getElementById('swalTogglePassword');
-                            if (inp.type === 'password') {
-                                inp.type = 'text';
-                                icon.classList.replace('fa-eye','fa-eye-slash');
-                            } else {
-                                inp.type = 'password';
-                                icon.classList.replace('fa-eye-slash','fa-eye');
-                            }
                         "
                     ></i>
                 </div>
@@ -145,8 +130,31 @@ function confirmDelete({
         buttonsStyling: true,
         focusConfirm: false,
         didOpen: () => {
-            const first = document.getElementById('swalReason')
-                       || document.getElementById('swalPassword');
+            const reasonEl   = document.getElementById('swalReason');
+            const passwordEl = document.getElementById('swalPassword');
+            const toggleEl   = document.getElementById('swalTogglePassword');
+
+            // Replace inline onfocus/onblur with real listeners
+            [reasonEl, passwordEl].forEach(el => {
+                if (!el) return;
+                el.addEventListener('focus', () => { el.style.borderColor = '#dc3545'; });
+                el.addEventListener('blur',  () => { el.style.borderColor = '#ffaaaa'; });
+            });
+
+            // Replace inline onclick on the eye icon
+            if (toggleEl && passwordEl) {
+                toggleEl.addEventListener('click', () => {
+                    if (passwordEl.type === 'password') {
+                        passwordEl.type = 'text';
+                        toggleEl.classList.replace('fa-eye', 'fa-eye-slash');
+                    } else {
+                        passwordEl.type = 'password';
+                        toggleEl.classList.replace('fa-eye-slash', 'fa-eye');
+                    }
+                });
+            }
+
+            const first = reasonEl || passwordEl;
             if (first) first.focus();
         },
         preConfirm: () => {
@@ -183,59 +191,58 @@ function confirmDelete({
         });
 
         fetch(BASE_URL + '/?action=' + endpoint, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        id,
-        confirm_password: result.value.password ?? null,
-        reason:           result.value.reason   ?? null,
-        type:            type        ?? null,
-    })
-})
-.then(res => {
-    if (!res.ok) {
-        throw new Error('HTTP error: ' + res.status);
-    }
-    return res.json();
-})
-.then(data => {
-    if (data.status === 'success') {
-        Swal.fire({
-            title: successTitle || 'ተሰርዟል!',
-            html: `
-                <p style="color:#28a745; font-weight:600;">
-                    <i class="fas fa-check-circle fa-2x"></i><br><br>
-                    ${successText || 'በትክክል ተሰርዟል።'}
-                </p>`,
-            icon: false,
-            confirmButtonColor: '#28a745',
-            confirmButtonText:  'እሺ'
-        }).then(() => {
-            if (typeof onSuccess === 'function') onSuccess();
-        });
-    } else {
-        // ← this is what should fire for your case
-        Swal.fire({
-            title: 'ስህተት!',
-            html:  `<p style="color:#dc3545;">${data.message}</p>`,
-            icon:  'error',
-            confirmButtonColor: '#dc3545'
-        });
-    }
-})
-.catch(err => {
-    console.error('CATCH FIRED:', err);
-    console.error('ERROR TYPE:', err.name);
-    console.error('ERROR MESSAGE:', err.message);
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id,
+                confirm_password: result.value.password ?? null,
+                reason:           result.value.reason   ?? null,
+                type:            type        ?? null,
+            })
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error('HTTP error: ' + res.status);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                Swal.fire({
+                    title: successTitle || 'ተሰርዟል!',
+                    html: `
+                        <p style="color:#28a745; font-weight:600;">
+                            <i class="fas fa-check-circle fa-2x"></i><br><br>
+                            ${successText || 'በትክክል ተሰርዟል።'}
+                        </p>`,
+                    icon: false,
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText:  'እሺ'
+                }).then(() => {
+                    if (typeof onSuccess === 'function') onSuccess();
+                });
+            } else {
+                Swal.fire({
+                    title: 'ስህተት!',
+                    html:  `<p style="color:#dc3545;">${data.message}</p>`,
+                    icon:  'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        })
+        .catch(err => {
+            console.error('CATCH FIRED:', err);
+            console.error('ERROR TYPE:', err.name);
+            console.error('ERROR MESSAGE:', err.message);
 
-    Swal.close(); // ← also close here
-    Swal.fire({
-        title: 'ስህተት!',
-        text:  'መሰረዝ አልተቻለም። ሰርቨሩ ምላሽ አልሰጠም።',
-        icon:  'error',
-        confirmButtonColor: '#dc3545'
-    });
-});
+            Swal.close();
+            Swal.fire({
+                title: 'ስህተት!',
+                text:  'መሰረዝ አልተቻለም። ሰርቨሩ ምላሽ አልሰጠም።',
+                icon:  'error',
+                confirmButtonColor: '#dc3545'
+            });
+        });
     });
 }

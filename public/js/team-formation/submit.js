@@ -103,7 +103,7 @@ if (orgType) {
         TF.gov.syncRemovedDataField();
 
         const selectedCheckboxes = document.querySelectorAll('input[name="selected_jobseekers[]"]:checked');
-        if (selectedCheckboxes.length === 0) {
+        if (selectedCheckboxes.length <= 1) {
             Swal.fire('ስህተት', 'እባክዎ ቢያንስ ሁለት ስራ ፈላጊዎች ይምረጡ', 'warning');
             return;
         }

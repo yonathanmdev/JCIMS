@@ -213,7 +213,7 @@ class MenuConfig
         ],
     ]
 ],
-           
+          
             [
                 'label' => 'የተሰረዙ',
                 'icon'  => 'fas fa-trash-restore',
@@ -273,6 +273,7 @@ class MenuConfig
             ],
 
         ];
+       
     }
 
     /**

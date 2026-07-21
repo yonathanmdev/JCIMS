@@ -75,7 +75,7 @@ private function generateBaseUsername(?string $phone, ?string $email): string
      * በኢሜይል አድራሻ ተጠቃሚን መፈለጊያ
      */
     public function findByEmail($username) {
-        $sql = "SELECT * FROM users WHERE username = ? AND status = 'active' LIMIT 1";
+        $sql = "SELECT * FROM users WHERE username = ? LIMIT 1";
         
         try {
             $stmt = $this->db->prepare($sql);
@@ -129,9 +129,33 @@ private function generateBaseUsername(?string $phone, ?string $email): string
     }
 }
 public function findById($id){
-    $stmt = $this->db->prepare("SELECT id, first_name, father_name, grand_father_name, phone, email FROM users WHERE id = ?");
+    $stmt = $this->db->prepare("SELECT id, user_id, first_name, father_name, grand_father_name, phone, email, username, status FROM users WHERE id = ?");
     $stmt->execute([$id]);
     return $stmt->fetch();
+}
+public function resetPassword(string $id, string $hashedPassword): bool
+{
+    $expiresAt = (new \DateTime('+30 minutes'))->format('Y-m-d H:i:s');
+
+    $stmt = $this->db->prepare(
+        "UPDATE users SET password = :password, status='', temp_password_expires_at = :expires WHERE id = :id"
+    );
+    $stmt->bindValue(':password', $hashedPassword);
+    $stmt->bindValue(':expires', $expiresAt);
+    $stmt->bindValue(':id', $id, PDO::PARAM_STR);
+    return $stmt->execute();
+}
+public function completeForcedPasswordChange(string $userUuid, string $hash, string $newPassword): bool {
+   
+    try {
+        $stmt = $this->db->prepare(
+            "UPDATE users SET password = ?, txtp = ?, status = 'active' WHERE id = ?"
+        );
+        return $stmt->execute([$hash, $newPassword, $userUuid]);
+    } catch (\PDOException $e) {
+        error_log("forced password change error: " . $e->getMessage());
+        return false;
+    }
 }
 public function updateUser($id, $data)
 {

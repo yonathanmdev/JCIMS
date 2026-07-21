@@ -47,6 +47,7 @@ $is_jobseeker_list_page = true;
             <th>መ/ቁ</th>
             <th>ስም</th>
             <th>ጾታ</th>
+            <th>የተመዘገበበት </th>
             <th>Action</th>
         </tr>
     </thead>
@@ -58,6 +59,13 @@ $is_jobseeker_list_page = true;
                     <td><?=$js['job_seeker_id'] ?></td>
                     <td><?= htmlspecialchars($js['first_name']) . ' ' . htmlspecialchars($js['father_name']) . ' ' . htmlspecialchars($js['last_name']) ?></td>
                     <td><?= htmlspecialchars($js['gender']) ?></td>
+                     <td>
+    <?php if ($js['branch_id'] == $_SESSION['user']['branch_id']): ?>
+        <?= htmlspecialchars($js['branch_name']) ?>
+    <?php else: ?>
+        <?= htmlspecialchars($js['display_branch_name'] ?? $js['branch_name']) ?>
+    <?php endif; ?>
+</td>
                     <td class="text-center align-middle">
                         <button class="btn btn-outline-primary btn-sm view-jobseeker-btn"
                                 data-id="<?= htmlspecialchars($js['id']) ?>"

@@ -204,9 +204,14 @@ public function handleRegistration() {
 
         $branchHierarchy = $jobSeekerModel->getBranchHierarchy($duplicate['branch_id']);
 
+       $sourceTable = $duplicate['source_table'] ?? 'active';
+
         $_SESSION['error'] =
             "ስራ ፈላጊው ከዚህ በፊት <strong>{$branchHierarchy}</strong> ተመዝግቧል።";
 
+        if ($sourceTable === 'archive') {
+            $_SESSION['error'] .= " ነባር ስራፈላጊ ላይ የተመዘገበ ስራ ፈላጊ ማድስ ብቻ ነው የሚቻለው። እንደ አዲስ መመዝገብ አይቻልም";
+        }
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
         exit();
     }
@@ -693,7 +698,7 @@ private function validateJobseekerData(array $post): array
     $sectors = $sectorModel->getSectors();
 
     $jobSeekerModel = new JobSeekerModel($this->db);
-    $limit = 10;
+    $limit = 30;
     $currentPage = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($currentPage - 1) * $limit;
 
