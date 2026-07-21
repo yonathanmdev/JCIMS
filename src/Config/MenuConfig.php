@@ -181,6 +181,25 @@ class MenuConfig
                     
                 ]
             ], 
+               [
+                'label' => 'ኢ-መደበኛ ኢ/ዝ',
+                'icon'  => 'fas fa-users',
+                'roles' => ['officer'],
+                'levels' => [3, 4],
+                'children' => [
+                    [
+                        'label' => 'ኢ-መደበኛ ኢ/ዝ መመዝገብ',
+                        'url'   => '/informal-entrerprise-regstration',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                    [
+                        'label' => 'ኢ-መደበኛ ኢ/ዝ ዝርዝር',
+                        'url'   => '/informal-entrerprise-list',
+                        'roles' => ['team_leader', 'officer']
+                    ]
+                ]
+            ],
              [
                 'label' => 'ዝዉዉር',
                 'icon'  => 'fas fa-users',
