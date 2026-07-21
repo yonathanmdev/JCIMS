@@ -80,7 +80,7 @@
                   <h5 class="text-primary border-bottom pb-2 mt-4 mb-3">3. የሥራ ቦታ እና ዘርፍ መረጃ</h5>
                   <div class="row">
                     <div class="col-md-6 form-group">
-                      <label>የሥራ ቦታ ቅርንጫፍ (ዞን/ወረዳ) *</label>
+                      <label>የሥራ ቦታ  *</label>
                       <select name="work_branch_id" class="form-control" required>
                         <option value="" disabled selected>-- ይምረጡ --</option>
                         <?php if (!empty($branches)): ?>
