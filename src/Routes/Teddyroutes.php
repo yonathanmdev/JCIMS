@@ -39,5 +39,6 @@ return [
     'job-creation-delete' =>['JobCreationRegController', 'deletejobcretion', true],
     'solgure-list-by-branch' => ['SolgureController', 'showListByBranch', true],
     'forgot_password' => ['AuthControllerfp', 'forgotPassword', false],
+    'informal-entrerprise-regstration' => ['InformalEnterpreseControrer', 'showinterpriseRegisterForm', true],
     
 ];

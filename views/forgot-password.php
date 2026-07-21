@@ -18,10 +18,10 @@
                 <input type="hidden" name="send_code" value="1"> <!-- ይህንን አክለናል -->
                 <div class="mb-3">
                     <label class="form-label">ስልክ ቁጥርዎን ያስገቡ</label>
-                    <input type="text" name="phone" class="form-control" placeholder="09xxxxxxxx" required>
-                </div>
-                <button type="submit" class="btn btn-success w-100 btn-custom">ኮድ ላክልኝ</button>
-            </form>
+                  <!--   <input type="text" name="phone" class="form-control" placeholder="09xxxxxxxx" required>
+             -->    </div>
+            <!--     <button type="submit" class="btn btn-success w-100 btn-custom">ኮድ ላክልኝ</button>
+        -->     </form>
         </div>
     </div>
 
@@ -31,7 +31,7 @@
             <h4 class="text-center mb-4 text-primary">አዲስ የይለፍ ቃል</h4>
             <form method="POST">
                 <input type="hidden" name="change_password" value="1"> <!-- ይህንን አክለናል -->
-                <div class="mb-3">
+              <!--   <div class="mb-3">
                     <label class="form-label">የተላከውን ኮድ ያስገቡ</label>
                     <input type="text" name="token" class="form-control" required>
                 </div>
@@ -40,7 +40,7 @@
                     <input type="password" name="new_password" class="form-control" required>
                 </div>
                 <button type="submit" class="btn btn-primary w-100 btn-custom">ይለፍ ቃል ቀይር</button>
-            </form>
+            </form> -->
         </div>
     </div>
 </div>
