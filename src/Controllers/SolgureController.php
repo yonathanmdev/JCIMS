@@ -175,4 +175,47 @@ public function processEdit() {
         }
         exit;
     }
+    public function showListByBranch() {
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    $myBranchId = $_SESSION['user']['branch_id'];
+    
+    $model = new SolgureModel($this->db);
+    $raw_data = $model->getPivotReport($myBranchId);
+    
+    // Pivot ማቀነባበር
+    $report = [];
+    $sectors = [];
+    foreach ($raw_data as $row) {
+        $zone = $row['display_branch_name'];
+        $sector = $row['sector'];
+        $sex = $row['sex'];
+        $total = (int)$row['total'];
+        
+        if (!isset($report[$zone])) {
+            $report[$zone] = [];
+        }
+        if (!isset($report[$zone][$sector])) {
+            $report[$zone][$sector] = ['male' => 0, 'female' => 0];
+        }
+        
+        // የጾታ መለያዎችን በጥንቃቄ መመደብ (Male/Female ወይም ወንድ/ሴት)
+        if (in_array(strtolower($sex), ['male', 'm', 'ወንድ'])) {
+            $report[$zone][$sector]['male'] += $total;
+        } else {
+            $report[$zone][$sector]['female'] += $total;
+        }
+        
+        if (!in_array($sector, $sectors)) {
+            $sectors[] = $sector;
+        }
+    }
+    
+    $data = [
+        'title'   => 'የመዋቅር እና የመከላከያ ሪፖርት',
+        'report'  => $report,
+        'sectors' => $sectors
+    ];
+    
+    $this->render('solgure-list-by-branch', $data);
+}
 }

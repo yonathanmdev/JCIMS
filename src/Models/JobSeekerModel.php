@@ -701,8 +701,8 @@ public function countJobSeekersByHierarchy(string $myBranchId): int
 }
 public function getJobSeekersByHierarchy(string $myBranchId, int $limit, int $offset): array
 {
-    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender, 
-                   js.branch_id, -- Added this line
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender,js.age,js.educational_level,  
+                   js.branch_id,js.created_at, -- Added this line
                    b.name AS branch_name, b.level AS branch_level
             FROM job_seekers js
             INNER JOIN branches b ON js.branch_id = b.internal_id
@@ -1127,7 +1127,7 @@ public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId
 }
 public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
         $stmt = $this->db->prepare("SELECT job_seeker_id, first_name, father_name, last_name FROM job_seekers 
-                                    WHERE   branch_id = :bid and job_seeker_id LIKE :term and fiscal_year = :fiscal_year and (employment_status=0 or employment_status=2)
+                                    WHERE   branch_id = :bid and job_seeker_id LIKE :term and fiscal_year = :fiscal_year and employment_status!=1
                                     LIMIT 10");
         $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

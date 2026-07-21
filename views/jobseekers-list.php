@@ -72,6 +72,14 @@ $is_jobseeker_list_page = true;
                                 title="ሙሉ መረጃ ይመልከቱ">
                             <i class="fas fa-eye"></i>
                         </button>
+                        <!-- Print ID Button -->
+   <button class="btn btn-outline-success btn-sm print-id-btn"
+        data-info="<?= htmlspecialchars(json_encode($js), ENT_QUOTES, 'UTF-8') ?>"
+        data-logo="<?= htmlspecialchars($_SESSION['user']['logo_url'], ENT_QUOTES, 'UTF-8') ?>"
+        data-branch="<?= htmlspecialchars($_SESSION['user']['full_branch_name'], ENT_QUOTES, 'UTF-8') ?>"
+        title="መታወቂያ አትም">
+    <i class="fas fa-print"></i>
+</button>
                       <?php 
 // Assume $myBranchId is available here, e.g., from a session or user object
 // $myBranchId = AuthHelper::getUserBranchId(); // Example of how you might get it
