@@ -126,7 +126,7 @@ public function createsubSector(array $data): bool {
             return false;
         }
     } 
-public function getSubSectors(int $limit = 50, int $offset = 0): array
+public function getSubSectors(int $limit = 100, int $offset = 0): array
 {
     $sql = "SELECT
                 ss.id,

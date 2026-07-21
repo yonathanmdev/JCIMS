@@ -179,7 +179,7 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script> 
-     <script src="<?= myAsset('js/delete-team-setup.js') ?>"></script> 
+     <script src="<?= myAsset('js/team-setup-delete.js') ?>"></script> 
     
     <?php endif; ?>
 
@@ -187,7 +187,11 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-     <script src="<?= myAsset('js/team-member-add.js') ?>"></script> 
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
+    <script src="<?= myAsset('js/team-member-add.js') ?>"></script>
+    <script src="<?= myAsset('js/team-set-up-edit.js') ?>"></script> 
+    <script src="<?= myAsset('js/team-set-up-members-delete.js') ?>"></script>
+   
     <?php endif; ?>
 
 
