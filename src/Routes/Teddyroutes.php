@@ -40,5 +40,9 @@ return [
     'solgure-list-by-branch' => ['SolgureController', 'showListByBranch', true],
     'forgot_password' => ['AuthControllerfp', 'forgotPassword', false],
     'informal-entrerprise-regstration' => ['InformalEnterpreseControrer', 'showinterpriseRegisterForm', true],
+    'informal-trade-registration-process' => ['InformalEnterpreseControrer', 'processRegistration', true],
+    'informal-trade-list' => ['InformalEnterpreseControrer', 'showInformalTradeList', true],
+    'informal-trade-delete-process' => ['InformalEnterpreseControrer', 'deleteInformalTrader', true],
+   
     
 ];
