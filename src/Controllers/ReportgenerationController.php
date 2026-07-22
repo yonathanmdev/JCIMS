@@ -414,4 +414,96 @@ public function report4Show()
     
    
 }
+
+public function report6Show()
+{
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
+    
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
+
+    $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
+    $residenceStatus = null;
+    $selectedreport_type = null;
+
+    if ($report_type == "ሠ6") {
+        $residenceStatus = 'ከተማ';
+        $selectedreport_type = "report-6";
+    } elseif ($report_type == "ሠ7") {
+        $residenceStatus = 'ገጠር';
+        $selectedreport_type = "report-6";
+    } else {
+        $residenceStatus = 'ከተማ';
+        $selectedreport_type = "report-6";
+    }
+
+    $branchData = [];
+    $branchModel = new Branch($this->db);
+
+    if (!empty($postedBranchId)) {
+        $myBranchId = $postedBranchId;
+    } else {
+        $myBranchId = $sessionBranchId;
+    }
+
+    $myBranchId = (string)$myBranchId;
+
+    if (!empty($myBranchId)) {
+        $branchData = $branchModel->getBranchById($myBranchId);
+    }
+
+    $today = date('Y-m-d');
+
+    $rawStartDate = $_POST['start_date'] ?? ($_GET['start_date'] ?? '');
+    $rawEndDate = $_POST['end_date'] ?? ($_GET['end_date'] ?? '');
+
+    $startdate = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-08';
+    $firstchoice = '2026-07-08';
+    
+    $enddate = (!empty(trim($rawEndDate))) ? trim($rawEndDate) : $today;
+
+    if ($startdate < $firstchoice) {
+        $_SESSION['error'] = 'የሪፖርት መጀመሪያ ቀን በጀት ዓመት ከመጀመሩ በፊት መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit(); 
+    }
+    if ($startdate > $today) {
+        $_SESSION['error'] = 'የሪፖርት መጀመሪያ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit(); 
+    }
+    if ($enddate > $today) {
+        $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+    if ($startdate > $enddate) {
+        $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከመጀምሪያ ቀን በኋላ መሆን አለበት።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+
+    $startDateTime = $startdate . ' 00:00:00';
+    $endDateTime = $enddate . ' 23:59:59';
+
+    $reportModel = new ReportgenerationModel($this->db);
+    
+    $branchName = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
+
+    $reportData = [
+        'ግብርና' => $reportModel->getJobSeekers06ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, 'ግብርና'),
+        'ኢንዱስትሪ' => $reportModel->getJobSeekers06ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, 'ኢንዱስትሪ'),
+        'አገልግሎት' => $reportModel->getJobSeekers06ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, 'አገልግሎት'),
+    ];
+
+    return $this->renderPrintable('report-6', [
+        'reportData'         => $reportData,
+        'selectedBranchName' => $branchName,
+        'startdate'          => $startdate,
+        'enddate'            => $enddate,
+        'residenceStatus'    => $residenceStatus
+    ]);  
+}
 }

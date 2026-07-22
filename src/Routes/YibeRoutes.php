@@ -11,6 +11,8 @@ return [
     'report-10'  => ['ReportgenerationController', 'report10Show', true],
     'report-4'   => ['ReportgenerationController', 'report4Show', true],
     'report-5'   => ['ReportgenerationController', 'report4Show', true],
+    'report-6'   => ['ReportgenerationController', 'report6Show', true],
+    'report-7'   => ['ReportgenerationController', 'report6Show', true],
 
     // የስራ ፈላጊዎች ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
     'seeker-analytics' => ['ReportgenerationController', 'seekerAnalyticsShow', true],
