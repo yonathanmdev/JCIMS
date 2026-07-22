@@ -58,40 +58,31 @@
                   <h5 class="text-primary border-bottom pb-2 mt-4 mb-3">2. የመኖሪያ አድራሻ</h5>
                   <div class="row">
                     <div class="col-md-6 form-group">
-                      <label>መኖሪያ ቅርንጫፍ (ዞን/ወረዳ) *</label>
-                      <select name="resbranch_id" class="form-control" required>
-                        <option value="" disabled selected>-- ይምረጡ --</option>
-                        <?php if (!empty($branches)): ?>
-                          <?php foreach ($branches as $branch): ?>
-                            <option value="<?= htmlspecialchars($branch['internal_id']) ?>">
-                              <?= htmlspecialchars($branch['name']) ?>
-                            </option>
-                          <?php endforeach; ?>
-                        <?php endif; ?>
-                      </select>
+                      <label> ክልል *</label>
+                      <input type="text" name="res_zone" class="form-control" placeholder="ክልል" required>
+                  
+                    </div>
+                    <div class="col-md-6 form-group">
+                      <label>ዞን  *</label>
+                      <input type="text" name="res_zone" class="form-control" placeholder="ዞን" required>
+                    </div>
+                  </div>
+                   <div class="row">
+                    <div class="col-md-6 form-group">
+                      <label>ወረዳ/ክፍለከተማ *</label>
+                       <input type="text" name="res_wereda" class="form-control" placeholder="ወረዳ" required>
+                  
                     </div>
                     <div class="col-md-6 form-group">
                       <label>መኖሪያ ቀበሌ *</label>
-                      <input type="text" name="res_kebele" class="form-control" placeholder="የቀበሌ ስም/ቁጥር" required>
+                      <input type="text" name="res_kebele" class="form-control" placeholder="ቀበሌ" required>
                     </div>
                   </div>
 
                   <!-- ================= 3. የሥራ ቦታ እና የንግድ መረጃ ================= -->
                   <h5 class="text-primary border-bottom pb-2 mt-4 mb-3">3. የሥራ ቦታ እና ዘርፍ መረጃ</h5>
                   <div class="row">
-                    <div class="col-md-6 form-group">
-                      <label>የሥራ ቦታ  *</label>
-                      <select name="work_branch_id" class="form-control" required>
-                        <option value="" disabled selected>-- ይምረጡ --</option>
-                        <?php if (!empty($branches)): ?>
-                          <?php foreach ($branches as $branch): ?>
-                            <option value="<?= htmlspecialchars($branch['internal_id']) ?>">
-                              <?= htmlspecialchars($branch['name']) ?>
-                            </option>
-                          <?php endforeach; ?>
-                        <?php endif; ?>
-                      </select>
-                    </div>
+                    
                     <div class="col-md-6 form-group">
                       <label>ንግዱ የሚገኝበት አካባቢ *</label>
                       <select name="trade_area_type" class="form-control" required>

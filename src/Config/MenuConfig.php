@@ -195,7 +195,7 @@ class MenuConfig
                     ],
                     [
                         'label' => 'ኢ-መደበኛ ኢ/ዝ ዝርዝር',
-                        'url'   => '/informal-entrerprise-list',
+                        'url'   => '/informal-trade-list',
                         'roles' => ['team_leader', 'officer']
                     ]
                 ]
