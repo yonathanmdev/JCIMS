@@ -1117,4 +1117,117 @@ public function getJobSeekers04ByHierarchy(string $myBranchId, $startdate, $endd
         return [];
     }
 }
+
+
+public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, string $sectorName): array
+{
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        ),
+        FilteredJobSeekers AS (
+            SELECT
+                c.subsector AS sub_sector_id,
+                TRIM(c.employment_type) AS employment_type,
+                TRIM(c.job_creation_reason) AS job_creation_reason,
+                TRIM(js.gender) AS gender
+            FROM code003sraedl c
+            INNER JOIN job_seekers js ON c.jobseeker_id = js.job_seeker_id
+            INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
+            INNER JOIN sub_sector sub_filter ON c.subsector = sub_filter.sub_sectorid
+            INNER JOIN sector_table sec_filter ON sub_filter.sectorid = sec_filter.sectorid
+            WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check)
+              AND sec_filter.sector = :sector_name
+              AND c.created_at BETWEEN :start_date AND :end_date
+        )
+        SELECT 
+            sub.subsector AS sub_sector_name,
+            
+            -- 1. አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c1,
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c2,
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c3,
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c4,
+
+            -- 2. ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c5,
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c6,
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c7,
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c8,
+
+            -- 3. የግል ዘርፍ ኢንቭስትመንት/ድርጅቶች የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c9,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c10,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c11,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c12,
+
+            -- 4. በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c13,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c14,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c15,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c16,
+
+            -- 5. በህ/ስ/ማህበራት የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c17,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c18,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c19,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c20,
+
+            -- 6. መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c21,
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c22,
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c23,
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c24,
+
+            -- 7. በመንግስት መ/ቤቶች የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c25,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c26,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c27,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c28,
+
+            -- 8. የውጭ አገር ሥራ ስምሪት
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c29,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c30,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c31,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c32
+
+        FROM sub_sector sub
+        INNER JOIN sector_table sec ON sub.sectorid = sec.sectorid
+        LEFT JOIN FilteredJobSeekers fjs ON sub.sub_sectorid = fjs.sub_sector_id 
+        WHERE sec.sector = :sector_name
+        GROUP BY sub.sub_sectorid, sub.subsector
+        ORDER BY sub.subsector ASC
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        
+        if ($residenceStatus === null) {
+            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+        }
+        
+        $stmt->bindValue(':sector_name', $sectorName, \PDO::PARAM_STR);
+        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    } catch (\PDOException $e) {
+        return [];
+    }
+}
+
+
+
 }
