@@ -1230,4 +1230,60 @@ public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate
 
 
 
+public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus): array
+{
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT 
+            TRIM(c.job_creation_reason) AS job_reason,
+            sec.sector AS sector_name,
+            
+            -- ቋሚ (Employment Type = 1)
+            SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ወንድ' THEN 1 ELSE 0 END) AS perm_m,
+            SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ሴት' THEN 1 ELSE 0 END) AS perm_f,
+            
+            -- ጊዜያዊ (Employment Type = 2)
+            SUM(CASE WHEN TRIM(c.employment_type) = '2' AND TRIM(js.gender) = 'ወንድ' THEN 1 ELSE 0 END) AS temp_m,
+            SUM(CASE WHEN TRIM(c.employment_type) = '2' AND TRIM(js.gender) = 'ሴት' THEN 1 ELSE 0 END) AS temp_f
+
+        FROM code003sraedl c
+        INNER JOIN job_seekers js ON c.jobseeker_id = js.job_seeker_id
+        INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
+        INNER JOIN sub_sector sub ON c.subsector = sub.sub_sectorid
+        INNER JOIN sector_table sec ON sub.sectorid = sec.sectorid
+        WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check)
+          AND c.created_at BETWEEN :start_date AND :end_date
+        GROUP BY TRIM(c.job_creation_reason), sec.sector
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        
+        if ($residenceStatus === null) {
+            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+        }
+        
+        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    } catch (\PDOException $e) {
+        return [];
+    }
+}
+
 }

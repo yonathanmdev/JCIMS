@@ -506,4 +506,66 @@ public function report6Show()
         'residenceStatus'    => $residenceStatus
     ]);  
 }
+
+
+public function report8Show()
+{
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
+    
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
+
+    $residenceStatus = null;
+
+    if ($report_type == "ሠ8") {
+        $residenceStatus = 'ከተማ';
+    } elseif ($report_type == "ሠ9") {
+        $residenceStatus = 'ገጠር';
+    } else {
+        $residenceStatus = 'ከተማ';
+    }
+
+    $branchData = [];
+    $branchModel = new Branch($this->db);
+
+    $myBranchId = !empty($postedBranchId) ? $postedBranchId : $sessionBranchId;
+    $myBranchId = (string)$myBranchId;
+
+    if (!empty($myBranchId)) {
+        $branchData = $branchModel->getBranchById($myBranchId);
+    }
+
+    $today = date('Y-m-d');
+
+    $rawStartDate = $_POST['start_date'] ?? ($_GET['start_date'] ?? '');
+    $rawEndDate = $_POST['end_date'] ?? ($_GET['end_date'] ?? '');
+
+    $startdate = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-08';
+    $firstchoice = '2026-07-08';
+    $enddate = (!empty(trim($rawEndDate))) ? trim($rawEndDate) : $today;
+
+    if ($startdate < $firstchoice || $startdate > $today || $enddate > $today || $startdate > $enddate) {
+        $_SESSION['error'] = 'የተሳሳተ የሪፖርት ቀን መርጠዋል።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+
+    $startDateTime = $startdate . ' 00:00:00';
+    $endDateTime = $enddate . ' 23:59:59';
+
+    $reportModel = new ReportgenerationModel($this->db);
+    $branchName = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
+
+    $reportData = $reportModel->getJobSeekers08ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus);
+
+    return $this->renderPrintable('report-8', [
+        'reportData'         => $reportData,
+        'selectedBranchName' => $branchName,
+        'startdate'          => $startdate,
+        'enddate'            => $enddate,
+        'residenceStatus'    => $residenceStatus
+    ]);  
+}
 }
