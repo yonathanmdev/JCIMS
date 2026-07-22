@@ -9,9 +9,10 @@ $enddate = !empty($enddate) ? $enddate : date('Y-m-d');
 $enddateParts = explode('-', $enddate);
 $ethendDate = EthiopianDateHelper::toEthCalendar($enddateParts[2], $enddateParts[1], $enddateParts[0]);
 
+// የ Excel Export ፍላጎት ከተላከ
 if (isset($_GET['export']) && $_GET['export'] == 'excel') {
     header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
-    header("Content-Disposition: attachment; filename=Inclusive_Report_06.xls");
+    header("Content-Disposition: attachment; filename=የሥራ ዓይነቶች በአንቀሳቃሾች ቁጥር.xls");
     header("Pragma: no-cache");
     header("Expires: 0");
     echo "\xEF\xBB\xBF"; 
@@ -40,6 +41,11 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
 </style>
 
 <div class="table-container">
+    <div style="text-align: right; margin-bottom: 15px;" class="no-print">
+        <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'excel'])) ?>" class="btn btn-success">
+            <i class="fa fa-file-excel"></i> ወደ Excel አውርድ (Export to Excel)
+        </a>
+    </div>
     <center class="mb-3">
         <h3 class="font-weight-bold" style="margin-bottom: 5px;">በ<?= htmlspecialchars($residenceStatus ?? 'የለም'); ?> የሥራ እድል የተፈጠረባቸው የሥራ ዓይነቶች በአንቀሳቃሾች ቁጥር/Forms of Employment <?php  if($residenceStatus=="ከተማ"){ echo "6"; } else{  echo "7"; } ?> </h3>
         <h5 style="margin-top: 0; color: #475569;">የመዋቅር ደረጃ፦ <strong><?= htmlspecialchars($selectedBranchName ?? 'የለም'); ?></strong></h5>
