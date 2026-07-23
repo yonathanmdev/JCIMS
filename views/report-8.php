@@ -11,7 +11,7 @@ $ethendDate = EthiopianDateHelper::toEthCalendar($enddateParts[2], $enddateParts
 
 if (isset($_GET['export']) && $_GET['export'] == 'excel') {
     header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
-    header("Content-Disposition: attachment; filename=Inclusive_Report_08.xls");
+    header("Content-Disposition: attachment; filename=ሥራ እድል መፍጠሪያ አማራጮች በየዘርፉ.xls");
     header("Pragma: no-cache");
     header("Expires: 0");
     echo "\xEF\xBB\xBF"; 
@@ -63,6 +63,11 @@ foreach ($reportData as $row) {
 </style>
 
 <div class="table-container">
+<div style="text-align: right; margin-bottom: 15px;" class="no-print">
+        <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'excel'])) ?>" class="btn btn-success">
+            <i class="fa fa-file-excel"></i> ወደ Excel አውርድ (Export to Excel)
+        </a>
+    </div>
     <center class="mb-3">
         <h3 class="font-weight-bold" style="margin-bottom: 5px;">የ<?= htmlspecialchars($residenceStatus ?? 'የለም'); ?> ሥራ እድል መፍጠሪያ አማራጮች በየዘርፉ ሪፖርት <?php echo ($residenceStatus == "ከተማ") ? "(ሠ8)" : "(ሠ9)"; ?></h3>
         <h5 style="margin-top: 0; color: #475569;">የመዋቅር ደረጃ፦ <strong><?= htmlspecialchars($selectedBranchName ?? 'የለም'); ?></strong></h5>
@@ -80,7 +85,7 @@ foreach ($reportData as $row) {
             <tr>
                 <th rowspan="2" style="min-width: 220px;" class="align-middle">የሥራ እድል መፍጠሪያ አማራጮች</th>
                 <th rowspan="2" style="min-width: 100px;" class="align-middle">ዋና ዋና ዘርፎች</th>
-                <th colspan="3">ክንውን (ቋሚ)</th>
+                <th colspan="3">ቋሚ</th>
                 <th colspan="3">ጊዜያዊ</th>
                 <th colspan="3">ቋሚና ጊዜያዊ</th>
             </tr>
