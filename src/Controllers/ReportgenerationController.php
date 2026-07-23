@@ -16,7 +16,72 @@ class ReportgenerationController extends BaseController
         $this->reportModel = new ReportgenerationModel($this->db);
     }
 
-public function awarenessallanalyticsShow()
+
+
+public function orgteamAnalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ??  null;
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsDataot($branchId);
+
+    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
+    if (!$chartsData) {
+        $chartsData = [
+            'yetederajubet_akababi'    => ['ከተማ' => 0, 'ገጠር' => 0],
+            'project_type' => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0]
+            
+            
+        ];
+    }
+
+    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
+    $this->render('/orgteam-analytics', [
+        'title'      => 'የአደረጃጀት ስታቲስቲክስ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
+
+
+
+
+
+public function jcreationAnalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ??  null;
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsDatajc($branchId);
+
+    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
+    if (!$chartsData) {
+        $chartsData = [
+            'employmentstatus'    => ['ቋሚ' => 0, 'ጊዜያዊ' => 0],
+            'jobcreationreason' => ['አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' => 0, 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' => 0, 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' => 0, 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' => 0, 'በህ/ስ/ማህበራት የተቀጠሩ' => 0, 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' => 0, 'በመንግስት መ/ቤቶች የተቀጠሩ' => 0, 'የውጭ አገር ሥራ ስምሪት' => 0],
+            'persector' => ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0]
+            
+        ];
+    }
+
+    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
+    $this->render('/jcreation-analytics', [
+        'title'      => 'የስራ እድል ስታቲስቲክስ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
+
+
+    public function awarenessallanalyticsShow()
 {
     // ሰሽን ቀድሞ ካልተጀመረ ብቻ እንዲጀምር ማድረግ (ፍሬምወርኩ ራሱ የሚጀምረው ከሆነ ይህንን ማጥፋት ትችላለህ)
     if (session_status() === PHP_SESSION_NONE) {

@@ -33,7 +33,7 @@
         <!-- 2ኛ ረድፍ፦ የስራ ፈላጊዎች እና ወላጆች ሁኔታ -->
         <div class="row">
             <div class="col-md-6 mb-4">
-                <a href="awareness-analytics" class="text-decoration-none d-block h-100 text-dark"> 
+                <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/awareness-analytics" class="text-decoration-none d-block h-100 text-dark"> 
                 <div class="card shadow-sm border-0 h-100" style="border-radius: 12px;">
                     <div class="card-body">
                         <h6 class="font-weight-bold text-muted mb-3">ግንዛቤ ፈጠራ በስራ ፈላጊዎች (በፆታ)</h6>
