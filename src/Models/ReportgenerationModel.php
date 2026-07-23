@@ -15,6 +15,196 @@ class ReportgenerationModel
         $this->db = $db;
     }
 
+
+public function getDashboardChartsDataot($branchId)
+{
+    // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
+    if (empty($branchId)) {
+        return [
+            'yetederajubet_akababi' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'project_type'          => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0]
+        ];
+    }
+
+    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ)
+    $sqlBranches = "WITH RECURSIVE SubBranches AS (
+                        SELECT b.internal_id FROM branches b
+                        INNER JOIN branches root ON root.internal_id = :my_branch
+                        WHERE b.path LIKE CONCAT(root.path, '%')
+                    ) SELECT internal_id FROM SubBranches";
+                    
+    $stmtB = $this->db->prepare($sqlBranches);
+    $stmtB->execute(['my_branch' => $branchId]);
+    $branchIds = array_filter($stmtB->fetchAll(PDO::FETCH_COLUMN));
+
+    if (empty($branchIds)) {
+        $branchIds = [$branchId];
+    }
+
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    // 2. የአደረጃጀት ዳታዎችን ከዳታቤዝ መሳብ
+    $res = $this->db->query("SELECT yetederajubet_akababi, project_type
+                             FROM group_table 
+                             WHERE branch_id IN ($inClause)")->fetchAll(PDO::FETCH_ASSOC);
+
+    // ነባሪ መዋቅር ማዘጋጀት
+    $akababiCounts = ['ከተማ' => 0, 'ገጠር' => 0];
+    $projectTypes  = [
+        'የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0
+    ];
+
+    foreach ($res as $row) {
+        // 1. የተደራጁበት አካባቢ (1 = ከተማ, 2 = ገጠር)
+        $valAkababi = isset($row['yetederajubet_akababi']) ? trim((string)$row['yetederajubet_akababi']) : '';
+        if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
+            $akababiCounts['ከተማ']++;
+        } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
+            $akababiCounts['ገጠር']++;
+        }
+
+        // 2. የአደረጃጀቱ አይነት (Project Type)
+        $reason = isset($row['project_type']) ? trim((string)$row['project_type']) : '';
+        if (!empty($reason)) {
+            if (array_key_exists($reason, $projectTypes)) {
+                $projectTypes[$reason]++;
+            } else {
+                $projectTypes[$reason] = 1;
+            }
+        }
+    }
+
+    return [
+        'yetederajubet_akababi' => $akababiCounts,
+        'project_type'          => $projectTypes
+    ];
+}
+
+
+
+
+public function getDashboardChartsDatajc($branchId)
+{
+    // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
+    if (empty($branchId)) {
+        return [
+            'employmentstatus'  => ['ቋሚ' => 0, 'ጊዜያዊ' => 0],
+            'jobcreationreason' => [
+                'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' => 0,
+                'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' => 0,
+                'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' => 0,
+                'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' => 0,
+                'በህ/ስ/ማህበራት የተቀጠሩ' => 0,
+                'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' => 0,
+                'በመንግስት መ/ቤቶች የተቀጠሩ' => 0,
+                'የውጭ አገር ሥራ ስምሪት' => 0
+            ],
+            'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+            'persector' => ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0],
+            'gender'    => ['ወንድ' => 0, 'ሴት' => 0]
+        ];
+    }
+
+    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ)
+    $sqlBranches = "WITH RECURSIVE SubBranches AS (
+                        SELECT b.internal_id FROM branches b
+                        INNER JOIN branches root ON root.internal_id = :my_branch
+                        WHERE b.path LIKE CONCAT(root.path, '%')
+                    ) SELECT internal_id FROM SubBranches";
+                    
+    $stmtB = $this->db->prepare($sqlBranches);
+    $stmtB->execute(['my_branch' => $branchId]);
+    $branchIds = array_filter($stmtB->fetchAll(PDO::FETCH_COLUMN));
+
+    if (empty($branchIds)) {
+        $branchIds = [$branchId];
+    }
+
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    // 2. የስራ እድል ፈጠራ ዳታዎችን ከዳታቤዝ መሳብ
+    $res = $this->db->query("SELECT employment_type, job_creation_reason, sector 
+                             FROM code003sraedl 
+                             WHERE branchid IN ($inClause)")->fetchAll(PDO::FETCH_ASSOC);
+
+    // ነባሪ መዋቅር ማዘጋጀት
+    $employmentstatus = ['ቋሚ' => 0, 'ጊዜያዊ' => 0];
+    $jobcreationreason = [
+        'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' => 0,
+        'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' => 0,
+        'የግል ዘርፍ ኢንቭስትመንት/ድርጅቶች የተቀጠሩ' => 0,
+        'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' => 0,
+        'በህ/ስ/ማህበራት የተቀጠሩ' => 0,
+        'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' => 0,
+        'በመንግስት መ/ቤቶች የተቀጠሩ' => 0,
+        'የውጭ አገር ሥራ ስምሪት' => 0
+    ];
+    $persector = ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0];
+
+    foreach ($res as $row) {
+        // 1. የቅጥር ሁኔታ (1 = ቋሚ, 2 = ጊዜያዊ)
+        $empStatus = isset($row['employment_type']) ? trim((string)$row['employment_type']) : '';
+        if ($empStatus === '1' || $empStatus === 'ቋሚ') {
+            $employmentstatus['ቋሚ']++;
+        } else if ($empStatus === '2' || $empStatus === 'ጊዜያዊ') {
+            $employmentstatus['ጊዜያዊ']++;
+        }
+
+        // 2. የሥራ እድል መፍጠሪያ አማራጮች
+        $reason = isset($row['job_creation_reason']) ? trim((string)$row['job_creation_reason']) : '';
+        if (!empty($reason)) {
+            if (array_key_exists($reason, $jobcreationreason)) {
+                $jobcreationreason[$reason]++;
+            } else {
+                $jobcreationreason[$reason] = 1;
+            }
+        }
+
+        // 3. በዋና ዋና ዘርፎች (1 = ኢንዱስትሪ, 2 = ግብርና, 3 = አገልግሎት)
+        $sec = isset($row['sector']) ? trim((string)$row['sector']) : '';
+        if ($sec === '2' || $sec === 'ግብርና') {
+            $persector['ግብርና']++;
+        } else if ($sec === '1' || $sec === 'ኢንዱስትሪ') {
+            $persector['ኢንዱስትሪ']++;
+        } else if ($sec === '3' || $sec === 'አገልግሎት') {
+            $persector['አገልግሎት']++;
+        }
+    }
+
+    return [
+        'employmentstatus'  => $employmentstatus,
+        'jobcreationreason' => $jobcreationreason,
+        'persector'         => $persector
+    ];
+}
+    
+public function getTotalOrgteamCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የስራ እድል የተፈጠረላቸውን መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(gt.id) as total 
+        FROM group_table gt
+        INNER JOIN SubBranches sb ON gt.branch_id = sb.internal_id 
+        ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}
+
+
+
 public function getTotalCreationCountByHierarchy($branchId)
 {
     if (empty($branchId)) {
@@ -39,6 +229,8 @@ $sql = "WITH RECURSIVE SubBranches AS (
 
     return isset($result['total']) ? (int)$result['total'] : 0;
 }
+
+
 
     public function getTotalAwarenessCountByHierarchy($branchId)
 {

@@ -22,4 +22,11 @@ return [
     'awareness-all-analytics' => ['ReportgenerationController', 'awarenessallanalyticsShow', true],
     'awareness-analytics' => ['ReportgenerationController', 'awarnessAnalyticsShow', true],
 
+    // የስራ እድል ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
+    'jcreation-analytics' => ['ReportgenerationController', 'jcreationAnalyticsShow', true],
+
+    // የአደረጃጀት ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
+    'orgteam-analytics' => ['ReportgenerationController', 'orgteamAnalyticsShow', true],
+
+
 ];
