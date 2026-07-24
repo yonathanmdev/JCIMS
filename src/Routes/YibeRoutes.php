@@ -15,6 +15,8 @@ return [
     'report-7'   => ['ReportgenerationController', 'report6Show', true],
     'report-8'   => ['ReportgenerationController', 'report8Show', true],
     'report-9'   => ['ReportgenerationController', 'report8Show', true],
+    //'report-2'   => ['ReportgenerationController', 'report2Show', true],
+    //'report-3'   => ['ReportgenerationController', 'report2Show', true],
 
     // የስራ ፈላጊዎች ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
     'seeker-analytics' => ['ReportgenerationController', 'seekerAnalyticsShow', true],
@@ -27,6 +29,9 @@ return [
 
     // የአደረጃጀት ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
     'orgteam-analytics' => ['ReportgenerationController', 'orgteamAnalyticsShow', true],
+
+    // የኢንተርፐራይዝ ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
+    'enterprise-analytics' => ['ReportgenerationController', 'enterpriseAnalyticsShow', true],
 
 
 ];

@@ -42,6 +42,8 @@ class DashboardController extends BaseController {
             $total_job_seekers = $reportModel->getTotalJobSeekersCountByHierarchy($branch_id);
             $total_creation = $reportModel->getTotalCreationCountByHierarchy($branch_id);
             $total_orgteam = $reportModel->getTotalOrgteamCountByHierarchy($branch_id);
+            $total_enterprse = $reportModel->getTotalEnterpriseCountByHierarchy($branch_id);
+            $total_user = $reportModel->getTotalUserCountByHierarchy($branch_id);
         }
         
         // 2. ለባለሙያዎች (HR / Operation Roles)
@@ -51,12 +53,16 @@ class DashboardController extends BaseController {
             $onleave_employees    = $employeeModel->getOnleaveEmployeesCount($branch_id);
             $studyleave_employees = $employeeModel->getStudyleaveEmployeesCount($branch_id);
             $total_orgteam = $reportModel->getTotalOrgteamCountByHierarchy($branch_id);
+            $total_enterprse = $reportModel->getTotalEnterpriseCountByHierarchy($branch_id);
+            $total_user = $reportModel->getTotalUserCountByHierarchy($branch_id);
             
             // ለባለሙያውም የስራ ፈላጊውን ቁጥር ይቆጥራል
             $total_job_seekers    = $reportModel->getTotalJobSeekersCountByHierarchy($branch_id);
             $total_awareness = $reportModel->getTotalAwarenessCountByHierarchy($branch_id);
             $total_creation = $reportModel->getTotalCreationCountByHierarchy($branch_id);
             $total_orgteam = $reportModel->getTotalOrgteamCountByHierarchy($branch_id);
+            $total_enterprse = $reportModel->getTotalEnterpriseCountByHierarchy($branch_id);
+            $total_user = $reportModel->getTotalUserCountByHierarchy($branch_id);
 
         }
 
@@ -74,7 +80,10 @@ class DashboardController extends BaseController {
             'total_job_seekers'    => $total_job_seekers, // አዲሱ የቁጥር ዳታ
             'total_awareness' => $total_awareness, // አዲሱ የግንዛቤ ፈጠራ ቁጥር ዳታ
             'total_creation' => $total_creation, // አዲሱ የስራ እድል ፈጠራ ቁጥር ዳታ
-            'total_orgteam' => $total_orgteam // አዲሱ የማህበር ቁጥር ዳታ
+            'total_orgteam' => $total_orgteam, // አዲሱ የማህበር ቁጥር ዳታ
+            'total_enterprse' => $total_enterprse, // አዲሱ የኢንተርፕራይዝ ቁጥር ዳታ
+            'total_user' => $total_user // አዲሱ የተጠቃሚ ቁጥር ዳታ
+
         ];
 
         $this->render('dashboard', $data);
