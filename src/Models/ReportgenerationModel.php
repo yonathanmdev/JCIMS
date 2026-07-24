@@ -16,6 +16,62 @@ class ReportgenerationModel
     }
 
 
+
+public function getTotalUserCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የስራ እድል የተፈጠረላቸውን መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(us.id) as total 
+        FROM users us
+        INNER JOIN SubBranches sb ON us.branch_id = sb.internal_id 
+        ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}   
+
+
+
+
+public function getTotalEnterpriseCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የስራ እድል የተፈጠረላቸውን መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(ce.id) as total 
+        FROM code003 ce
+        INNER JOIN SubBranches sb ON ce.branch_id = sb.internal_id 
+        ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}   
+
+
+
 public function getDashboardChartsDataot($branchId)
 {
     // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
@@ -1478,4 +1534,63 @@ public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate
     }
 }
 
+public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus): array
+{
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT 
+            TRIM(sub.sub_sector_name) AS sub_sector_name,
+            sec.sector AS sector_name,
+            
+            -- የኢንተርፕራይዝ ቁጥር (1 = በንግድ ማህበር, 2 = በግላበጥ)
+            SUM(CASE WHEN TRIM(c.organization_type) = '1' THEN 1 ELSE 0 END) AS biz_mahber,
+            SUM(CASE WHEN TRIM(c.organization_type) = '2' THEN 1 ELSE 0 END) AS biz_private,
+
+            -- ቋሚ (Employment Type = 1)
+            SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ወንድ' THEN 1 ELSE 0 END) AS perm_m,
+            SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ሴት' THEN 1 ELSE 0 END) AS perm_f,
+            
+            -- ጊዜያዊ (Employment Type = 2)
+            SUM(CASE WHEN TRIM(c.employment_type) = '2' AND TRIM(js.gender) = 'ወንድ' THEN 1 ELSE 0 END) AS temp_m,
+            SUM(CASE WHEN TRIM(c.employment_type) = '2' AND TRIM(js.gender) = 'ሴት' THEN 1 ELSE 0 END) AS temp_f
+
+        FROM code003sraedl c
+        INNER JOIN job_seekers js ON c.jobseeker_id = js.job_seeker_id
+        INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
+        INNER JOIN sub_sector sub ON c.subsector = sub.sub_sectorid
+        INNER JOIN sector_table sec ON sub.sectorid = sec.sectorid
+        WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check)
+          AND c.created_at BETWEEN :start_date AND :end_date
+        GROUP BY TRIM(sub.sub_sector_name), sec.sector
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        
+        if ($residenceStatus === null) {
+            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+        }
+        
+        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_CLASS);
+
+    } catch (\PDOException $e) {
+        return [];
+    }
+}
 }
