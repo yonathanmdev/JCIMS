@@ -99,7 +99,7 @@ public function getGroupsByBranch(int $branchId, int $page = 1, int $perPage = 1
     $totalCount = (int)$stmtCount->fetchColumn();
 
     // 3. Fetch the data for this specific branch
-    $sqlData = "SELECT id, table_id, branch_id, association_name, sub_sector,project_type,  yesra_mesk FROM group_table 
+    $sqlData = "SELECT id, table_id, branch_id, association_name, sub_sector,project_type,  yesra_mesk, is_enterprise FROM group_table 
                 WHERE branch_id = :branch_id 
                 ORDER BY created_at DESC 
                 LIMIT :limit OFFSET :offset";
@@ -131,6 +131,7 @@ public function getTeamWithMembers(string $teamId): ?array
                        g.sub_sector, g.yesra_mesk, g.project_type, g.yesra_mesk,
                        g.teamleader_id, g.manager_phone, g.vice_teamleader_id,
                        g.treasurer, g.procurement, g.registered_by, g.project_ID,
+                       g.is_enterprise,
                        g.created_at,
                        ss.subsector,
                        st.sector,
@@ -306,7 +307,7 @@ public function getTeamForEdit(string $teamUuid): ?array
             LEFT JOIN job_seekers treas   ON treas.job_seeker_id   = g.treasurer
             LEFT JOIN job_seekers proc    ON proc.job_seeker_id    = g.procurement
             LEFT JOIN projectngos pn      ON pn.pid                = g.project_ID
-            WHERE g.id = :uuid
+            WHERE g.id = :uuid AND g.is_enterprise = 0
             LIMIT 1";
 
     $stmt = $this->db->prepare($sql);
@@ -377,7 +378,7 @@ public function updateTeamFormation(string $teamUuid, array $payload): array
                     treasurer             = :treasurer,
                     procurement           = :procurement,
                     project_ID            = :project_ID
-                WHERE branch_id = :branch_id AND id = :team_uuid
+                WHERE branch_id = :branch_id AND id = :team_uuid AND is_enterprise = 0
                 LIMIT 1";
 
         $stmt = $this->db->prepare($sql);
@@ -421,7 +422,7 @@ public function purge(int $branchId, string $userId, string $teamId, string $rea
         $stmt = $this->db->prepare("
             SELECT id, table_id, project_type
             FROM group_table
-            WHERE branch_id = :branchId AND id = :id 
+            WHERE branch_id = :branchId AND id = :id AND is_enterprise = 0
             LIMIT 1
         ");
         $stmt->execute([':branchId' => $branchId, ':id' => $teamId]);
@@ -508,9 +509,10 @@ public function purge(int $branchId, string $userId, string $teamId, string $rea
         // 6. Delete the group_table row itself (already archived)
         $stmt = $this->db->prepare("
             DELETE FROM group_table
-            WHERE id = :teamId
+            WHERE branch_id = :branchId AND id = :teamId AND is_enterprise = 0
         ");
-        $stmt->execute([':teamId' => $teamId]);
+        $stmt->execute([':branchId' => $branchId,
+        ':teamId' => $teamId]);
 
         $this->db->commit();
 

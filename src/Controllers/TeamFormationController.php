@@ -97,7 +97,7 @@ class TeamFormationController extends BaseController {
 
             $jobSeekerModel = new JobSeekerModel($this->db);
             $allUuids = array_filter(array_unique(array_merge($roleValues, $selected)));
-            $idMap = $jobSeekerModel->getJobSeekerIds($allUuids);
+            $idMap = $jobSeekerModel->getJobSeekerIds($allUuids, $_SESSION['user']['branch_id']);
             // Add this temporarily
             // Payload Construction
             $payload = [
@@ -391,7 +391,7 @@ public function updateTeamFormation()
         // 6. Convert submitted job_seeker UUIDs -> int job_seeker_id (same trust boundary as create flow)
         $jobSeekerModel = new JobSeekerModel($this->db);
         $roleUuids = array_filter(array_unique([$leaderId, $viceId, $financeId, $procId]));
-        $idMap = $jobSeekerModel->getJobSeekerIds($roleUuids); // ['UUID' => INT_JOB_SEEKER_ID]
+        $idMap = $jobSeekerModel->getJobSeekerIds($roleUuids, $_SESSION['user']['branch_id']); // ['UUID' => INT_JOB_SEEKER_ID]
 
         $resolvedLeaderId  = $idMap[$leaderId]  ?? null;
         $resolvedViceId    = $idMap[$viceId]    ?? null;

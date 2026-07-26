@@ -161,6 +161,33 @@ class MenuConfig
                     
                 ]
             ],  
+             [
+                'label' => 'ኢንተርፕሪዘ',
+                'icon'  => 'fas fa-users',
+                'roles' => ['team_leader', 'officer'],
+                'children' => [
+                    [
+                        'label' => 'መመዝገብ',
+                        'url'   => '/enterprise-registration',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                     [
+                        'label' => 'ዝርዝር',
+                        'url'   => '/enterprise-lists',
+                        'roles' => ['team_leader', 'officer'],
+                        
+                    ],
+                    [
+                        'label' => 'Code003',
+                        'url'   => '/Code003',
+                        'roles' => ['team_leader', 'officer'],
+                         'target' => '_blank',
+                        
+                    ],
+                    
+                ]
+            ],  
             [
                 'label' => 'ስራ እድል',
                 'icon'  => 'fas fa-users',
