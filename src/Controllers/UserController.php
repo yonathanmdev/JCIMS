@@ -290,6 +290,71 @@ public function handleUpdateUser()
     exit();
 }
 
+public function resetPassword(): void
+{
+    // Must be POST, not GET — this is a state-changing action
+    AuthHelper::checkRole(['system_admin', 'org_admin']);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        exit('Method not allowed');
+    }
+
+    $userId = filter_input(INPUT_POST, 'id');
+    if (!$userId) {
+        $_SESSION['error'] = 'Invalid User ID.';
+        header('Location: ' . $_ENV['BASE_URL'] . '/register-user');
+        exit();
+    }
+
+    $userModel = new User($this->db);
+    $selectedUser = $userModel->findById($userId);
+
+    if (!$selectedUser) {
+        $_SESSION['error'] = 'User not found.';
+        header('Location: ' . $_ENV['BASE_URL'] . '/register-user');
+        exit();
+    }
+
+    if ($selectedUser['status'] === 'inactive') {
+        $_SESSION['error'] = 'User status is locked, cannot reset password.';
+        header('Location: ' . $_ENV['BASE_URL'] . '/register-user');
+        exit();
+    }
+
+    $newPassword = (string) random_int(100000, 999999);
+    $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+
+    $success = $userModel->resetPassword($userId, $hashedPassword);
+
+    if (!$success) {
+        $_SESSION['error'] = 'Error updating record.';
+        header('Location: ' . $_ENV['BASE_URL'] . '/register-user');
+        exit();
+    }
+
+    $phoneNumber = '251' . ltrim(trim($selectedUser['phone']), '0');
+    $message = "User {$selectedUser['username']}, Your password has been reset. "
+             . "Your new temporary password is:- {$newPassword}. "
+             . "Please log in and change your password.";
+
+    \App\Helpers\SmsHelper::send($phoneNumber, $message);
+    // Email sending — same pattern, via its own helper
+    // \App\Helpers\EmailHelper::send($user['uemail'], $message);
+
+    \App\Helpers\AuditHelper::log(
+        action: 'password_reset_by_admin',
+        entityType: 'user',
+        entityId: (string) $userId,
+        oldValues: null,
+        newValues: null,
+        metadata: ['reset_by' => $_SESSION['user']['id'] ?? null]
+    );
+
+    $_SESSION['success'] = 'Password reset successfully and default password sent via SMS.';
+    header('Location: ' . $_ENV['BASE_URL'] . '/register-user');
+    exit();
+}
+
 public function delete(): void
 {
     AuthHelper::checkRole(['system_admin', 'org_admin']);

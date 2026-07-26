@@ -91,3 +91,68 @@ $(document).on('click', '.view-jobseeker-btn', function () {
                 '<p class="text-danger text-center">መረጃ መጫን አልተሳካም</p>';
         });
 });
+ document.addEventListener('DOMContentLoaded', function () {
+    const printButtons = document.querySelectorAll('.print-id-btn');
+    
+    printButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            // መረጃዎችን ከ በተኑ attribute መውሰድ
+            const data = JSON.parse(this.getAttribute('data-info'));
+            const logoUrl = this.getAttribute('data-logo');
+            const branchName = this.getAttribute('data-branch');
+            
+            const printWindow = window.open('', '_blank', 'width=450,height=600');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>መታወቂያ ካርድ</title>
+                    <style>
+                        body { font-family: 'Nyala', 'Arial', sans-serif; display: flex; justify-content: center; padding: 20px; }
+                        .id-card { width: 380px; padding: 15px; border: 1px solid #000; }
+                        .header { text-align: center; margin-bottom: 10px; }
+                        .logo { width: 60px; }
+                        .meta-info { font-size: 12px; margin-bottom: 10px; text-align: right; }
+                        .section-title { background: #eee; font-weight: bold; padding: 2px 5px; margin-top: 10px; display: flex; justify-content: space-between; }
+                        .row-data { display: flex; justify-content: space-between; padding: 2px 5px; border-bottom: 1px solid #f0f0f0; }
+                        .footer { margin-top: 20px; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="id-card">
+                        <div class="header">
+                            <img src="${logoUrl}" class="logo">
+                            <div>የአብክመ ስራና ክህሎት ቢሮ</div>
+                            <div>የስራ ፈላጊ መታወቂያ ካርድ</div>
+                        </div>
+                        <div class="meta-info">
+                            <div>መታወቂያ ቁጥር: ${data.job_seeker_id}</div>
+                            <div>የተሰጠበት ቀን: ${data.created_at}</div>
+                        </div>
+                        <div style="width: 80px; height: 100px; border: 1px solid #ccc; margin-bottom: 10px;"></div>
+                        
+                        <div class="section-title"><span>Personal Information</span><span>Description</span></div>
+                        <div class="row-data"><span>ሙሉ ስም</span><span>${data.first_name} ${data.father_name}</span></div>
+                        <div class="row-data"><span>ጾታ</span><span>${data.gender}</span></div>
+                        <div class="row-data"><span>እድሜ</span><span>${data.age}</span></div>
+                        <div class="row-data"><span>የትምህርት ደረጃ</span><span>${data.educational_level}</span></div>
+                        
+                        <div class="section-title"><span>Adress</span><span>Description</span></div>
+                        <div class="row-data"><span>የተመዘገበበት ወረዳ/ማዕከል </span><span>${branchName}</span></div>
+                        
+                        <div class="footer">
+                            <p>የሰጠው ባለሙያ ስም: ....................</p>
+                            <p>ፊርማ: ....................</p>
+                        </div>
+                    </div>
+                    <script>
+                        window.print();
+                        window.onafterprint = function() { window.close(); };
+                    </script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        });
+    });
+});

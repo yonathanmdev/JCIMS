@@ -1,15 +1,10 @@
-// team-member-add.js
+// jobseeker-search.js
 document.addEventListener('DOMContentLoaded', () => {
-    const openBtn = document.getElementById('addMemberBtn');
-    const modalEl = document.getElementById('addMemberModal');
-    const input = document.getElementById('addMemberSearchInput');
-    const resultsBox = document.getElementById('addMemberSearchResults');
-    const membersTableBody = document.getElementById('membersTableBody');
-    const membersCountBadge = document.getElementById('membersCountBadge');
+    const input = document.getElementById('jobSeekerSearchInput');
+    const resultsBox = document.getElementById('jobSeekerSearchResults');
+    const spinner = document.getElementById('searchSpinner');
 
-    if (!openBtn || !modalEl || !input || !resultsBox) return;
-
-    const teamInternalId = openBtn.dataset.teamTableId; // int table_id, set on the button in the view
+    if (!input || !resultsBox) return;
 
     let debounceTimer = null;
     let abortController = null;
@@ -19,10 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(debounceTimer);
 
         if (query.length < 2) {
+            resultsBox.classList.add('d-none');
             resultsBox.innerHTML = '';
+            spinner.classList.add('d-none');
             return;
         }
 
+        spinner.classList.remove('d-none');
         debounceTimer = setTimeout(() => runSearch(query), 300);
     });
 
@@ -41,102 +39,107 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResults(data.results || []);
         } catch (err) {
             if (err.name === 'AbortError') return;
-            console.error('Add-member search error:', err);
+            console.error('Job seeker search error:', err);
+            resultsBox.classList.add('d-none');
+        } finally {
+            spinner.classList.add('d-none');
         }
     }
 
     function renderResults(results) {
         if (results.length === 0) {
-            resultsBox.innerHTML = `<div class="text-muted text-center py-2">ምንም አልተገኘም</div>`;
+            resultsBox.innerHTML = `
+                <div class="search-empty-state">
+                    <i class="fas fa-search"></i>
+                    ምንም አልተገኘም (No results found)
+                </div>`;
+            resultsBox.classList.remove('d-none');
             return;
         }
 
         resultsBox.innerHTML = results.map(r => `
-            <div class="d-flex align-items-center justify-content-between border-bottom py-2">
-                <div>
-                    <div class="font-weight-bold">
+            <div class="search-result-item" data-jobseeker-id="${escapeHtml(r.id)}">
+                <div class="search-result-info" role="button" tabindex="0">
+                    <span class="search-result-name">
                         ${escapeHtml(r.first_name)} ${escapeHtml(r.father_name)} ${escapeHtml(r.last_name)}
-                    </div>
-                    <small class="text-muted">${escapeHtml(r.job_seeker_id)} — ${escapeHtml(r.branch_name)}</small>
+                    </span>
+                    <span class="search-result-meta">
+                        <span class="search-result-badge">${escapeHtml(r.job_seeker_id)}</span>
+                        <span class="dot"></span>
+                        ${escapeHtml(r.branch_name)}
+                    </span>
                 </div>
-                <button type="button"
-                        class="btn btn-success btn-sm add-member-pick-btn"
-                        data-job-seeker-id="${escapeHtml(r.job_seeker_id)}">
-                    <i class="fas fa-plus"></i> ጨምር
-                </button>
+                <div class="search-result-actions">
+                    <button type="button"
+                            class="btn btn-outline-warning btn-sm edit-jobseeker-btn"
+                            data-id="${escapeHtml(r.id)}"
+                            title="አስተካክል">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
             </div>
         `).join('');
+
+        resultsBox.classList.remove('d-none');
     }
 
+    // Click handling within the dropdown itself.
+    // NOTE: the edit button is intentionally NOT stopPropagation()'d here —
+    // it must bubble up to document so the existing delegated handler in
+    // jobseeker-form-validation.js ($(document).on('click', '.edit-jobseeker-btn', ...))
+    // catches it and runs the real fetch/populate/modal flow. We only close
+    // the search dropdown here as a side effect; we don't reimplement the edit logic.
     resultsBox.addEventListener('click', (e) => {
-        const btn = e.target.closest('.add-member-pick-btn');
-        if (!btn) return;
-        addMember(btn.dataset.jobSeekerId, btn);
+        const editBtn = e.target.closest('.edit-jobseeker-btn');
+        if (editBtn) {
+            closeSearchDropdown();
+            return; // let the click continue bubbling to document
+        }
+
+        const infoArea = e.target.closest('.search-result-info');
+        if (infoArea) {
+            const item = infoArea.closest('.search-result-item');
+            if (item) openJobseekerView(item.dataset.jobseekerId);
+        }
     });
 
-    async function addMember(jobSeekerId, triggerBtn) {
-        triggerBtn.disabled = true;
-        triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    resultsBox.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const infoArea = e.target.closest('.search-result-info');
+        if (!infoArea) return;
+        const item = infoArea.closest('.search-result-item');
+        if (item) openJobseekerView(item.dataset.jobseekerId);
+    });
 
-        try {
-            const response = await fetch(`${window.BASE_URL}/?action=add-team-member`, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    team_id: teamInternalId,
-                    job_seeker_id: jobSeekerId,
-                }),
+    function openJobseekerView(jobseekerId) {
+        if (!jobseekerId) return;
+
+        document.getElementById('jobseekerViewBody').innerHTML =
+            '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+
+        $('#jobseekerViewModal').modal('show');
+
+        fetch(`${window.BASE_URL}/retrieve-jobseeker?jobseeker_id=${jobseekerId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    document.getElementById('jobseekerViewBody').innerHTML =
+                        `<p class="text-danger text-center">${data.message}</p>`;
+                    return;
+                }
+                renderJobseekerView(data.jobseeker);
+            })
+            .catch(() => {
+                document.getElementById('jobseekerViewBody').innerHTML =
+                    '<p class="text-danger text-center">መረጃ መጫን አልተሳካም</p>';
             });
 
-            if (!response.ok) throw new Error('HTTP error: ' + response.status);
-
-            const data = await response.json();
-
-            if (data.status === 'success') {
-                appendMemberRow(data.member);
-                triggerBtn.closest('.d-flex').remove();
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: 'ተጨምሯል!', timer: 1200, showConfirmButton: false });
-                }
-            } else {
-                triggerBtn.disabled = false;
-                triggerBtn.innerHTML = '<i class="fas fa-plus"></i> ጨምር';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'ስህተት!', text: data.message || 'መጨመር አልተቻለም' });
-                } else {
-                    alert(data.message || 'መጨመር አልተቻለም');
-                }
-            }
-        } catch (err) {
-            console.error('Add member error:', err);
-            triggerBtn.disabled = false;
-            triggerBtn.innerHTML = '<i class="fas fa-plus"></i> ጨምር';
-        }
+        closeSearchDropdown();
     }
 
-    function appendMemberRow(member) {
-        if (!membersTableBody) return;
-
-        // Remove the "no members yet" placeholder row if present
-        const emptyRow = membersTableBody.querySelector('.empty-members-row');
-        if (emptyRow) emptyRow.remove();
-
-        const rowCount = membersTableBody.querySelectorAll('tr').length + 1;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${rowCount}</td>
-            <td>${escapeHtml(member.job_seeker_id)}</td>
-            <td>${escapeHtml([member.first_name, member.father_name, member.last_name].filter(Boolean).join(' '))}</td>
-            <td>${escapeHtml(member.gender ?? '—')}</td>
-            <td>${escapeHtml(member.phone_number ?? '—')}</td>
-        `;
-        membersTableBody.appendChild(tr);
-
-        if (membersCountBadge) {
-            membersCountBadge.textContent = String(rowCount);
-        }
+    function closeSearchDropdown() {
+        resultsBox.classList.add('d-none');
+        input.value = '';
     }
 
     function escapeHtml(str) {
@@ -146,9 +149,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
-    // Clear search state each time the modal is closed
-    $(modalEl).on('hidden.bs.modal', () => {
-        input.value = '';
-        resultsBox.innerHTML = '';
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.classList.add('d-none');
+        }
     });
 });

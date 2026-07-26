@@ -40,6 +40,7 @@ class DashboardController extends BaseController {
             
             // ለአስተዳዳሪውም የስራ ፈላጊውን ቁጥር ይቆጥራል
             $total_job_seekers = $reportModel->getTotalJobSeekersCountByHierarchy($branch_id);
+            $total_creation = $reportModel->getTotalCreationCountByHierarchy($branch_id);
         }
         
         // 2. ለባለሙያዎች (HR / Operation Roles)
@@ -52,6 +53,7 @@ class DashboardController extends BaseController {
             // ለባለሙያውም የስራ ፈላጊውን ቁጥር ይቆጥራል
             $total_job_seekers    = $reportModel->getTotalJobSeekersCountByHierarchy($branch_id);
             $total_awareness = $reportModel->getTotalAwarenessCountByHierarchy($branch_id);
+            $total_creation = $reportModel->getTotalCreationCountByHierarchy($branch_id);
 
         }
 
@@ -67,7 +69,8 @@ class DashboardController extends BaseController {
             'total_users'          => $total_users,
             'active_users'         => $active_users,
             'total_job_seekers'    => $total_job_seekers, // አዲሱ የቁጥር ዳታ
-            'total_awareness' => $total_awareness // አዲሱ የግንዛቤ ፈጠራ ቁጥር ዳታ
+            'total_awareness' => $total_awareness, // አዲሱ የግንዛቤ ፈጠራ ቁጥር ዳታ
+            'total_creation' => $total_creation // አዲሱ የስራ እድል ፈጠራ ቁጥር ዳታ
         ];
 
         $this->render('dashboard', $data);

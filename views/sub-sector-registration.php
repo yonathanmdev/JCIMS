@@ -13,7 +13,7 @@ $is_sub_sector_registration_page = true;
           data-target="#subsectorRegistrationModal"
         >
           <i class="fas fa-user-plus mr-2"></i>
-          ንዑስ ዘርፍ መዝግብ
+          ንዑስ ዘርፍ   መዝግብ
         </button>
       </div>
     </div>

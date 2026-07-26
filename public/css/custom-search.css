@@ -182,3 +182,28 @@
     border-width: 2px;
     color: #9aa5b1;
 }
+ 
+/* የካርዱ አጠቃላይ ስታይል */
+.id-card {
+    border: 1px solid #ccc;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    background: #fff;
+}
+.id-header { text-align: center; border-bottom: 2px solid #0056b3; margin-bottom: 15px; }
+.id-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.id-table th, .id-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+.id-table th { background-color: #f8f9fa; width: 40%; }
+.print-btn-hidden { display: none; }
+
+/* ህትመት ሲደረግ ብቻ የሚሰሩ ስታይሎች */
+@media print {
+    body * { visibility: hidden; }
+    #printableCard, #printableCard * { visibility: visible; }
+    #printableCard { position: absolute; left: 0; top: 0; width: 100%; }
+    .modal-footer { display: none; }
+}
+ 

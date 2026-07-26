@@ -277,7 +277,7 @@ window.addEventListener('DOMContentLoaded', function() {
         
         if (query.length >= 2) {
             $.ajax({
-                url: window.location.origin + '<base href="<?= $_ENV['BASE_URL'] ?>">search-job-seekers-ajax', 
+                url: <?= rtrim($_ENV['BASE_URL'], '/') ?> '/search-job-seekers-ajax', 
                 method: 'GET',
                 data: { seeker_q: query },
                 dataType: 'json',

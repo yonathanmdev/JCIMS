@@ -110,7 +110,7 @@
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="age"><small class="font-weight-bold">FAN <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="FAN" name="FAN"  data-validate="numeric-only" data-length="16">
+                  <input type="text" class="form-control form-control-sm" id="FAN" name="FAN"  data-validate="numeric-only" data-length="16" required>
                 </div>
               </div>
                <div class="col-12 col-sm-6 col-md-3">

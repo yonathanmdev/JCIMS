@@ -63,12 +63,21 @@ echo htmlspecialchars($roleMap[$role] ?? 'ባለሙያ');
                <button class="btn btn-outline-secondary btn-sm edit-user" 
                       data-id="<?= $row['id'] ?>"  title="አስተካክል"  >
                 <i class="fas fa-edit"></i>
-              </button> 
+              </button>
+             <form method="POST" action="<?= $_ENV['BASE_URL'] ?>/reset-password" style="display:inline;">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($row['id']) ?>">
+    <button type="submit" class="btn btn-outline-warning btn-sm" title="Reset Password"
+            onclick="return confirm('Reset this user\'s password?');">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+</form>
               <button class="btn btn-outline-danger btn-sm delete-user" 
                       data-id="<?= $row['id'] ?>"  data-name="<?= htmlspecialchars($row['first_name']).' '.htmlspecialchars($row['father_name']).' '.htmlspecialchars($row['grand_father_name']) ?>"  title="ሰርዝ">
 
                   <i class="fas fa-trash-alt me-1"></i>
               </button>
+
+              
             </td>
           </tr>
         <?php endforeach; ?>

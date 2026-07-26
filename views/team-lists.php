@@ -49,12 +49,12 @@ $offset = ($currentPage - 1) * 15;
 // Assume $myBranchId is available here, e.g., from a session or user object
 // $myBranchId = AuthHelper::getUserBranchId(); // Example of how you might get it
 
-if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id']): ?>
+if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id'] && $team['is_enterprise'] == 0): ?>
     <button class="btn btn-outline-danger btn-sm delete-team-btn"
         data-id="<?= htmlspecialchars($team['id']) ?>"
         data-name="<?= htmlspecialchars($team['association_name']) ?>"
         title="አጥፋ">
-    <i class="fas fa-trash"></i>
+   <i class="fas fa-trash-alt me-1"></i>
 </button>
 <?php endif; ?>
                   </td>

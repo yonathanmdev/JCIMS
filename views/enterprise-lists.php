@@ -2,7 +2,7 @@
 use App\Helpers\EthiopianDateHelper; 
 use App\Helpers\AuthHelper;
 $fiscal_year = AuthHelper::checkFiscalYear();
-$is_jobseeker_list_page = true; 
+$is_enterprise_list_page = true; 
 ?>
 <section class="content">
   <div class="container-fluid">
@@ -12,7 +12,7 @@ $is_jobseeker_list_page = true;
   
      <div class="card-body">
       <small class="text-muted">
-        ጠቅላላ የመዘገቡት ስራ ፈላጊ ብዛት፦
+        ጠቅላላ የተመዘገቡት ኢንተርፕራይዝ ብዛት፦
      <span class="badge badge-primary"> 
         <?= $totalCount ?>
   </span>
@@ -22,73 +22,69 @@ $is_jobseeker_list_page = true;
         <div class="search-input-wrapper">
             <i class="fas fa-search search-icon"></i>
             <input type="text"
-                   id="jobSeekerSearchInput"
+                   id="enterpriseSearchInput"
                    class="form-control search-input"
-                   placeholder="ስም ወይም መ/ቁ ይፈልጉ... (Search by name or ID)"
+                   placeholder="ስም ወይም TIN ይፈልጉ... (Search by name or TIN)"
                    autocomplete="off">
             <span id="searchSpinner" class="search-spinner d-none">
                 <i class="fas fa-spinner fa-spin"></i>
             </span>
         </div>
-        <div id="jobSeekerSearchResults" class="search-results-dropdown d-none"></div>
+        <div id="enterpriseSearchResults" class="search-results-dropdown d-none"></div>
     </div>
 
-    <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/jobseekers-list-export-excel"
+    <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/enterprises-list-export-excel"
        class="btn btn-secondary shadow-sm"
        id="exportBtn">
         <i class="fas fa-file-excel mr-1"></i> Export to Excel
     </a>
 </div>
         <!-- Example Table (optional) -->
-      <table id="example1" data-empty-msg="ምንም ስራ ፈላጊ የለም።" class="table table-bordered table-hover small">
+      <table id="example1" data-empty-msg="ምንም ኢንተርፕራይዝ የለም።" class="table table-bordered table-hover small">
     <thead class="thead-light">
         <tr>
             <th>#</th>
-            <th>መ/ቁ</th>
-            <th>ስም</th>
-            <th>ጾታ</th>
+            <th>የኢንተርፕራይዝ ስም</th>
+            <th>TIN NO.</th>
+            <th>ዓይነት</th>
             <th>የተመዘገበበት </th>
             <th>Action</th>
         </tr>
     </thead>
     <tbody>
-        <?php if (!empty($jobSeekers)): ?>
-            <?php foreach ($jobSeekers as $index => $js): ?>
-                <tr id="row-<?= $js['id'] ?>">
-                     <td><?= $offset + $index + 1 ?></td>
-                    <td><?=$js['job_seeker_id'] ?></td>
-                    <td><?= htmlspecialchars($js['first_name']) . ' ' . htmlspecialchars($js['father_name']) . ' ' . htmlspecialchars($js['last_name']) ?></td>
-                    <td><?= htmlspecialchars($js['gender']) ?></td>
+        <?php if (!empty($enterprises)): ?>
+            <?php foreach ($enterprises as $index => $ent): ?>
+                <tr id="row-<?= $ent['id'] ?>">
+                     <td><?= $offset + $index + 1 ?></td>                  
+                    <td><?= htmlspecialchars($ent['enterprisename']) ?></td>
+                     <td><?= htmlspecialchars($ent['tine_number']) ?></td>
+                    <td><?= htmlspecialchars($ent['enterprise_type']) ?></td>
                      <td>
-    <?php if ($js['branch_id'] == $_SESSION['user']['branch_id']): ?>
-        <?= htmlspecialchars($js['branch_name']) ?>
+    <?php if ($ent['branch_id'] == $_SESSION['user']['branch_id']): ?>
+        <?= htmlspecialchars($ent['branch_name']) ?>
     <?php else: ?>
-        <?= htmlspecialchars($js['display_branch_name'] ?? $js['branch_name']) ?>
+        <?= htmlspecialchars($ent['display_branch_name'] ?? $ent['branch_name']) ?>
     <?php endif; ?>
 </td>
                     <td class="text-center align-middle">
-                        <button class="btn btn-outline-primary btn-sm view-jobseeker-btn"
-                                data-id="<?= htmlspecialchars($js['id']) ?>"
+                        <button class="btn btn-outline-primary btn-sm view-enterprise-btn"
+                                data-id="<?= htmlspecialchars($ent['id']) ?>"
                                 title="ሙሉ መረጃ ይመልከቱ">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <!-- Print ID Button -->
-   <button class="btn btn-outline-success btn-sm print-id-btn"
-        data-info="<?= htmlspecialchars(json_encode($js), ENT_QUOTES, 'UTF-8') ?>"
-        data-logo="<?= htmlspecialchars($_SESSION['user']['logo_url'], ENT_QUOTES, 'UTF-8') ?>"
-        data-branch="<?= htmlspecialchars($_SESSION['user']['full_branch_name'], ENT_QUOTES, 'UTF-8') ?>"
-        title="መታወቂያ አትም">
-    <i class="fas fa-print"></i>
-</button>
                       <?php 
-// Assume $myBranchId is available here, e.g., from a session or user object
-// $myBranchId = AuthHelper::getUserBranchId(); // Example of how you might get it
-
-if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $js['branch_id'] === $_SESSION['user']['branch_id']): ?>
-    <button class="btn btn-outline-warning btn-sm edit-jobseeker-btn"
-            data-id="<?= htmlspecialchars($js['id']) ?>"
+if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $ent['branch_id'] === $_SESSION['user']['branch_id']): ?>
+    <button class="btn btn-outline-warning btn-sm edit-enterprise-btn"
+            data-id="<?= htmlspecialchars($ent['id']) ?>"
             title="አስተካክል">
         <i class="fas fa-edit"></i>
+    </button>
+
+     <button class="btn btn-outline-danger btn-sm delete-enterprise-btn"
+            data-id="<?= htmlspecialchars($ent['id']) ?>"
+            data-name="<?= htmlspecialchars($ent['enterprisename']) ?>"
+           title="አጥፋ">
+   <i class="fas fa-trash-alt me-1"></i>
     </button>
 <?php endif; ?>
 
@@ -97,13 +93,13 @@ if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $js['branch_id'] 
             <?php endforeach; ?>
         <?php else: ?>
             <tr>
-                <td colspan="4" class="text-center text-muted py-3">ዛሬ ምንም ስራ ፈላጊ አልመዘገቡም።</td>
+                <td colspan="6" class="text-center text-muted py-3">ምንም ኢንተርፕራይዝ አልተመዘገበም።</td>
             </tr>
         <?php endif; ?>
     </tbody>
 </table>
 <?php
-$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual working route
+$basePath = rtrim($_ENV['BASE_URL'], '/') . '/enterprises-list'; // your actual working route
 ?>
 
 <?php if ($totalPages > 1): ?>
@@ -129,5 +125,3 @@ $basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual w
   </div>
   </div>
 </section>
-<?php include 'partials/jobseeker-modal.php'; ?>
-<?php include 'partials/jobseeker-views-modal.php'; ?>

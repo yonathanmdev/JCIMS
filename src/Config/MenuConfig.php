@@ -96,7 +96,7 @@ class MenuConfig
                     [
                         'label' => 'መከላከያ መመዝገብ',
                         'url'   => '/solgure-registration',
-                        'roles' => ['officer'],
+                        'roles' => ['team_leader','officer'],
                         'levels' => [3]
                     ],
                     [
@@ -104,7 +104,14 @@ class MenuConfig
                         'url'   => '/solgure-registration',
                         'roles' => ['team_leader', 'officer'],
                         'levels' => [1, 2, 3]
+                    ],
+                    [
+                        'label' => 'ሪፖርት በቁጥር',
+                        'url'   => '/solgure-list-by-branch',
+                        'roles' => ['team_leader', 'officer'],
+                        'levels' => [1,2]
                     ]
+
                 ]
             ],
 
@@ -154,6 +161,33 @@ class MenuConfig
                     
                 ]
             ],  
+             [
+                'label' => 'ኢንተርፕሪዘ',
+                'icon'  => 'fas fa-users',
+                'roles' => ['team_leader', 'officer'],
+                'children' => [
+                    [
+                        'label' => 'መመዝገብ',
+                        'url'   => '/enterprise-registration',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                     [
+                        'label' => 'ዝርዝር',
+                        'url'   => '/enterprise-lists',
+                        'roles' => ['team_leader', 'officer'],
+                        
+                    ],
+                    [
+                        'label' => 'Code003',
+                        'url'   => '/Code003',
+                        'roles' => ['team_leader', 'officer'],
+                         'target' => '_blank',
+                        
+                    ],
+                    
+                ]
+            ],  
             [
                 'label' => 'ስራ እድል',
                 'icon'  => 'fas fa-users',
@@ -174,6 +208,25 @@ class MenuConfig
                     
                 ]
             ], 
+               [
+                'label' => 'ኢ-መደበኛ ኢ/ዝ',
+                'icon'  => 'fas fa-users',
+                'roles' => ['officer'],
+                'levels' => [3, 4],
+                'children' => [
+                    [
+                        'label' => 'ኢ-መደበኛ ኢ/ዝ መመዝገብ',
+                        'url'   => '/informal-entrerprise-regstration',
+                        'roles' => ['officer'],
+                        'levels' => [3, 4]
+                    ],
+                    [
+                        'label' => 'ኢ-መደበኛ ኢ/ዝ ዝርዝር',
+                        'url'   => '/informal-entrerprise-list',
+                        'roles' => ['team_leader', 'officer']
+                    ]
+                ]
+            ],
              [
                 'label' => 'ዝዉዉር',
                 'icon'  => 'fas fa-users',

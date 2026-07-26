@@ -126,7 +126,7 @@ public function createsubSector(array $data): bool {
             return false;
         }
     } 
-public function getSubSectors(int $limit = 50, int $offset = 0): array
+public function getSubSectors(int $limit = 100, int $offset = 0): array
 {
     $sql = "SELECT
                 ss.id,
@@ -249,6 +249,15 @@ public function getAllSectors() {
     $query = "SELECT sub_sectorid, subsector FROM sub_sector WHERE sectorid = :sectorid ORDER BY subsector ASC";
     $stmt = $this->db->prepare($query);
     $stmt->execute(['sectorid' => $sectorId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// 1. Add this method to your Sector Model (or wherever appropriate)
+public function getSectorsBySubSector($sub_sector) {
+    $query = "SELECT sectorid FROM sub_sector WHERE sub_sectorid = :sub_sectorid ORDER BY sub_sectorid ASC"; 
+    // Note: Adjust table name (`sectors`) and column names (`sector_id`, `sector_name`) to match your actual database schema if different.
+    $stmt = $this->db->prepare($query);
+    $stmt->execute(['sub_sectorid' => $sub_sector]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
     }

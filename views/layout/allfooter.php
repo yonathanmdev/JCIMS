@@ -180,7 +180,7 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script> 
-     <script src="<?= myAsset('js/delete-team-setup.js') ?>"></script> 
+     <script src="<?= myAsset('js/team-setup-delete.js') ?>"></script> 
     
     <?php endif; ?>
 
@@ -188,7 +188,31 @@ function myAsset($path) {
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-     <script src="<?= myAsset('js/team-member-add.js') ?>"></script> 
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
+    <script src="<?= myAsset('js/team-member-add.js') ?>"></script>
+    <script src="<?= myAsset('js/team-set-up-edit.js') ?>"></script> 
+    <script src="<?= myAsset('js/team-set-up-members-delete.js') ?>"></script>
+   
+    <?php endif; ?>
+
+      <?php if (isset($is_enterprise_registration_page) && $is_enterprise_registration_page === true): ?>
+    <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
+    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
+    <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
+    <script src="<?= myAsset('js/enterprise/enterprise-registration.js') ?>"></script>
+    <script src="<?= myAsset('js/enterprise/assocation-enterprise.js') ?>"></script>
+    <script src="<?= myAsset('js/enterprise/individual-enterprise.js') ?>"></script>
+   
+    
+    <?php endif; ?>
+
+       <?php if (isset($is_enterprise_list_page) && $is_enterprise_list_page === true): ?>
+    <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
+    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
+    <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
+    <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
+    <script src="<?= myAsset('js/enterprise/enterprise-delete.js') ?>"></script>
     <?php endif; ?>
 
 
@@ -199,15 +223,7 @@ function myAsset($path) {
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     
     <?php endif; ?>
-
-   
-    
-    <?php if (isset($is_employee_scholarship_returnee) && $is_employee_scholarship_returnee === true): ?>
-    <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
-    <script src="plugins/jquery-validation/additional-methods.min.js"></script>
-    <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
-    
-    <?php endif; ?>
+  
     
     <?php if (isset($is_employee_warranty_page) && $is_employee_warranty_page === true): ?>
           <script src="<?= myAsset('js/employee-warranty.js') ?>"></script>

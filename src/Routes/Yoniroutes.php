@@ -7,6 +7,7 @@ return [
     'register-process'              => ['UserController', 'handleRegistration', true],
     'edit-user'                     => ['UserController', 'getUserById', true],
     'edit-user-process'             => ['UserController', 'handleUpdateUser', true],
+    'reset-password'                => ['UserController', 'resetPassword', true],
     'delete-user-process'           => ['UserController', 'delete', true],
     'deleted-users'                 => ['UserController', 'showDeletedLists', true],
     'restore-user'           => ['UserController', 'restore', true],
@@ -56,9 +57,22 @@ return [
     'jobseekers-search-for-organizing' => ['JobseekerController', 'searchJobSeekersForOrganizing', true],
     'team-formation'   => ['TeamFormationController', 'teamFormation', true],
     'team-lists'       => ['TeamFormationController', 'listGroups', true],
-     'team-members-view'    => ['TeamFormationController', 'retrieveTeamMembers', true],
+    'team-members-view'    => ['TeamFormationController', 'retrieveTeamMembers', true],
+    'team-data-edit' => ['TeamFormationController', 'getTeamForEdit', true],
     'add-team-member' => ['TeamFormationController', 'addMember', true],
-     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
+    'team-update' => ['TeamFormationController', 'updateTeamFormation', true],
+    'team-purge' => ['TeamFormationController', 'purge', true],
+    'member-purge' => ['TeamFormationController', 'purgeMember', true],
+    
+    //enterprise
+   'enterprise-registration'                 => ['EnterpriseController', 'showRegisterForm', true],
+   'enterprise-search-linked-entity' => ['EnterpriseController', 'searchLinkedEntity', true],
+   'enterprise-registration-process'         => ['EnterpriseController', 'registerEnterprise', true],
+   'individual-enterprise-registration-process'         => ['EnterpriseController', 'createIndividualEnterprise', true],
+   'enterprise-lists'                        => ['EnterpriseController', 'listofEnterprises', true],
+   'enterprise-purge'                        => ['EnterpriseController', 'purge', true],
+   'code003' => ['EnterpriseController', 'displayCode003', true],
+    'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs
     'audit-logs'         => ['AuditController', 'index', true],
