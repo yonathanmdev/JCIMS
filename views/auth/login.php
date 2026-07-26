@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 <html lang="en">
     
 <head>
-    <base href="<?= $_ENV['BASE_URL'] ?>/">
+    <base href="<base href="<?= $_ENV['BASE_URL'] ?>">">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Log in — Warka Hub JCIMS</title>
@@ -410,7 +410,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <div class="panel-left">
         <img
             class="banner"
-            src="public/images/JCIMS-login-banner.jpeg"
+            src="public/images<base href="<?= $_ENV['BASE_URL'] ?>">-login-banner.jpeg"
             alt="Warka Hub JCIMS — Manage your team with ease"
         >
         <span class="banner-footer">© <?php echo date('Y'); ?> Warka Hub JCIMS</span>
