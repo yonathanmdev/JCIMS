@@ -59,25 +59,29 @@ public function getJobSeekerById(string $id): ?array
         return null;
     }
 }
-public function getJobSeekerIds(array $uuids): array
+public function getJobSeekerIds(array $uuids, int $branchId): array
 {
-    if (empty($uuids)) return [];
+    if (empty($uuids)) {
+        return [];
+    }
 
-    // 1. Reset keys to be 0, 1, 2... to prevent parameter index mismatches
     $cleanUuids = array_values(array_unique($uuids));
-    
-    // 2. Create the correct number of placeholders
+
     $placeholders = implode(',', array_fill(0, count($cleanUuids), '?'));
 
-    $sql = "SELECT id, job_seeker_id FROM job_seekers WHERE id IN ($placeholders)";
+    $sql = "
+        SELECT id, job_seeker_id 
+        FROM job_seekers 
+        WHERE branch_id = ?
+        AND id IN ($placeholders)
+    ";
 
     try {
         $stmt = $this->db->prepare($sql);
-        
-        // 3. Execute using the clean, indexed array
-        $stmt->execute($cleanUuids);
 
-        // This returns [ "UUID" => INT_JOB_SEEKER_ID ]
+        // branch_id first, then UUIDs
+        $stmt->execute(array_merge([$branchId], $cleanUuids));
+
         return $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
 
     } catch (\PDOException $e) {
@@ -85,7 +89,6 @@ public function getJobSeekerIds(array $uuids): array
         return [];
     }
 }
-
  /**
  * @param array       $data
  * @param string|null $excludeJobseekerId  job_seeker_id to exclude from matching, or null for create mode
@@ -487,7 +490,7 @@ public function getJobSeekersForGovernmentProject(int $branchId, int $limit, arr
             js.gender,
             js.created_at
         FROM job_seekers js
-        WHERE js.branch_id = :branch_id
+        WHERE js.branch_id = :branch_id AND js.orgstatus = 1
         AND (js.employment_status IS NULL OR js.employment_status IN (0, 2))
         {$excludeClause}
         ORDER BY js.created_at ASC
@@ -543,6 +546,7 @@ public function searchJobSeekersForOrganizing(int $branchId, string $term): arra
               AND ({$matchClause}CAST(js.job_seeker_id AS CHAR) LIKE :term_like
                    OR js.full_name_normalized LIKE :term_like)
               AND (js.employment_status IS NULL OR js.employment_status IN (0, 2))
+              AND js.orgstatus = 1
             LIMIT 15";
 
     $stmt = $this->db->prepare($sql);
@@ -699,14 +703,21 @@ public function countJobSeekersByHierarchy(string $myBranchId): int
         return 0;
     }
 }
-public function getJobSeekersByHierarchy(string $myBranchId, int $limit, int $offset): array
+public function getJobSeekersByHierarchy(int $myBranchId, int $limit, int $offset): array
 {
-    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender,js.age,js.educational_level,  
-                   js.branch_id,js.created_at, -- Added this line
-                   b.name AS branch_name, b.level AS branch_level
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender,
+                   js.branch_id,
+                   b.name AS branch_name, b.level AS branch_level,
+                   anc.internal_id AS display_branch_id,
+                   anc.name AS display_branch_name,
+                   anc.level AS display_branch_level
             FROM job_seekers js
             INNER JOIN branches b ON js.branch_id = b.internal_id
             INNER JOIN branches root ON root.internal_id = :my_branch
+            LEFT JOIN branches anc
+                   ON anc.level = root.level + 1
+                  AND anc.path LIKE CONCAT(root.path, '%')
+                  AND b.path LIKE CONCAT(anc.path, '%')
             WHERE b.path LIKE CONCAT(root.path, '%')
             ORDER BY js.created_at DESC
             LIMIT :limit OFFSET :offset";
@@ -764,7 +775,12 @@ public function updateJobseeker(array $data): bool
         if (!$result) {
             throw new \Exception("Failed to update jobseeker");
         }
-
+ // Keep code003.enterprise_name in sync for individual enterprises tied to this job seeker
+        $this->syncEnterpriseNameOnJobSeekerEdit(
+            $data['branch_id'],
+            $data['intid'],
+            trim($data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['last_name'])
+        );
         $this->db->commit();
         return true;
 
@@ -782,6 +798,24 @@ public function updateJobseeker(array $data): bool
         error_log("Job seeker update transaction failed: " . $e->getMessage());
         return false;
     }
+}
+
+public function syncEnterpriseNameOnJobSeekerEdit(int $branch_id, int $jobSeekerId, string $newFullName): void
+{
+    // Only individual enterprises store the job seeker's name as enterprise_name
+    $stmt = $this->db->prepare("
+        UPDATE code003 c
+        INNER JOIN junction_table_individual_and_team jt ON jt.table_id = c.junction_table_id
+        INNER JOIN individual_enterprise ie ON ie.individual_ent_id = jt.individual_enterprise_id
+        SET c.enterprisename = :newName
+        WHERE c.branch_id = :branchId
+          AND ie.job_seeker_id = :jobSeekerId
+    ");
+    $stmt->execute([
+        ':newName'     => $newFullName,
+        ':branchId'    => $branch_id,
+        ':jobSeekerId' => $jobSeekerId,
+    ]);
 }
 /**
  * Streams ALL job seekers under a branch hierarchy for export.

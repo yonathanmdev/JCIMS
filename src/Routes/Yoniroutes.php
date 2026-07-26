@@ -63,6 +63,15 @@ return [
     'team-update' => ['TeamFormationController', 'updateTeamFormation', true],
     'team-purge' => ['TeamFormationController', 'purge', true],
     'member-purge' => ['TeamFormationController', 'purgeMember', true],
+    
+    //enterprise
+   'enterprise-registration'                 => ['EnterpriseController', 'showRegisterForm', true],
+   'enterprise-search-linked-entity' => ['EnterpriseController', 'searchLinkedEntity', true],
+   'enterprise-registration-process'         => ['EnterpriseController', 'registerEnterprise', true],
+   'individual-enterprise-registration-process'         => ['EnterpriseController', 'createIndividualEnterprise', true],
+   'enterprise-lists'                        => ['EnterpriseController', 'listofEnterprises', true],
+   'enterprise-purge'                        => ['EnterpriseController', 'purge', true],
+   'code003' => ['EnterpriseController', 'displayCode003', true],
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     // Audit Logs

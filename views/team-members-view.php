@@ -14,7 +14,7 @@ $members = $team['members'] ?? [];
   <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
     <h3 class="card-title">የማህበሩ ስም፡ <?= htmlspecialchars($team['association_name']) ?></h3>
     <div class="ml-md-auto mt-2 mt-md-0">
-      <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id']): ?>
+      <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $team['branch_id'] === $_SESSION['user']['branch_id'] && $team['is_enterprise'] == 0): ?>
        <button type="button"
         class="editTeamBtn btn btn-outline-primary btn-sm"
         data-toggle="modal"

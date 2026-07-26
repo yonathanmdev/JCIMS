@@ -251,4 +251,13 @@ public function getAllSectors() {
     $stmt->execute(['sectorid' => $sectorId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// 1. Add this method to your Sector Model (or wherever appropriate)
+public function getSectorsBySubSector($sub_sector) {
+    $query = "SELECT sectorid FROM sub_sector WHERE sub_sectorid = :sub_sectorid ORDER BY sub_sectorid ASC"; 
+    // Note: Adjust table name (`sectors`) and column names (`sector_id`, `sector_name`) to match your actual database schema if different.
+    $stmt = $this->db->prepare($query);
+    $stmt->execute(['sub_sectorid' => $sub_sector]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
     }

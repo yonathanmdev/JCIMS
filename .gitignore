@@ -11,5 +11,5 @@ storage/
 /public/.htaccess
 .env
 *.sql
-composer.lock
-composer.json
+extensions.txt
+AUDIT_LOGGING_README.md

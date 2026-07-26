@@ -223,7 +223,7 @@ function confirmDelete({
                     if (typeof onSuccess === 'function') onSuccess();
                 });
             } else {
-                Swal.fire({
+                Swal.fire({ 
                     title: 'ስህተት!',
                     html:  `<p style="color:#dc3545;">${data.message}</p>`,
                     icon:  'error',
