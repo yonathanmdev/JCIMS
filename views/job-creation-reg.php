@@ -143,6 +143,7 @@
  
 <script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
 
+  var baseUrl = "<?= htmlspecialchars(rtrim($_ENV['BASE_URL'] ?? '', '/'), ENT_QUOTES, 'UTF-8') ?>";
 
 function attachLiveSearch() {
     const input = document.getElementById("enterpriseSearch");
@@ -220,7 +221,7 @@ function showInputForm() {
 
     if (sectorId) {
         // የRouter አድራሻህን በዚህ ቀይረው
-      fetch('./get-sub-sectors?sector_id=' + sectorId)
+      fetch(baseUrl + '/get-sub-sectors?sector_id=' + sectorId)
             .then(response => response.json())
             .then(data => {
                 subSectorSelect.innerHTML = '<option value="" disabled selected>-- ይምረጡ --</option>';

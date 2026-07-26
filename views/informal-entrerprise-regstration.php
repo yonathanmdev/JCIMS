@@ -151,6 +151,7 @@
 </section>
 
 <script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+  var baseUrl = "<?= htmlspecialchars(rtrim($_ENV['BASE_URL'] ?? '', '/'), ENT_QUOTES, 'UTF-8') ?>";
 
 // የቀበሌ መታወቂያ ቁጥር ማስገቢያውን እንደ ምርጫው ማብራት/ማጥፋት
 document.getElementById('has_kebele_id').addEventListener('change', function() {
@@ -179,7 +180,7 @@ document.getElementById('sector_select').addEventListener('change', function() {
     subSectorSelect.innerHTML = '<option value="" disabled selected>ይጫናል...</option>';
 
     if (sectorId) {
-        fetch('./get-sub-sectors?sector_id=' + sectorId)
+      fetch(baseUrl + '/get-sub-sectors?sector_id=' + sectorId)
             .then(response => response.json())
             .then(data => {
                 subSectorSelect.innerHTML = '<option value="" disabled selected>-- ይምረጡ --</option>';
