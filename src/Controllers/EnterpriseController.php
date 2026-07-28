@@ -79,11 +79,13 @@ public function registerEnterprise(): void
 
     $branchId = $_SESSION['user']['branch_id'] ?? null;
     $userId = $_SESSION['user']['id'] ?? null;
-       if($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+         $_SESSION['success'] = 'Invalid Request. Please try again';
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/logout');
         exit;
     }
     if (!$branchId || !$userId) {
+        $_SESSION['error'] = 'branch or user id invalid';
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/logout');
         exit;
     }
