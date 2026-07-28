@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="search-result-name">
                         ${escapeHtml(r.first_name)} ${escapeHtml(r.father_name)} ${escapeHtml(r.last_name)}
                     </span>
+                    
                     <span class="search-result-meta">
                         <span class="search-result-badge">${escapeHtml(r.job_seeker_id)}</span>
                         <span class="dot"></span>

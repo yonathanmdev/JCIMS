@@ -547,7 +547,7 @@ public function searchJobSeekersForOrganizing(int $branchId, string $term): arra
                    OR js.full_name_normalized LIKE :term_like)
               AND (js.employment_status IS NULL OR js.employment_status IN (0, 2))
               AND js.orgstatus = 1
-            LIMIT 15";
+            LIMIT 10";
 
     $stmt = $this->db->prepare($sql);
     foreach ($params as $key => $val) {
@@ -558,6 +558,7 @@ public function searchJobSeekersForOrganizing(int $branchId, string $term): arra
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 public function recordSingleRemoval(
     string $branchId,
     string $removedBy,
@@ -884,7 +885,7 @@ public function countJobSeekersByHierarchyRenewal(string $myBranchId, int $fisca
 }
 public function getJobSeekersByHierarchyRenewal(string $myBranchId, int $limit, int $offset, int $fiscal_year): array
 {
-    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.gender, js.last_name, js.employment_status, 
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.gender, js.last_name, js.phone_number, js.employment_status, 
                    b.name AS branch_name, b.level AS branch_level
             FROM job_seekers_archive js
             INNER JOIN branches b ON js.branch_id = b.internal_id

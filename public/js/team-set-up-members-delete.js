@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 successText: `${teamName} ተሰርዟል።`,
                 requireReason:   true,
                 requirePassword: true,
+                reasonOptions: [
+            { value: 'wrong_member',  label: 'በስህተት የተጨመረ አባል' },
+            { value: 'death', label: 'በሞት' },
+            { value: 'job',   label: 'ሌላ ስራ የያዙ' },
+        ],
                 onSuccess: () => archiveBtn.closest('tr')?.remove()
             });
             return;

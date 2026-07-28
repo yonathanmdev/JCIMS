@@ -15,6 +15,7 @@ function confirmDelete({
     onSuccess,
     requireReason   = true,
     requirePassword = true,
+    reasonOptions   = null,   // ← NEW: array of {value, label}
 
 }) {
     const isDelete = (task === 'delete');
@@ -38,33 +39,39 @@ function confirmDelete({
                 </p>
             </div>
 
-            ${requireReason ? `
-            <div style="
-                background:#fff5f5; border:1px solid #ffcccc;
-                border-radius:10px; padding:16px; margin-bottom:16px;
-                text-align:left;
-            ">
-                <label style="
-                    display:block; font-size:13px; font-weight:600;
-                    color:#555; margin-bottom:6px;
-                ">
-                    <i class="fas fa-comment-alt" style="color:#dc3545; margin-right:5px;"></i>
-                    ምክንያት <span style="color:#dc3545;">*</span>
-                </label>
-                <textarea
-                    id="swalReason"
-                    rows="3"
-                    placeholder="ምክንያት ያስገቡ..."
-                    style="
-                        width:100%; padding:10px 12px;
-                        border:1.5px solid #ffaaaa; border-radius:8px;
-                        font-size:13px; resize:none; outline:none;
-                        background:#fff; color:#333;
-                        transition:border-color 0.2s;
-                        box-sizing:border-box;
-                    "
-                ></textarea>
-            </div>` : ''}
+${requireReason ? (reasonOptions ? `
+<div style="background:#fff5f5; border:1px solid #ffcccc; border-radius:10px; padding:16px; margin-bottom:16px; text-align:left;">
+    <label style="display:block; font-size:13px; font-weight:600; color:#555; margin-bottom:6px;">
+        <i class="fas fa-comment-alt" style="color:#dc3545; margin-right:5px;"></i>
+        ምክንያት <span style="color:#dc3545;">*</span>
+    </label>
+    <select
+        id="swalReasonSelect"
+        style="width:100%; padding:10px 12px; border:1.5px solid #ffaaaa; border-radius:8px; font-size:13px; outline:none; background:#fff; color:#333; box-sizing:border-box;"
+    >
+        <option value="">-- ይምረጡ --</option>
+        ${reasonOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('')}
+        <option value="other">ሌላ (Other)</option>
+    </select>
+    <textarea
+        id="swalReasonOther"
+        rows="3"
+        placeholder="ምክንያት ያስገቡ..."
+        style="width:100%; padding:10px 12px; border:1.5px solid #ffaaaa; border-radius:8px; font-size:13px; resize:none; outline:none; background:#fff; color:#333; transition:border-color 0.2s; box-sizing:border-box; margin-top:10px; display:none;"
+    ></textarea>
+</div>` : `
+<div style="background:#fff5f5; border:1px solid #ffcccc; border-radius:10px; padding:16px; margin-bottom:16px; text-align:left;">
+    <label style="display:block; font-size:13px; font-weight:600; color:#555; margin-bottom:6px;">
+        <i class="fas fa-comment-alt" style="color:#dc3545; margin-right:5px;"></i>
+        ምክንያት <span style="color:#dc3545;">*</span>
+    </label>
+    <textarea
+        id="swalReason"
+        rows="3"
+        placeholder="ምክንያት ያስገቡ..."
+        style="width:100%; padding:10px 12px; border:1.5px solid #ffaaaa; border-radius:8px; font-size:13px; resize:none; outline:none; background:#fff; color:#333; transition:border-color 0.2s; box-sizing:border-box;"
+    ></textarea>
+</div>`) : ''}
 
             ${requirePassword ? `
             <div style="
@@ -140,7 +147,18 @@ function confirmDelete({
                 el.addEventListener('focus', () => { el.style.borderColor = '#dc3545'; });
                 el.addEventListener('blur',  () => { el.style.borderColor = '#ffaaaa'; });
             });
-
+const reasonSelectEl = document.getElementById('swalReasonSelect');
+const reasonOtherEl  = document.getElementById('swalReasonOther');
+if (reasonSelectEl && reasonOtherEl) {
+    reasonSelectEl.addEventListener('change', () => {
+        if (reasonSelectEl.value === 'other') {
+            reasonOtherEl.style.display = 'block';
+            reasonOtherEl.focus();
+        } else {
+            reasonOtherEl.style.display = 'none';
+        }
+    });
+}
             // Replace inline onclick on the eye icon
             if (toggleEl && passwordEl) {
                 toggleEl.addEventListener('click', () => {
@@ -157,28 +175,60 @@ function confirmDelete({
             const first = reasonEl || passwordEl;
             if (first) first.focus();
         },
-        preConfirm: () => {
-            const reason   = requireReason   ? document.getElementById('swalReason')?.value.trim()   : null;
-            const password = requirePassword ? document.getElementById('swalPassword')?.value.trim() : null;
+preConfirm: () => {
+    const password = requirePassword ? document.getElementById('swalPassword')?.value.trim() : null;
+    let reason = null;
 
-            if (requireReason && !reason) {
+    if (requireReason) {
+        if (reasonOptions) {
+            const selectEl = document.getElementById('swalReasonSelect');
+            const otherEl  = document.getElementById('swalReasonOther');
+            const selected = selectEl?.value;
+
+            if (!selected) {
+                Swal.showValidationMessage('<i class="fas fa-exclamation-circle"></i> እባክዎ ምክንያት ይምረጡ');
+                selectEl.focus();
+                return false;
+            }
+
+            if (selected === 'other') {
+                reason = otherEl?.value.trim();
+                if (!reason) {
+                    Swal.showValidationMessage('<i class="fas fa-exclamation-circle"></i> እባክዎ ምክንያት ያስገቡ');
+                    otherEl.focus();
+                    return false;
+                }
+                if (reason.length < 10) {
+                    Swal.showValidationMessage('<i class="fas fa-exclamation-circle"></i> ምክንያቱ ቢያንስ 10 ፊደል መሆን አለበት');
+                    otherEl.focus();
+                    return false;
+                }
+            } else {
+                reason = selectEl.options[selectEl.selectedIndex].value;
+            }
+        } else {
+            reason = document.getElementById('swalReason')?.value.trim();
+            if (!reason) {
                 Swal.showValidationMessage('<i class="fas fa-exclamation-circle"></i> እባክዎ ምክንያት ያስገቡ');
                 document.getElementById('swalReason').focus();
                 return false;
             }
-            if (requireReason && reason.length < 10) {
+            if (reason.length < 10) {
                 Swal.showValidationMessage('<i class="fas fa-exclamation-circle"></i> ምክንያቱ ቢያንስ 10 ፊደል መሆን አለበት');
                 document.getElementById('swalReason').focus();
                 return false;
             }
-            if (requirePassword && !password) {
-                Swal.showValidationMessage('<i class="fas fa-exclamation-circle"></i> እባክዎ ፓስዋርድ ያስገቡ');
-                document.getElementById('swalPassword').focus();
-                return false;
-            }
-
-            return { password, reason };
         }
+    }
+
+    if (requirePassword && !password) {
+        Swal.showValidationMessage('<i class="fas fa-exclamation-circle"></i> እባክዎ ፓስዋርድ ያስገቡ');
+        document.getElementById('swalPassword').focus();
+        return false;
+    }
+
+    return { password, reason };
+}
     }).then(result => {
         if (!result.isConfirmed) return;
 

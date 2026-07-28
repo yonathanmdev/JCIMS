@@ -186,13 +186,13 @@ public function getTeamWithMembers(string $teamId): ?array
  *                                NOT the UUID g.id used in URLs.
  * @param string $jobSeekerId     job_seekers.job_seeker_id of the person to add.
  */
-public function addMember(int $branchId, string $teamUUID, string $jobSeekerId): array
+public function addMember(int $branchId, int $userId, string $teamUUID, string $jobSeekerId): array
 {
     try {
         // 1. Confirm the team exists and get its project_type, so we know
         //    whether to mirror the NGO employment_status update from
         //    createTeamFormation().
-        $sqlTeam = "SELECT table_id, project_type FROM group_table WHERE branch_id = :branch_id AND id = :team_id LIMIT 1";
+        $sqlTeam = "SELECT table_id, project_type, is_enterprise FROM group_table WHERE branch_id = :branch_id AND id = :team_id LIMIT 1";
         $stmtTeam = $this->db->prepare($sqlTeam);
         $stmtTeam->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
         $stmtTeam->bindValue(':team_id', $teamUUID, PDO::PARAM_STR);
@@ -207,7 +207,7 @@ public function addMember(int $branchId, string $teamUUID, string $jobSeekerId):
         $internalTeamId = (int) $teamRow['table_id'];
 
         // 2. Confirm the job seeker exists (also gives us data to return for the UI)
-        $sqlJs = "SELECT id, job_seeker_id, first_name, father_name, last_name, gender, phone_number
+        $sqlJs = "SELECT id, job_seeker_id, first_name, father_name, last_name, gender, phone_number, employment_status
                   FROM job_seekers WHERE id = :id LIMIT 1";
         $stmtJs = $this->db->prepare($sqlJs);
         $stmtJs->bindValue(':id', $jobSeekerId);
@@ -218,6 +218,10 @@ public function addMember(int $branchId, string $teamUUID, string $jobSeekerId):
         if (!$jobSeeker) {
             return ['status' => 'error', 'message' => 'የስራ ፈላጊው አልተገኘም'];
         }
+                if ($jobSeeker['employment_status'] === 1) {
+            return ['status' => 'error', 'message' => 'ስራ ፈላጊው ከዚህ በፊት ቋሚ ስራ እድል ተፈጥሮለታል/ላታል።'];
+        }
+
 
         // 3. Duplicate guard — don't add the same person to the same team twice
         $sqlDup = "SELECT COUNT(*) FROM organized_jobseekers WHERE team_id = :team_id AND jctbl_id = :jctbl_id";
@@ -243,11 +247,91 @@ public function addMember(int $branchId, string $teamUUID, string $jobSeekerId):
         // Mirror the same NGO status update createTeamFormation() applies
         // to members added at creation time.
         if ($isNgo) {
-            $sqlStatus = "UPDATE job_seekers SET employment_status = 4 WHERE job_seeker_id = ?";
-            $stmtStatus = $this->db->prepare($sqlStatus);
-            $stmtStatus->execute([$jobSeekerId]);
+       $sqlStatus = "UPDATE job_seekers SET employment_status = 4 WHERE branch_id = :branch_id AND job_seeker_id = :job_seeker_id";
+$stmtStatus = $this->db->prepare($sqlStatus);
+$stmtStatus->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+$stmtStatus->bindValue(':job_seeker_id', $jobSeeker['job_seeker_id'], PDO::PARAM_INT);
+$stmtStatus->execute();
         }
+// Mirror the enterprise (code003sraedl) record for members added
+// to an is_enterprise=1 team: every member of the same enterprise
+// shares the same code003 business data, so we clone an existing
+// code003sraedl row for this team's code003_id and only regenerate
+// the per-member identity/audit fields.
+if ((int) $teamRow['is_enterprise'] === 1) {
+$sqlemplploymentStatus = "UPDATE job_seekers SET employment_status = 1 WHERE branch_id = :branch_id AND job_seeker_id = :job_seeker_id";
+$stmtemplploymentStatus = $this->db->prepare($sqlemplploymentStatus);
+$stmtemplploymentStatus->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+$stmtemplploymentStatus->bindValue(':job_seeker_id', $jobSeeker['job_seeker_id'], PDO::PARAM_INT);
+$stmtemplploymentStatus->execute();
+    // 1. Resolve this team's code003.id via the join chain
+    $sqlCode003 = "SELECT c.code003_id
+                   FROM group_table g
+                   JOIN junction_table_individual_and_team j ON j.team_id = g.table_id
+                   JOIN code003 c ON c.junction_table_id = j.table_id
+                   WHERE g.branch_id = :branch_id AND g.table_id = :internal_team_id
+                   LIMIT 1";
+    $stmtCode003 = $this->db->prepare($sqlCode003);
+    $stmtCode003->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+    $stmtCode003->bindValue(':internal_team_id', $internalTeamId, PDO::PARAM_INT);
+    $stmtCode003->execute();
+    $code003Id = $stmtCode003->fetchColumn();
 
+    if (!$code003Id) {
+        throw new \Exception('ለዚህ ቡድን የተመዘገበ የድርጅት (code003) መረጃ አልተገኘም');
+    }
+
+    // 2. Pull an existing code003sraedl row for this code003_id as a template
+    $sqlTemplate = "SELECT branchid, sector, subsector, job_creation_reason,
+                            employment_type, employed_institution, supporter,
+                            suportedby, ssuportedname, what_is_support,
+                            fiscal_year, job_field
+                     FROM code003sraedl
+                     WHERE branchid = :branchId AND code003_id = :code003_id AND member = 1
+                     LIMIT 1";
+    $stmtTemplate = $this->db->prepare($sqlTemplate);
+    $stmtTemplate->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+    $stmtTemplate->bindValue(':code003_id', $code003Id, PDO::PARAM_INT);
+    $stmtTemplate->execute();
+    $template = $stmtTemplate->fetch(PDO::FETCH_ASSOC);
+
+    if (!$template) {
+        throw new \Exception('ለዚህ ድርጅት ምንም የቀድሞ የስራ ፈላጊ መረጃ (code003sraedl) አልተገኘም');
+    }
+    // 3. Insert the cloned row for the new member
+    $sqlSraedl = "INSERT INTO code003sraedl
+                  (uuid, branchid, code003_id, jobseeker_id, sector, subsector,
+                   job_creation_reason, employment_type, employed_institution,
+                   supporter, suportedby, ssuportedname, what_is_support,
+                   fiscal_year, registered_by, job_field, jcsource, member)
+                  VALUES
+                  (:uuid, :branchid, :code003_id, :jobseeker_id, :sector, :subsector,
+                   :job_creation_reason, :employment_type, :employed_institution,
+                   :supporter, :suportedby, :ssuportedname, :what_is_support,
+                   :fiscal_year, :registered_by, :job_field, :jcsource, :member)";
+    $stmtSraedl = $this->db->prepare($sqlSraedl);
+    $stmtSraedl->execute([
+        ':uuid'                 => \Ramsey\Uuid\Uuid::uuid7()->toString(),
+        ':branchid'             => $branchId,
+        ':code003_id'           => $code003Id,
+        ':jobseeker_id'         => $jobSeeker['job_seeker_id'],
+        ':sector'               => $template['sector'],
+        ':subsector'            => $template['subsector'],
+        ':job_creation_reason'  => $template['job_creation_reason'],
+        ':employment_type'      => $template['employment_type'],
+        ':employed_institution' => $template['employed_institution'],
+        ':supporter'            => $template['supporter'],
+        ':suportedby'           => $template['suportedby'],
+        ':ssuportedname'        => $template['ssuportedname'],
+        ':what_is_support'      => $template['what_is_support'],
+        ':fiscal_year'          => $template['fiscal_year'],
+        ':registered_by'        => $userId ?? null,
+        ':job_field'            => $template['job_field'],
+        ':jcsource'             => 1,
+        ':member'               => 1
+    ]);
+
+   }
         $this->db->commit();
 
         return [
@@ -551,19 +635,22 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
         // 2. Confirm the member belongs to a team, and block deletion if they
         //    currently hold a leadership role (must be reassigned first).
         $stmt = $this->db->prepare("
-            SELECT gt.id, gt.teamleader_id, gt.vice_teamleader_id, gt.treasurer, gt.procurement
+            SELECT gt.id, gt.table_id, gt.teamleader_id, gt.vice_teamleader_id, gt.treasurer, gt.procurement, gt.is_enterprise
             FROM organized_jobseekers oj
             JOIN group_table gt ON gt.table_id = oj.team_id
-            WHERE oj.jctbl_id = :jobSeekerId
+            WHERE gt.branch_id = :branchId AND oj.jctbl_id = :jobSeekerId
             LIMIT 1
         ");
-        $stmt->execute([':jobSeekerId' => $jobSeekerId]);
+        $stmt->bindValue(':branchId', $branchId, \PDO::PARAM_INT);
+        $stmt->bindValue(':jobSeekerId', $jobSeekerId, \PDO::PARAM_STR);
+        $stmt->execute();
         $teamRow = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$teamRow) {
             $this->db->rollBack();
             return ['status' => 'error', 'message' => 'ስራ ፈላጊው በቡድን ውስጥ አልተገኘም።'];
         }
+
 
         $isLeader = in_array($jobSeekerId, [
             $teamRow['teamleader_id'],
@@ -579,6 +666,7 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
                 'message' => 'ይህ አባል በቡድኑ ውስጥ የመሪነት ሚና ስላለው መጀመሪያ ሚናውን ይቀይሩ ከዚያ ያጥፉ።',
             ];
         }
+
 
         // 3. Archive organized_jobseekers row
         $stmt = $this->db->prepare("
@@ -608,7 +696,90 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
             ");
             $stmt->execute([':branchId' => $branchId, ':jobSeekerId' => $jobSeekerId]);
             $jobSeekersCount = $stmt->rowCount();
-        
+    // 4b. Enterprise-specific handling (code003sraedl)
+if ((int)$teamRow['is_enterprise'] === 1) {
+
+    // Locate the active enterprise membership row
+        $sqlCode003 = "SELECT c.code003_id
+                   FROM group_table g
+                   JOIN junction_table_individual_and_team j ON j.team_id = g.table_id
+                   JOIN code003 c ON c.junction_table_id = j.table_id
+                   WHERE g.branch_id = :branch_id AND g.table_id = :internal_team_id
+                   LIMIT 1";
+    $stmtCode003 = $this->db->prepare($sqlCode003);
+    $stmtCode003->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+    $stmtCode003->bindValue(':internal_team_id', $teamRow['table_id'], PDO::PARAM_INT);
+    $stmtCode003->execute();
+    $code003Id = $stmtCode003->fetchColumn();
+    $stmt = $this->db->prepare("
+        SELECT *
+        FROM code003sraedl
+        WHERE branchid = :branchId
+          AND code003_id = :code003Id
+          AND jobseeker_id = :jobSeekerId
+          AND jcsource = 1
+          AND member = 1
+    ");
+$stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+$stmt->bindValue(':code003Id', $code003Id, PDO::PARAM_INT);
+$stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+$stmt->execute();
+    $enterpriseRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    if ($enterpriseRow) {
+        if ($reason === 'wrong_member') {
+            // Archive the row before removing it
+            $stmt = $this->db->prepare("
+                INSERT INTO data_archive
+                    (id, entity_type, original_id, snapshot, archived_by, reason)
+                VALUES
+                    (:archiveId2, 'code003sraedl', :originalId, :snapshot, :archived_by, :reason)
+            ");
+            $stmt->execute([
+                ':archiveId2'  => \Ramsey\Uuid\Uuid::uuid7()->toString(),
+                ':originalId'  => $enterpriseRow['uuid'],
+                ':snapshot'    => json_encode($enterpriseRow),
+                ':archived_by' => $userId,
+                ':reason'      => $reason,
+            ]);
+     // 5. Delete organized_jobseekers row (already archived)
+        $stmt = $this->db->prepare("
+            DELETE FROM code003sraedl
+            WHERE branchid = :branchId
+          AND id = :id
+          AND jobseeker_id = :jobSeekerId
+          AND jcsource = 1
+          AND member = 1
+        ");
+       $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+       $stmt->bindValue(':id', $enterpriseRow['id'], PDO::PARAM_INT);
+       $stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+       $stmt->execute();
+
+            // Wrong-member correction also resets employment status
+            $stmt = $this->db->prepare("
+                UPDATE job_seekers
+                SET employment_status = 0
+                WHERE branch_id = :branchId AND job_seeker_id = :jobSeekerId
+            ");
+            $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+            $stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+            $stmt->execute();
+            $jobSeekersCount += $stmt->rowCount();
+
+        } else {
+            // Any other reason: just deactivate membership, no delete, no status change
+            $stmt = $this->db->prepare("
+                UPDATE code003sraedl
+                SET member = 0
+                WHERE branchid = :branchId AND jobseeker_id = :jobSeekerId 
+            ");
+            $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+            $stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+            $stmt->execute();
+        }
+    }
+}    
 
         // 5. Delete organized_jobseekers row (already archived)
         $stmt = $this->db->prepare("
@@ -621,7 +792,7 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
 
         return [
             'status'    => 'success',
-            'jobSeekersCount' => $jobSeekersCount,
+            'jobSeekersCount' => $reason,
         ];
     } catch (\Exception $e) {
         $this->db->rollBack();
