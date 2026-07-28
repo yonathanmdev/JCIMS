@@ -169,4 +169,24 @@ public function deletearchiveJobCreation($uuid, $branchId, $jobSeekerId, $reason
         return false;
     }
 }
+public function searchEnterprisesByBranch(string $search, $branchId, int $limit = 15): array {
+        // SQL query: branchid እኩል መሆኑን እናረጋግጣለን
+        $sql = "SELECT id, code003_id, enterprisename, tine_number, branch_id 
+                FROM code003 
+                WHERE branch_id = :branchid 
+                  AND (enterprisename LIKE :search OR tine_number LIKE :search)
+                LIMIT :limit";
+
+        $stmt = $this->db->prepare($sql);
+        $searchTerm = "%" . $search . "%";
+
+        // Parameters Binding (ለደህንነት ሲባል)
+        $stmt->bindValue(':branchid', $branchId, PDO::PARAM_STR);
+        $stmt->bindValue(':search', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
