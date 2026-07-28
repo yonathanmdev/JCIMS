@@ -444,11 +444,11 @@ public function createAssocationEnterprise(array $data) {
             INSERT INTO code003sraedl
                 (uuid, branchid, code003_id, jobseeker_id, sector, subsector, 
                 job_creation_reason, employment_type, employed_institution, 
-                supporter, suportedby, ssuportedname, what_is_support, fiscal_year, registered_by, job_field)
+                supporter, suportedby, ssuportedname, what_is_support, fiscal_year, registered_by, job_field, jcsource, member)
             VALUES
                 (:id, :branchId, :code003Id, :jobseekerId, :sector, :subsector, 
                 :jobCreationReason, :employmentType, :employedInstitution, :supporter, :suportedby, 
-                :ssuportedname, :whatIsSupport, :fiscalYear, :registeredBy, :jobField)
+                :ssuportedname, :whatIsSupport, :fiscalYear, :registeredBy, :jobField, :jcsource, :member)
         ");
 
         foreach ($jobSeekerTableIds as $jobSeekerTableId) {
@@ -469,6 +469,8 @@ public function createAssocationEnterprise(array $data) {
                 ':fiscalYear'          => $data['fiscal_year'],
                 ':registeredBy'        => $data['user_id'],
                 ':jobField'             => $yesra_mesk,  // TODO: not in $data yet
+                ':jcsource'             => 1,
+                ':member'              => 1
             ]);
         }
         // ---- Mark these job seekers as permanently employed (employment_status = 1) ----

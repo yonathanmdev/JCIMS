@@ -204,16 +204,34 @@ public function addMember(): void
 
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
-    $teamId = isset($input['team_id']) ?  $input['team_id'] : null;
+    $teamId = isset($input['team_id']) ? $input['team_id'] : null;
     $jobSeekerId = isset($input['job_seeker_id']) ? trim($input['job_seeker_id']) : '';
 
     if ($teamId <= 0 || $jobSeekerId === '') {
         echo json_encode(['status' => 'error', 'message' => 'የግቤት ውሂብ ትክክል አይደለም']);
         exit();
     }
-$branchId = $_SESSION['user']['branch_id'] ?? null;
+
+    $branchId = $_SESSION['user']['branch_id'] ?? null;
+    $userId = $_SESSION['user']['id'] ?? null;
+    if ($branchId === null || $userId === null) {
+        echo json_encode(['status' => 'error', 'message' => 'ቅርንጣፍ ወይም User አልተገኘም።']);
+        exit();
+    }
+
     $teamModel = new TeamFormationModel($this->db);
-    $result = $teamModel->addMember($branchId, $teamId, $jobSeekerId);
+    $result = $teamModel->addMember($branchId, $userId, $teamId, $jobSeekerId);
+
+    if ($result['status'] === 'success') {
+        AuditHelper::log(
+            action: 'team_member_added',
+            entityType: 'group_table',
+            entityId: $teamId,
+            oldValues: null,
+            newValues: ['job_seeker_id' => $jobSeekerId],
+            metadata: ['performed_by' => $userId]
+        );
+    }
 
     echo json_encode($result);
     exit();

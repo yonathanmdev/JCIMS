@@ -34,8 +34,8 @@ $last24HoursCount = $recentCount ?? 0;
     <thead class="thead-light">
       <tr>
         <th>#</th>
-        <th>የምዝገባ ቁ.</th>
         <th>የኢንተርፕራይዝ ስም</th>
+         <th>TIN NO</th>
         <th>ዓይነት</th>
         <th>Action</th>
       </tr>
@@ -45,8 +45,8 @@ $last24HoursCount = $recentCount ?? 0;
         <?php foreach ($recentEnterprises as $index => $ent): ?>
          <tr id="row-<?= htmlspecialchars($ent['id']) ?>">
             <td><?= $index + 1 ?></td>
-            <td><?= htmlspecialchars($ent['tine_number']) ?></td>
             <td><?= htmlspecialchars($ent['enterprisename']) ?></td>
+            <td><?= htmlspecialchars($ent['tine_number']) ?></td>
            <td><?= htmlspecialchars($ent['enterprise_type']) ?></td>
             <td class="text-center align-middle">
   <div class="btn-group btn-group-sm shadow-sm" role="group">
