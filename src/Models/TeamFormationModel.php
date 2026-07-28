@@ -702,7 +702,9 @@ if ((int)$teamRow['is_enterprise'] === 1) {
           AND jcsource = 1
         LIMIT 1
     ");
-    $stmt->execute([':branchId' => $branchId, ':jobSeekerId' => $jobSeekerId]);
+    $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+$stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+$stmt->execute();
     $enterpriseRow = $stmt->fetch(\PDO::FETCH_ASSOC);
 
     if ($enterpriseRow) {
