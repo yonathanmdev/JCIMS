@@ -50,7 +50,24 @@ public function getSubSectors() {
 public function processRegistration() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
     //error_log("DEBUG DATA: " . print_r($_POST, true));
+if($_POST['job_category']=="አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ"){
+ $data = [
+        'branchid'             => $_SESSION['user']['branch_id'] ?? null,
+        'code003_id'           => $_POST['enid'] ?? null,
+        'jobseeker_id'         => $_POST['jid'] ?? null,
+        'sector'               => $_POST['sector'] ?? null,
+        'subsector'            => $_POST['sub_sector'] ?? null,
+        'job_creation_reason'  => $_POST['job_category'] ?? null, 
+        'employment_type'      => $_POST['job_type'] ?? null,
+        'employed_institution' => $_POST['enid'] ?? null,
+        'suportedby'           => $_POST['pid'] ?? null, // አሁን ስሙ ትክክል ነው
+        'fiscal_year'          => AuthHelper::checkFiscalYear(),
+        'job_field'         => $_POST['job_field'] ?? null, // አሁን ስሙ ትክክል ነው
+        'registered_by'        => $_SESSION['user']['id'] ?? null
+    ];
+      $requiredFields = ['branchid','code003_id', 'jobseeker_id', 'sector', 'subsector', 'employment_type','job_creation_reason'];
 
+}else{
     // የፎርም መረጃዎች
     $data = [
         'branchid'             => $_SESSION['user']['branch_id'] ?? null,
@@ -66,10 +83,11 @@ public function processRegistration() {
         'job_field'         => $_POST['job_field'] ?? null, // አሁን ስሙ ትክክል ነው
         'registered_by'        => $_SESSION['user']['id'] ?? null
     ];
-
+     $requiredFields = ['branchid', 'jobseeker_id', 'sector', 'subsector', 'employment_type','job_creation_reason'];
+ 
+}
     // 2. አስፈላጊ የሆኑትን አምዶች ዝርዝር (እነዚህ ባዶ መሆን የለባቸውም)
-    $requiredFields = ['branchid', 'jobseeker_id', 'sector', 'subsector', 'employment_type','job_creation_reason'];
-
+  
     // 3. Validation
     foreach ($requiredFields as $field) {
         if (empty($data[$field])) {
@@ -87,7 +105,7 @@ public function processRegistration() {
     try {
         // አዲሱን Transaction እና Update የያዘውን registerJobCreation እንጠራለን
         if ($model->registerJobCreation($data)) {
-            $_SESSION['success'] = 'መረጃው በተሳካ ሁኔታ ተመዝግቧል!';
+            $_SESSION['success'] = 'ስራ እድል የተፈጠረለት መረጃው በተሳካ ሁኔታ ተመዝግቧል!';
             header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
             exit();
         }
@@ -152,7 +170,51 @@ if ($model->deletearchiveJobCreation($uuid, $branchid, $js_id, $reason, $userId)
 header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobcreation-list");
 exit(); // exit() መጠቀም በጣም አስፈላጊ ነው
 }
-       
+public function getEnterpriseList(): void {
+        // የ JSON Header ማስተካከያ
+        header('Content-Type: application/json; charset=utf-8');
+
+        // 1. Session መጀመሩን እና Branch ID መኖሩን ማረጋገጥ
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // በሲስተምህ Session አሰያየም መሰረት ($ _SESSION['branchid'] ወይም $_SESSION['branch_id'])
+       // $branchId = $_SESSION['branchid'] ?? $_SESSION['branch_id'] ?? null;
+        $branchId = $_SESSION['user']['branch_id'];
+
+        if (!$branchId) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'ያልተፈቀደ አክሰስ ወይም Branch ID አልተገኘም'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // 2. ከ Frontend (AJAX) የመጣውን የፍለጋ ቃል መቀበል እና ማጽዳት
+        $search = isset($_GET['q']) ? trim($_GET['q']) : '';
+
+        if (mb_strlen($search) < 2) {
+            echo json_encode([]);
+            exit;
+        }
+
+        try {
+              $JobCreationModel = new JobCreationModel($this->db);
+            // 3. ከ Model ላይ የመፈለጊያ ተግባሩን መጥራት
+            $enterprises = $JobCreationModel->searchEnterprisesByBranch($search, $branchId);
+            
+            // 4. ህጋዊ JSON Response መመለስ
+            echo json_encode($enterprises, JSON_UNESCAPED_UNICODE);
+            exit;
+
+        } catch (\PDOException $e) {
+            // ለደህንነት ሲባል የዳታቤዝ ዝርዝር ስህተትን በ Log መያዝ እንጂ ለተጠቃሚው አለማሳየት
+            error_log("Database Error in EnterpriseController: " . $e->getMessage());
+            
+            http_response_code(500);
+            echo json_encode(['error' => 'የዳታቤዝ ስህተት ተፈጥሯል'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }       
  
 }
      
