@@ -11,7 +11,7 @@
             <div class="container mt-4">
               <div class="card">
                 <div class="card-body">
-                  <form action="jobcreation-registration-process" method="POST">
+                  <form action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/jobcreation-registration-process" method="POST">
                     <div class="row">
                       <!-- የመጀመሪያ ረድፍ -->
                       <div class="col-md-6 form-group position-relative">
