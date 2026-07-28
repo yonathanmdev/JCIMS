@@ -204,7 +204,7 @@ preConfirm: () => {
                     return false;
                 }
             } else {
-                reason = selectEl.options[selectEl.selectedIndex].text;
+                reason = selectEl.options[selectEl.selectedIndex].value;
             }
         } else {
             reason = document.getElementById('swalReason')?.value.trim();

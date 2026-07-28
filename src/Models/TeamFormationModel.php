@@ -207,7 +207,7 @@ public function addMember(int $branchId, int $userId, string $teamUUID, string $
         $internalTeamId = (int) $teamRow['table_id'];
 
         // 2. Confirm the job seeker exists (also gives us data to return for the UI)
-        $sqlJs = "SELECT id, job_seeker_id, first_name, father_name, last_name, gender, phone_number
+        $sqlJs = "SELECT id, job_seeker_id, first_name, father_name, last_name, gender, phone_number, employment_status
                   FROM job_seekers WHERE id = :id LIMIT 1";
         $stmtJs = $this->db->prepare($sqlJs);
         $stmtJs->bindValue(':id', $jobSeekerId);
@@ -218,6 +218,10 @@ public function addMember(int $branchId, int $userId, string $teamUUID, string $
         if (!$jobSeeker) {
             return ['status' => 'error', 'message' => 'የስራ ፈላጊው አልተገኘም'];
         }
+                if ($jobSeeker['employment_status'] === 1) {
+            return ['status' => 'error', 'message' => 'ስራ ፈላጊው ከዚህ በፊት ቋሚ ስራ እድል ተፈጥሮለታል/ላታል።'];
+        }
+
 
         // 3. Duplicate guard — don't add the same person to the same team twice
         $sqlDup = "SELECT COUNT(*) FROM organized_jobseekers WHERE team_id = :team_id AND jctbl_id = :jctbl_id";
@@ -631,19 +635,22 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
         // 2. Confirm the member belongs to a team, and block deletion if they
         //    currently hold a leadership role (must be reassigned first).
         $stmt = $this->db->prepare("
-            SELECT gt.id, gt.teamleader_id, gt.vice_teamleader_id, gt.treasurer, gt.procurement, gt.is_enterprise
+            SELECT gt.id, gt.table_id, gt.teamleader_id, gt.vice_teamleader_id, gt.treasurer, gt.procurement, gt.is_enterprise
             FROM organized_jobseekers oj
             JOIN group_table gt ON gt.table_id = oj.team_id
-            WHERE oj.jctbl_id = :jobSeekerId
+            WHERE gt.branch_id = :branchId AND oj.jctbl_id = :jobSeekerId
             LIMIT 1
         ");
-        $stmt->execute([':jobSeekerId' => $jobSeekerId]);
+        $stmt->bindValue(':branchId', $branchId, \PDO::PARAM_INT);
+        $stmt->bindValue(':jobSeekerId', $jobSeekerId, \PDO::PARAM_STR);
+        $stmt->execute();
         $teamRow = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$teamRow) {
             $this->db->rollBack();
             return ['status' => 'error', 'message' => 'ስራ ፈላጊው በቡድን ውስጥ አልተገኘም።'];
         }
+
 
         $isLeader = in_array($jobSeekerId, [
             $teamRow['teamleader_id'],
@@ -659,6 +666,7 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
                 'message' => 'ይህ አባል በቡድኑ ውስጥ የመሪነት ሚና ስላለው መጀመሪያ ሚናውን ይቀይሩ ከዚያ ያጥፉ።',
             ];
         }
+
 
         // 3. Archive organized_jobseekers row
         $stmt = $this->db->prepare("
@@ -692,17 +700,28 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
 if ((int)$teamRow['is_enterprise'] === 1) {
 
     // Locate the active enterprise membership row
+        $sqlCode003 = "SELECT c.code003_id
+                   FROM group_table g
+                   JOIN junction_table_individual_and_team j ON j.team_id = g.table_id
+                   JOIN code003 c ON c.junction_table_id = j.table_id
+                   WHERE g.branch_id = :branch_id AND g.table_id = :internal_team_id
+                   LIMIT 1";
+    $stmtCode003 = $this->db->prepare($sqlCode003);
+    $stmtCode003->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+    $stmtCode003->bindValue(':internal_team_id', $teamRow['table_id'], PDO::PARAM_INT);
+    $stmtCode003->execute();
+    $code003Id = $stmtCode003->fetchColumn();
     $stmt = $this->db->prepare("
         SELECT *
         FROM code003sraedl
         WHERE branchid = :branchId
+          AND code003_id = :code003Id
           AND jobseeker_id = :jobSeekerId
-          AND code003_id IS NOT NULL
-          AND member = 1
           AND jcsource = 1
-        LIMIT 1
+          AND member = 1
     ");
-    $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+$stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+$stmt->bindValue(':code003Id', $code003Id, PDO::PARAM_INT);
 $stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
 $stmt->execute();
     $enterpriseRow = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -718,11 +737,24 @@ $stmt->execute();
             ");
             $stmt->execute([
                 ':archiveId2'  => \Ramsey\Uuid\Uuid::uuid7()->toString(),
-                ':originalId'  => $enterpriseRow['code003_id'],
+                ':originalId'  => $enterpriseRow['uuid'],
                 ':snapshot'    => json_encode($enterpriseRow),
                 ':archived_by' => $userId,
                 ':reason'      => $reason,
             ]);
+     // 5. Delete organized_jobseekers row (already archived)
+        $stmt = $this->db->prepare("
+            DELETE FROM code003sraedl
+            WHERE branchid = :branchId
+          AND id = :id
+          AND jobseeker_id = :jobSeekerId
+          AND jcsource = 1
+          AND member = 1
+        ");
+       $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+       $stmt->bindValue(':id', $enterpriseRow['id'], PDO::PARAM_INT);
+       $stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+       $stmt->execute();
 
             // Wrong-member correction also resets employment status
             $stmt = $this->db->prepare("
@@ -730,9 +762,9 @@ $stmt->execute();
                 SET employment_status = 0
                 WHERE branch_id = :branchId AND job_seeker_id = :jobSeekerId
             ");
-$stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
-$stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
-$stmt->execute();
+            $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
+            $stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+            $stmt->execute();
             $jobSeekersCount += $stmt->rowCount();
 
         } else {
@@ -743,8 +775,8 @@ $stmt->execute();
                 WHERE branchid = :branchId AND jobseeker_id = :jobSeekerId 
             ");
             $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);
-$stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
-$stmt->execute();
+            $stmt->bindValue(':jobSeekerId', $jobSeekerId, PDO::PARAM_INT);
+            $stmt->execute();
         }
     }
 }    
@@ -760,7 +792,7 @@ $stmt->execute();
 
         return [
             'status'    => 'success',
-            'jobSeekersCount' => $jobSeekersCount,
+            'jobSeekersCount' => $reason,
         ];
     } catch (\Exception $e) {
         $this->db->rollBack();

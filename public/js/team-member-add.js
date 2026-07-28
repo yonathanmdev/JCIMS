@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch(
-                `${window.BASE_URL}/job-seekers-search?q=${encodeURIComponent(query)}`,
+                `${window.BASE_URL}/jobseekers-search-for-organizing?term=${encodeURIComponent(query)}`,
                 { signal: abortController.signal }
             );
             if (!response.ok) throw new Error('Search request failed');
