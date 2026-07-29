@@ -29,8 +29,8 @@ $yehabtuMnchLabels = [
 
     <div class="card card-primary card-outline">
       <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
-        <h3 class="card-title">የኢንተርፕራይዝ ስም፡ <?= htmlspecialchars($enterprise['enterprisename']) ?><?= $isAssociation ? ' የማህበር' : ' የግል' ?> ኢንተርፕራይዝ መረጃ</h3>
-        <div class="ml-md-auto mt-2 mt-md-0">
+     <h3 class="card-title text-center"><strong><?= $isAssociation ? ' የማህበር' : ' የግል' ?> ኢንተርፕራይዝ መረጃ</strong></h3>
+<div class="ml-md-auto mt-2 mt-md-0">
           <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $enterprise['branch_id'] === $_SESSION['user']['branch_id']): ?>
             <button type="button"
                     class="editEnterpriseBtn btn btn-outline-primary btn-sm"
@@ -48,6 +48,10 @@ $yehabtuMnchLabels = [
 
       <div class="card-body">
         <div class="row">
+        <div class="col-md-4 mb-3">
+            <strong>የኢንተርፕራይዝ ስም</strong>
+            <div><?= htmlspecialchars($enterprise['enterprisename'] ?? '—') ?></div>
+          </div>
           <div class="col-md-4 mb-3">
             <strong>TIN</strong>
             <div><?= htmlspecialchars($enterprise['tine_number'] ?? '—') ?></div>
@@ -179,7 +183,7 @@ $yehabtuMnchLabels = [
     <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
         <h3 class="card-title"><?= $isAssociation ? ' አባላት' : '' ?></h3>
       </div>
-      
+
       <div class="card-body">
         <small class="text-muted">
           <?= $isAssociation ? ' ጠቅላላ አባላት ብዛት፦' : ' ' ?>

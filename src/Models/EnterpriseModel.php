@@ -81,7 +81,7 @@ public function searchGroupsForAssociationEnterprise(int $branchId, string $term
 private function validateJobSeekerForEnterprise(int $branchId, string $jobSeekerId): array
 {
     $stmt = $this->db->prepare("
-        SELECT job_seeker_id, concat(first_name, ' ', father_name, ' ', last_name) AS full_name, employment_status
+        SELECT job_seeker_id, concat(first_name, ' ', father_name, ' ', last_name) AS full_name, phone_number, employment_status
         FROM job_seekers
         WHERE branch_id = :branchId AND id = :jobSeekerId
         LIMIT 1
@@ -107,6 +107,7 @@ private function validateJobSeekerForEnterprise(int $branchId, string $jobSeeker
         'status'        => 'success',
         'job_seeker_id' => $jobSeeker['job_seeker_id'],
         'full_name'     => $jobSeeker['full_name'],
+        'phone_number'  => $jobSeeker['phone_number'],
     ];
 }
 
@@ -265,6 +266,26 @@ if (!$sectorId || !$subSectorId) {
                 ':jobSeekerTableId' => $jobseekerId,
             ]);
  
+
+              if (!empty($validation['phone_number'])) {
+                 $branchname = $_SESSION['user']['branch_name'];
+                 $level       = $_SESSION['user']['level'] ?? null;
+
+                 $full_name   =  $validation['full_name'];
+    if ($level == 4) {
+        $levelname = " ማእከል";
+    } elseif ($level == 3) {
+        $levelname = " ወረዳ";
+    } elseif ($level == 2) {
+        $levelname = " ዞን";
+    } else {
+        $levelname = " ቢሮ";
+    }
+        $phoneNumber = '251' . ltrim(trim($validation['phone_number']), '0');
+        $message = "{$full_name} ቋሚ ስራ እድል እንደተፈጠረሎት በ{$branchname} {$levelname} ሪፖርት ተደርጎልናል። "
+                 . "የውሸት/ሀሰት ከሆነ {$branchname} {$levelname} ያናግሩ ወይም በ 0904354716 ያሳውቁ። ";
+        \App\Helpers\SmsHelper::send($phoneNumber, $message);
+    }
         $this->db->commit();
 
         return [
@@ -300,8 +321,8 @@ private function validateTeamForEnterprise(int $branchId, string $teamId): array
 
     // Check every member of the team; collect anyone who already has a permanent job.
     $stmt = $this->db->prepare("
-        SELECT js.job_seeker_id, CONCAT(js.first_name, ' ', js.father_name, ' ', js.last_name) AS full_name, js.employment_status
-        FROM organized_jobseekers oj
+        SELECT js.job_seeker_id, CONCAT(js.first_name, ' ', js.father_name, ' ', js.last_name) AS full_name, js.employment_status, 
+        js.phone_number FROM organized_jobseekers oj
         JOIN job_seekers js ON js.job_seeker_id = oj.jctbl_id
         WHERE oj.team_id = :teamIdForJunction
         ORDER BY js.employment_status DESC
@@ -434,14 +455,14 @@ public function createAssocationEnterprise(array $data) {
         // column separate from the UUID `id` column inserted above.
         $code003Id = $this->db->lastInsertId();
 
-            $stmt = $this->db->prepare("
-                SELECT jctbl_id
-                FROM organized_jobseekers
-                WHERE team_id = :teamIdForJunction
-            ");
-            $stmt->execute([':teamIdForJunction' => $teamIdForJunction]);
-            $jobSeekerTableIds = array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'jctbl_id');
-
+          $stmt = $this->db->prepare("
+    SELECT oj.jctbl_id, js.first_name, js.father_name, js.phone_number AS phone
+    FROM organized_jobseekers oj
+    JOIN job_seekers js ON js.job_seeker_id = oj.jctbl_id
+    WHERE branch_id = :branchId AND oj.team_id = :teamIdForJunction
+");
+$stmt->execute([':branchId' => $data['branch_id'], ':teamIdForJunction' => $teamIdForJunction]);
+$jobSeekerRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         $stmt = $this->db->prepare("
             INSERT INTO code003sraedl
                 (uuid, branchid, code003_id, jobseeker_id, sector, subsector, 
@@ -453,7 +474,13 @@ public function createAssocationEnterprise(array $data) {
                 :ssuportedname, :whatIsSupport, :fiscalYear, :registeredBy, :jobField, :jcsource, :member)
         ");
 
-        foreach ($jobSeekerTableIds as $jobSeekerTableId) {
+      foreach ($jobSeekerRows as $row) {
+    $jobSeekerTableId = $row['jctbl_id'];
+    $phone = $row['phone'];
+    $first_name = $row['first_name'];
+    $father_name = $row['father_name'];
+    $full_name = $first_name . ' ' . $father_name;
+
             $stmt->execute([
                 ':id'            => \Ramsey\Uuid\Uuid::uuid4()->toString(),
                 ':branchId'            => $data['branch_id'],
@@ -474,6 +501,24 @@ public function createAssocationEnterprise(array $data) {
                 ':jcsource'             => 1,
                 ':member'              => 1
             ]);
+               if (!empty($phone)) {
+                 $branchname = $_SESSION['user']['branch_name'];
+                 $level       = $_SESSION['user']['level'] ?? null;
+
+    if ($level == 4) {
+        $levelname = " ማእከል";
+    } elseif ($level == 3) {
+        $levelname = " ወረዳ";
+    } elseif ($level == 2) {
+        $levelname = " ዞን";
+    } else {
+        $levelname = " ቢሮ";
+    }
+        $phoneNumber = '251' . ltrim(trim($phone), '0');
+        $message = "{$full_name} ቋሚ ስራ እድል እንደተፈጠረሎት በ{$branchname} {$levelname} ሪፖርት ተደርጎልናል። "
+                 . "የውሸት/ሀሰት ከሆነ {$branchname} {$levelname} ያናግሩ ወይም በ 0904354716 ያሳውቁ። ";
+        \App\Helpers\SmsHelper::send($phoneNumber, $message);
+    }
         }
         // ---- Mark these job seekers as permanently employed (employment_status = 1) ----
         $updateStmt = $this->db->prepare("
@@ -481,7 +526,8 @@ public function createAssocationEnterprise(array $data) {
             SET employment_status = 1
             WHERE branch_id = :branchId AND job_seeker_id = :jobSeekerTableId
         ");
-        foreach ($jobSeekerTableIds as $jobSeekerTableId) {
+        foreach ($jobSeekerRows as $row) {
+    $jobSeekerTableId = $row['jctbl_id'];
             $updateStmt->execute([
                 ':branchId'         => $data['branch_id'],
                 ':jobSeekerTableId' => $jobSeekerTableId,
@@ -666,7 +712,7 @@ $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
         SELECT sr.member, js.branch_id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.phone_number, js.gender
         FROM code003sraedl sr
         INNER JOIN job_seekers js ON js.job_seeker_id = sr.jobseeker_id
-        WHERE sr.branchid = :branchId AND sr.code003_id = :code003Id
+        WHERE sr.branchid = :branchId AND sr.code003_id = :code003Id order by sr.member DESC
     ");
     $stmt->execute([':branchId' => $branchId, ':code003Id' => $enterprise['code003_id']]);
     $enterprise['members'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
