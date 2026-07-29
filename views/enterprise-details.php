@@ -179,6 +179,7 @@ $yehabtuMnchLabels = [
     <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
         <h3 class="card-title"><?= $isAssociation ? ' አባላት' : '' ?></h3>
       </div>
+      
       <div class="card-body">
         <small class="text-muted">
           <?= $isAssociation ? ' ጠቅላላ አባላት ብዛት፦' : ' ' ?>
