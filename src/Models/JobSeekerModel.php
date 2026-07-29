@@ -547,7 +547,7 @@ public function searchJobSeekersForOrganizing(int $branchId, string $term): arra
                    OR js.full_name_normalized LIKE :term_like)
               AND (js.employment_status IS NULL OR js.employment_status IN (0, 2))
               AND js.orgstatus = 1
-            LIMIT 15";
+            LIMIT 10";
 
     $stmt = $this->db->prepare($sql);
     foreach ($params as $key => $val) {
@@ -558,6 +558,7 @@ public function searchJobSeekersForOrganizing(int $branchId, string $term): arra
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 public function recordSingleRemoval(
     string $branchId,
     string $removedBy,

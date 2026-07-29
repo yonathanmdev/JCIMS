@@ -142,7 +142,7 @@ class MenuConfig
                 ]
             ],  
             [
-                'label' => 'አደረጀጅት',
+                'label' => 'አደረጃጀት',
                 'icon'  => 'fas fa-users',
                 'roles' => ['team_leader', 'officer'],
                 'children' => [
@@ -162,7 +162,7 @@ class MenuConfig
                 ]
             ],  
              [
-                'label' => 'ኢንተርፕሪዘ',
+                'label' => 'ኢንተርፕራይዝ',
                 'icon'  => 'fas fa-users',
                 'roles' => ['team_leader', 'officer'],
                 'children' => [

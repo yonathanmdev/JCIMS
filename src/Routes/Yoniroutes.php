@@ -70,6 +70,9 @@ return [
    'enterprise-registration-process'         => ['EnterpriseController', 'registerEnterprise', true],
    'individual-enterprise-registration-process'         => ['EnterpriseController', 'createIndividualEnterprise', true],
    'enterprise-lists'                        => ['EnterpriseController', 'listofEnterprises', true],
+   'enterprises-details'                     => ['EnterpriseController', 'details', true],
+
+   
    'enterprise-purge'                        => ['EnterpriseController', 'purge', true],
    'code003' => ['EnterpriseController', 'displayCode003', true],
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required

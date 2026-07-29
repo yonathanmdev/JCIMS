@@ -496,6 +496,32 @@ public function listofEnterprises()
         'offset'      => $offset,
     ]);
 }
+
+public function details(array $params = []): void
+{
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    $branchId = $_SESSION['user']['branch_id'];
+    $enterpriseId = $params['uuid'] ?? $_GET['id'] ?? '';
+
+    if (!$enterpriseId) {
+        // handle missing id — redirect back or show a not-found view
+        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/enterprise-lists');
+        return;
+    }
+
+    $enterpriseModel = new EnterpriseModel($this->db);
+    $enterprise = $enterpriseModel->getEnterpriseDetails($branchId, $enterpriseId);
+
+    if (!$enterprise) {
+        // handle not found — redirect or render a "not found" view
+        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/enterprise-lists');
+        return;
+    }
+
+    // render your existing enterprsie-details.php view with $enterprise
+    $this->render('enterprise-details', ['enterprise' => $enterprise]);
+}
+
 public function purge(): void
 {
     AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
