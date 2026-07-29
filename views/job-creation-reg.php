@@ -58,7 +58,7 @@
                           <input type="text" class="form-control" name="enid" placeholder="ስም ያስገቡ" required>
                         </div>
                       </div>
-                      <div class="col-md-6 form-group">
+                      <div class="col-md-6 form-group" id="sector_container">
                         <label>የስራ ዘርፍ *</label>
                         <select class="form-control" name="sector" id="sector_select" required>
                           <option value="" selected disabled>-- ይምረጡ --</option>
@@ -76,7 +76,7 @@
                     </div>
 
                     <div class="row mt-3">
-                      <div class="col-md-6 form-group">
+                      <div class="col-md-6 form-group" id="sub_sector_container">
                         <label>ንዑስ ዘርፍ *</label>
                         <select class="form-control" name="sub_sector" id="sub_sector_select" required>
                           <option value="" selected disabled>-- ይምረጡ --</option>
@@ -248,6 +248,9 @@
     }
 
     options.forEach(opt => secondDropdown.appendChild(new Option(opt, opt)));
+    
+    // reset toggle visibility for sectors on org change
+    toggleSectorVisibility(true);
   }
 
   // 2. የተፈጠረው የሥራ ዓይነት ሲመረጥ ያለው የተስተካከለ ሎጂክ
@@ -257,8 +260,38 @@
 
     if (selectedValue === "አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ") {
       renderEnterpriseLiveSearch();
-    } else if (selectedValue === "ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ") {
-      renderPlainTextInput("የነባር ኢንተርፕራይዝ ስም *", "የነባር ኢንተርፕራይዝ ስም ያስገቡ");
+      toggleSectorVisibility(false); // ድብቅ እናደርጋቸዋለን
+    } else {
+      toggleSectorVisibility(true); // እንዲታዩ እናደርጋቸዋለን
+      if (selectedValue === "ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ") {
+        renderPlainTextInput("የነባር ኢንተርፕራይዝ ስም *", "የነባር ኢንተርፕራይዝ ስም ያስገቡ");
+      }
+    }
+  }
+
+  // ዘርፍ እና ንዑስ ዘርፍን ማሳያ/መደበቂያ ረዳት Function
+  function toggleSectorVisibility(show) {
+    const sectorContainer = document.getElementById("sector_container");
+    const subSectorContainer = document.getElementById("sub_sector_container");
+    const sectorSelect = document.getElementById("sector_select");
+    const subSectorSelect = document.getElementById("sub_sector_select");
+
+    if (show) {
+      if (sectorContainer) sectorContainer.style.display = "block";
+      if (subSectorContainer) subSectorContainer.style.display = "block";
+      if (sectorSelect) sectorSelect.setAttribute("required", "required");
+      if (subSectorSelect) subSectorSelect.setAttribute("required", "required");
+    } else {
+      if (sectorContainer) sectorContainer.style.display = "none";
+      if (subSectorContainer) subSectorContainer.style.display = "none";
+      if (sectorSelect) {
+        sectorSelect.removeAttribute("required");
+        sectorSelect.value = "";
+      }
+      if (subSectorSelect) {
+        subSectorSelect.removeAttribute("required");
+        subSectorSelect.value = "";
+      }
     }
   }
 

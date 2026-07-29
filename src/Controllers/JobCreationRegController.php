@@ -48,79 +48,88 @@ public function getSubSectors() {
     exit; // ይህ በጣም አስፈላጊ ነው!
 }
 public function processRegistration() {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
-    //error_log("DEBUG DATA: " . print_r($_POST, true));
-if($_POST['job_category']=="አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ"){
- $data = [
-        'branchid'             => $_SESSION['user']['branch_id'] ?? null,
-        'code003_id'           => $_POST['enid'] ?? null,
-        'jobseeker_id'         => $_POST['jid'] ?? null,
-        'sector'               => $_POST['sector'] ?? null,
-        'subsector'            => $_POST['sub_sector'] ?? null,
-        'job_creation_reason'  => $_POST['job_category'] ?? null, 
-        'employment_type'      => $_POST['job_type'] ?? null,
-        'employed_institution' => $_POST['enid'] ?? null,
-        'suportedby'           => $_POST['pid'] ?? null, // አሁን ስሙ ትክክል ነው
-        'fiscal_year'          => AuthHelper::checkFiscalYear(),
-        'job_field'         => $_POST['job_field'] ?? null, // አሁን ስሙ ትክክል ነው
-        'registered_by'        => $_SESSION['user']['id'] ?? null
-    ];
-      $requiredFields = ['branchid','code003_id', 'jobseeker_id', 'sector', 'subsector', 'employment_type','job_creation_reason'];
-
-}else{
-    // የፎርም መረጃዎች
-    $data = [
-        'branchid'             => $_SESSION['user']['branch_id'] ?? null,
-        'code003_id'           => null,
-        'jobseeker_id'         => $_POST['jid'] ?? null,
-        'sector'               => $_POST['sector'] ?? null,
-        'subsector'            => $_POST['sub_sector'] ?? null,
-        'job_creation_reason'  => $_POST['job_category'] ?? null, 
-        'employment_type'      => $_POST['job_type'] ?? null,
-        'employed_institution' => $_POST['enid'] ?? null,
-        'suportedby'           => $_POST['pid'] ?? null, // አሁን ስሙ ትክክል ነው
-        'fiscal_year'          => AuthHelper::checkFiscalYear(),
-        'job_field'         => $_POST['job_field'] ?? null, // አሁን ስሙ ትክክል ነው
-        'registered_by'        => $_SESSION['user']['id'] ?? null
-    ];
-     $requiredFields = ['branchid', 'jobseeker_id', 'sector', 'subsector', 'employment_type','job_creation_reason'];
- 
-}
-    // 2. አስፈላጊ የሆኑትን አምዶች ዝርዝር (እነዚህ ባዶ መሆን የለባቸውም)
-  
-    // 3. Validation
-    foreach ($requiredFields as $field) {
-        if (empty($data[$field])) {
-            $_SESSION['error'] = "እባክዎ ሁሉንም አስፈላጊ መረጃዎች በትክክል ይሙሉ! (" . $field . " ክፍት ነው)";
-            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg"); // ወይም ወደነበረበት ገጽ
-            exit();
-        }
-    }
-    //error_log("DATA ARRAY TO INSERT: " . print_r($data, true));
-
-    // ይህንን መረጃ በ Browser ላይ ለማየት (ለሙከራ ብቻ)
-    //echo "<pre>"; print_r($data); echo "</pre>"; exit;
-    
-    $model = new JobCreationModel($this->db);
-    try {
-        // አዲሱን Transaction እና Update የያዘውን registerJobCreation እንጠራለን
-        if ($model->registerJobCreation($data)) {
-            $_SESSION['success'] = 'ስራ እድል የተፈጠረለት መረጃው በተሳካ ሁኔታ ተመዝግቧል!';
+        // HTTP Request method ቼክ ማድረግ
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
             exit();
         }
-// ኮንትሮለርህ ላይ ያለው catch ብሎክ
-} catch (\Exception $e) {
-    error_log("DB Error: " . $e->getMessage());
-    
-    // የሞዴሉን የራሱ መልእክት (Exception message) ለተጠቃሚው አሳይ
-    //$_SESSION['error'] = $e->getMessage(); 
-    $_SESSION['error'] ="ስራ እድል ፈጠራ ምዝገባዉ አልተሳካም እባከወ መረጃወን በትክክል ያስገቡ በተለይ የስራ ፈላጊ መለያ ቁጥርን በትክክል ያስገቡ ";
-    header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
-    exit();
-}
 
+        // የሥራ እድል ፈጠራው ምክንያት አዲስ ኢንተርፕራይዝ ማቋቋም መሆኑን ማረጋገጥ
+        $jobCategory = $_POST['job_category'] ?? null;
+        $isNewEnterprise = ($jobCategory === "አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ");
+
+        if ($isNewEnterprise) {
+            // አዳዲስ ኢንተርፕራይዞች ሲሆኑ sector እና subsector በ ሞዴሉ በኩል በራስ-ሰር ይፈለጋሉ
+            $data = [
+                'branchid'             => $_SESSION['user']['branch_id'] ?? null,
+                'code003_id'           => $_POST['enid'] ?? null,
+                'jobseeker_id'         => $_POST['jid'] ?? null,
+                'sector'               => null, // በ Model ውስጥ ከትክክለኛው ኢንተርፕራይዝ ይሞላል
+                'subsector'            => null, // በ Model ውስጥ ከትክክለኛው ኢንተርፕራይዝ ይሞላል
+                'job_creation_reason'  => $jobCategory, 
+                'employment_type'      => $_POST['job_type'] ?? null,
+                'employed_institution' => $_POST['enid'] ?? null,
+                'suportedby'           => $_POST['pid'] ?? null,
+                'fiscal_year'          => AuthHelper::checkFiscalYear(),
+                'job_field'            => $_POST['job_field'] ?? null,
+                'registered_by'        => $_SESSION['user']['id'] ?? null
+            ];
+
+            // ለአዳዲስ ኢንተርፕራይዝ አስፈላጊ የሆኑ ፊልዶች
+            $requiredFields = ['branchid', 'code003_id', 'jobseeker_id', 'employment_type', 'job_creation_reason'];
+
+        } else {
+            // ለሌሎች የሥራ እድል ፈጠራ ዓይነቶች መረጃው ከፎርሙ ይወሰዳል
+            $data = [
+                'branchid'             => $_SESSION['user']['branch_id'] ?? null,
+                'code003_id'           => null,
+                'jobseeker_id'         => $_POST['jid'] ?? null,
+                'sector'               => $_POST['sector'] ?? null,
+                'subsector'            => $_POST['sub_sector'] ?? null,
+                'job_creation_reason'  => $jobCategory, 
+                'employment_type'      => $_POST['job_type'] ?? null,
+                'employed_institution' => $_POST['enid'] ?? null,
+                'suportedby'           => $_POST['pid'] ?? null,
+                'fiscal_year'          => AuthHelper::checkFiscalYear(),
+                'job_field'            => $_POST['job_field'] ?? null,
+                'registered_by'        => $_SESSION['user']['id'] ?? null
+            ];
+
+            // ለሌሎች ዓይነቶች አስፈላጊ የሆኑ ፊልዶች
+            $requiredFields = ['branchid', 'jobseeker_id', 'sector', 'subsector', 'employment_type', 'job_creation_reason'];
+        }
+
+        // 1. Validation: አስፈላጊ የሆኑ መረጃዎች መሞላታቸውን ማረጋገጥ
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                $_SESSION['error'] = "እባክዎ ሁሉንም አስፈላጊ መረጃዎች በትክክል ይሙሉ! (" . htmlspecialchars($field, ENT_QUOTES, 'UTF-8') . " ክፍት ነው)";
+                header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
+                exit();
+            }
+        }
+
+        // 2. በ Model በኩል መረጃውን መዝግቦ መያዝ
+        $model = new JobCreationModel($this->db);
+
+        try {
+            if ($model->registerJobCreation($data)) {
+                $_SESSION['success'] = 'የሥራ እድል የተፈጠረለት መረጃ በጥሩ ሁኔታ ተመዝግቧል!';
+                header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
+                exit();
+            }
+        } catch (\Exception $e) {
+            // የስህተት መረጃዎችን ወደ log መጻፍ
+            error_log("Job Creation Registration DB Error: " . $e->getMessage());
+
+            // ከ Model የመጣውን የ exception መልእክት ለተጠቃሚው ማሳየት (ለምሳሌ የቋሚ ቅጥር ድግግሞሽ ወይም የዘርፍ ማጣራት ችግር)
+            $_SESSION['error'] = $e->getMessage();
+            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
+            exit();
+        }
     }
+
+
+    
     public function jobcreationcreatedview() {
     $branchid = $_SESSION['user']['branch_id'];
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
