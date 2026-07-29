@@ -330,7 +330,25 @@ $stmtemplploymentStatus->execute();
         ':jcsource'             => 1,
         ':member'               => 1
     ]);
+               if (!empty($jobSeeker['phone_number'])) {
+                 $branchname = $_SESSION['user']['branch_name'];
+                 $level       = $_SESSION['user']['level'] ?? null;
 
+                 $full_name   =  $jobSeeker['first_name'] . ' ' . $jobSeeker['father_name'];
+    if ($level == 4) {
+        $levelname = " ማእከል";
+    } elseif ($level == 3) {
+        $levelname = " ወረዳ";
+    } elseif ($level == 2) {
+        $levelname = " ዞን";
+    } else {
+        $levelname = " ቢሮ";
+    }
+        $phoneNumber = '251' . ltrim(trim($jobSeeker['phone_number']), '0');
+        $message = "{$full_name} ቋሚ ስራ እድል እንደተፈጠረሎት በ{$branchname} {$levelname} ሪፖርት ተደርጎልናል። "
+                 . "የውሸት/ሀሰት ከሆነ {$branchname} {$levelname} ያናግሩ ወይም በ 0904354716 ያሳውቁ። ";
+        \App\Helpers\SmsHelper::send($phoneNumber, $message);
+    }
    }
         $this->db->commit();
 
