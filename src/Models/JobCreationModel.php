@@ -248,4 +248,17 @@ public function searchEnterprisesByBranch(string $search, $branchId, int $limit 
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    public function findByjobseekerId($jobseekerId)
+    {
+        $sql = "SELECT job_seeker_id, first_name, phone_number 
+                FROM job_seekers 
+                WHERE job_seeker_id = :jobseeker_id 
+                LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':jobseeker_id', $jobseekerId);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }

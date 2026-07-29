@@ -113,7 +113,54 @@ public function processRegistration() {
 
         try {
             if ($model->registerJobCreation($data)) {
-                $_SESSION['success'] = 'የሥራ እድል የተፈጠረለት መረጃ በጥሩ ሁኔታ ተመዝግቧል!';
+         // 1. የሎጊን ያደረገውን ተጠቃሚ ደረጃ እና ቅርንጫፍ መረጃ መውሰድ
+    $branch_name = $_SESSION['user']['branch_name'] ?? '';
+    $level       = $_SESSION['user']['level'] ?? null;
+
+    if ($level == 4) {
+        $levelname = "ማእከል";
+    } elseif ($level == 3) {
+        $levelname = "ወረዳ";
+    } elseif ($level == 2) {
+        $levelname = "ዞን";
+    } else {
+        $levelname = "ቢሮ";
+    }
+
+    // 2. የሥራ ፈላጊውን መረጃ መፈለግ
+    $jcModel     = new JobCreationModel($this->db);
+    $jobseekerId = $jcModel->findByjobseekerId($data['jobseeker_id']);
+
+    // 3. መረጃው መኖሩን እና ስልክ ቁጥር መኖሩን ማረጋገጥ
+    if ($jobseekerId && !empty($jobseekerId['phone_number']) && $data['employment_type']==1) {
+        
+        // የስልክ ቁጥሩን ፎርማት ማስተካከል (251...)
+        $rawPhone = trim($jobseekerId['phone_number']);
+        $cleanPhone = preg_replace('/^\+?251|^0/', '', $rawPhone); 
+        $phoneNumber = '251' . $cleanPhone;
+
+        // የሥራ ፈላጊው ስም
+        $firstName = htmlspecialchars($jobseekerId['first_name'], ENT_QUOTES, 'UTF-8');
+        $jobTypeStr = ($data['employment_type'] == '1') ? 'ቋሚ' : 'ጊዜያዊ';
+
+        // 4. መልእክቱን ማዘጋጀት
+        $message = "{$firstName}፣ {$jobTypeStr} ስራ እድል እንደተፈጠረሎት በ {$branch_name} {$levelname} ሪፖርት ተደርጎልናል። "
+                 . "የውሸት/ሀሰት ከሆነ {$branch_name} {$levelname} ያናግሩ ወይም በ 0918394716 ያሳውቁ። "
+                 . "ስራና ክህሎት ቢሮ።";
+
+        // 5. ኤስኤምኤስ መላክ (የደህንነት Try-Catch)
+        try {
+           // $response=\App\Helpers\SmsHelper::send($phoneNumber, $message);
+            \App\Helpers\SmsHelper::send($phoneNumber, $message);
+           // var_dump($response); 
+    //die();
+        } catch (\Exception $e) {
+            // ኤስኤምኤስ ሳይላክ ቢቀር እንኳን ሲስተሙ እንዳይቋረጥ Log ማድረግ ይቻላል
+           echo "የኤስኤምኤስ ስህተት፡ " . $e->getMessage();
+   // die();
+        }
+    }
+                $_SESSION['success'] = 'የሥራ እድል የተፈጠረለት መረጃ በተሳካ ሁኔታ ተመዝግቧል!';
                 header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
                 exit();
             }
