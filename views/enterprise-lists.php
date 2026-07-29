@@ -67,11 +67,11 @@ $is_enterprise_list_page = true;
     <?php endif; ?>
 </td>
                     <td class="text-center align-middle">
-                        <button class="btn btn-outline-primary btn-sm view-enterprise-btn"
-                                data-id="<?= htmlspecialchars($ent['id']) ?>"
-                                title="ሙሉ መረጃ ይመልከቱ">
-                            <i class="fas fa-eye"></i>
-                        </button>
+                       <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/enterprises-details/<?= htmlspecialchars($ent['id']) ?>"
+   class="btn btn-outline-primary btn-sm"
+   title="ሙሉ መረጃ ይመልከቱ">
+    <i class="fas fa-eye"></i>
+</a>
                       <?php 
 if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $ent['branch_id'] === $_SESSION['user']['branch_id']): ?>
     <button class="btn btn-outline-warning btn-sm edit-enterprise-btn"

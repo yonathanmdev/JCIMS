@@ -151,10 +151,10 @@ if (!$sectorId || !$subSectorId) {
         $stmtIndividual = $this->db->prepare("
             INSERT INTO individual_enterprise
                 (id, job_seeker_id, yeaderejajet_ayinet,
-                yeminorubet_acababi, sector, sub_sector)
+                yeminorubet_acababi, sector, sub_sector, yesra_mesk)
             VALUES
                 (:id, :job_seeker_id, :yeaderejajet_ayinet, :yeminorubet_acababi,
-                 :sector, :sub_sector)
+                 :sector, :sub_sector, :yesra_mesk)
         ");
         $stmtIndividual->execute([
             ':id' =>\Ramsey\Uuid\Uuid::uuid4()->toString(),
@@ -162,7 +162,9 @@ if (!$sectorId || !$subSectorId) {
             ':yeaderejajet_ayinet' => $data['yeaderejajet_ayinet'],
             ':yeminorubet_acababi' => $data['yeminorubet_acababi'],
             ':sector' => $sectorId,
-            ':sub_sector' => $subSectorId
+            ':sub_sector' => $subSectorId,
+            ':yesra_mesk' => $data['yesra_mesk'],
+
         ]);
 
         $junctionTableId = $this->db->lastInsertId();
@@ -598,6 +600,79 @@ public function getEnterprisesCountByHierarchy(int $myBranchId): int
  * resets employment_status for all linked job seekers, then deletes
  * the enterprise's live records.
  */
+
+public function getEnterpriseDetails(int $branchId, string $enterpriseId): ?array
+{
+    // Base + junction info (same resolution as purge())
+    $stmt = $this->db->prepare("
+        SELECT c.id, c.code003_id, c.branch_id, c.junction_table_id,
+               c.enterprisename, c.tine_number, c.yeedget_dereja, c.initial_capital,
+               c.starting_capital_in_kind, c.yehabtu_mnch, c.wektawi_yehabt_meten,
+               c.yemrt_ayinet, c.yemikerb_hager_weys_lewuch, c.supported_by,
+               c.supporter_NGO, c.supporter_other, c.supported_items, c.established_date,
+               jt.team_id, jt.individual_enterprise_id
+        FROM code003 c
+        INNER JOIN junction_table_individual_and_team jt ON jt.table_id = c.junction_table_id
+        WHERE c.branch_id = :branchId AND c.id = :enterpriseId
+        LIMIT 1
+    ");
+    $stmt->execute([':branchId' => $branchId, ':enterpriseId' => $enterpriseId]);
+    $enterprise = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    if (!$enterprise) {
+        return null;
+    }
+
+    $isAssociation = !empty($enterprise['team_id']);
+    $enterprise['type'] = $isAssociation ? 'association' : 'individual';
+
+    if ($isAssociation) {
+     $stmt = $this->db->prepare("
+    SELECT g.id , g.table_id, g.branch_id, g.yetederajubet_akababi, g.association_name,
+           g.sub_sector, g.yesra_mesk, g.project_type AS yeaderejajet_ayinet, g.user_level, g.teamleader_id,
+           g.manager_phone, g.vice_teamleader_id, g.treasurer, g.procurement,
+           g.org_type, g.overseastatus, g.registered_by,
+           s.sector AS sector_name,
+           ss.subsector AS subsector_name
+    FROM group_table g
+    LEFT JOIN sub_sector ss ON ss.sub_sectorid = g.sub_sector
+    LEFT JOIN sector_table s ON s.sectorid = ss.sectorid
+    WHERE g.branch_id = :branchId AND g.table_id = :teamId
+");
+
+
+$stmt->execute([
+    ':branchId' => $branchId,
+    ':teamId'   => $enterprise['team_id'],
+]);
+$enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
+    } else {
+        $stmt = $this->db->prepare("
+            SELECT ie.id, ie.individual_ent_id, ie.job_seeker_id, ie.yeaderejajet_ayinet,
+                   ie.yeminorubet_acababi AS yetederajubet_akababi, ie.sector, ie.sub_sector,
+                   s.sector AS sector_name, ss.subsector AS subsector_name, ie.yesra_mesk
+            FROM individual_enterprise ie
+            LEFT JOIN sector_table s ON s.sectorid = ie.sector
+            LEFT JOIN sub_sector ss ON ss.sub_sectorid = ie.sub_sector
+            WHERE ie.individual_ent_id = :id
+        ");
+        $stmt->execute([':id' => $enterprise['individual_enterprise_id']]);
+        $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
+
+    // Members
+    $stmt = $this->db->prepare("
+        SELECT sr.member, js.branch_id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.phone_number, js.gender
+        FROM code003sraedl sr
+        INNER JOIN job_seekers js ON js.job_seeker_id = sr.jobseeker_id
+        WHERE sr.branchid = :branchId AND sr.code003_id = :code003Id
+    ");
+    $stmt->execute([':branchId' => $branchId, ':code003Id' => $enterprise['code003_id']]);
+    $enterprise['members'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    return $enterprise;
+}
 public function purge(int $branchId, int $userId, string $enterpriseId, string $reason): array
 {
     // ---- Resolve the enterprise and its type via the junction row ----
