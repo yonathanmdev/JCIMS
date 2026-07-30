@@ -213,7 +213,7 @@ class MenuConfig
  [
     'label' => 'የአፈጻጸም ሁኔታ',
     'icon'  => 'fas fa-users',
-    'roles' => ['team_leader', 'officer'],
+    'roles' => ['team_leader'],
     'children' => [
         [
             'label' => 'ምዝገባና ግንዛቤ',
