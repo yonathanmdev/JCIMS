@@ -2,6 +2,10 @@
 // src/Routes/YibeRoutes.php
 
 return [
+
+    // የአፈጻጸም ሁኔታ ማሳያ
+    'performance_view' => ['ReportgenerationController', 'performanceIndexShow', true],
+
     // የሪፖርት ፎርሙን ማሳያ ገጽ ራውት
     'report-registration' => ['ReportgenerationController', 'reportIndexShow', true],
     
