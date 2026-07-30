@@ -1593,4 +1593,182 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
         return [];
     }
 }
+
+
+
+/**
+ * የዞኖችን እና በስራቸው ያሉ ወረዳዎችን አፈጻጸም ከምስሉ ከተወሰዱ የዞን እቅዶች እና ከደረጃ (Rank) ጋር አቀናጅቶ የሚያመጣ Function
+ */
+public function getZonePerformanceReport($parentBranchId, $isKetemaAstedader = false)
+{
+    $parentBranchId = (string)$parentBranchId;
+
+    // 1. የከተማ አስተዳደር ወይም የዞን መሆኗን መያዣ Where Condition
+    if ($isKetemaAstedader) {
+        $whereCondition = "(
+            (CAST(b.parent_id AS CHAR) = :m_id1 OR CAST(b.id AS CHAR) = :m_id2 OR CAST(b.internal_id AS CHAR) = :m_id3) 
+            AND b.ketema_astedader = 1
+        )";
+        $params = [
+            ':m_id1' => $parentBranchId,
+            ':m_id2' => $parentBranchId,
+            ':m_id3' => $parentBranchId
+        ];
+    } else {
+        $whereCondition = "(
+            CAST(b.parent_id AS CHAR) = :p_id1 
+            OR CAST(b.parent_id AS CHAR) IN (SELECT CAST(id AS CHAR) FROM branches WHERE CAST(id AS CHAR) = :p_id2 OR CAST(internal_id AS CHAR) = :p_id3)
+            OR CAST(b.parent_id AS CHAR) IN (SELECT CAST(internal_id AS CHAR) FROM branches WHERE CAST(id AS CHAR) = :p_id4 OR CAST(internal_id AS CHAR) = :p_id5)
+        )";
+        $params = [
+            ':p_id1' => $parentBranchId,
+            ':p_id2' => $parentBranchId,
+            ':p_id3' => $parentBranchId,
+            ':p_id4' => $parentBranchId,
+            ':p_id5' => $parentBranchId
+        ];
+    }
+
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT 
+                CAST(b.id AS CHAR) AS root_zone_id,
+                CAST(b.id AS CHAR) AS current_branch_id,
+                CAST(b.internal_id AS CHAR) AS current_internal_id
+            FROM branches b
+            WHERE {$whereCondition}
+              AND (b.is_deleted = 0 OR b.is_deleted IS NULL)
+
+            UNION ALL
+
+            SELECT 
+                sb.root_zone_id,
+                CAST(child.id AS CHAR) AS current_branch_id,
+                CAST(child.internal_id AS CHAR) AS current_internal_id
+            FROM branches child
+            INNER JOIN SubBranches sb 
+                ON CAST(child.parent_id AS CHAR) = sb.current_branch_id 
+                OR CAST(child.parent_id AS CHAR) = sb.current_internal_id
+            WHERE (child.is_deleted = 0 OR child.is_deleted IS NULL)
+        ),
+        JobSeekerCounts AS (
+            SELECT 
+                sb.root_zone_id,
+                
+                COUNT(CASE WHEN j.gender = 'ወንድ' THEN 1 END) AS p_m,
+                COUNT(CASE WHEN j.gender = 'ሴት' THEN 1 END) AS p_f,
+                COUNT(j.id) AS p_sum,
+
+                COUNT(CASE WHEN j.awareness = '1' AND j.gender = 'ወንድ' THEN 1 END) AS a_m,
+                COUNT(CASE WHEN j.awareness = '1' AND j.gender = 'ሴት' THEN 1 END) AS a_f,
+                COUNT(CASE WHEN j.awareness = '1' THEN 1 END) AS a_sum
+
+            FROM SubBranches sb
+            LEFT JOIN job_seekers j 
+                ON (
+                    CAST(j.branch_id AS CHAR) = sb.current_internal_id
+                    OR CAST(j.branch_id AS CHAR) = sb.current_branch_id
+                )
+            GROUP BY sb.root_zone_id
+        ),
+        Calculated AS (
+            SELECT 
+                b.id AS id,
+                b.internal_id AS internal_id,
+                b.name AS name,
+                
+                -- የምዝገባ እቅድ (p_plan)
+                CASE 
+                    WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 45349
+                    WHEN b.name LIKE '%ኮምቦልቻ%' THEN 16548
+                    WHEN b.name LIKE '%ወልዲያ%' THEN 9268
+                    WHEN b.name LIKE '%ደሴ%' THEN 26967
+                    WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 18513
+                    WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 19271
+                    WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 11080
+                    WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 44086
+                    WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 103987
+                    WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 37421
+                    WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 99542
+                    WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 29040
+                    WHEN b.name LIKE '%አዊ%' THEN 61375
+                    WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 24356
+                    WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 60889
+                    WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 70728
+                    WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 64895
+                    WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 97478
+                    WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 115908
+                    WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 16689
+                    WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 110391
+                    WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 12293
+                    ELSE 50000
+                END AS p_plan,
+
+                COALESCE(jsc.p_m, 0) AS p_m,
+                COALESCE(jsc.p_f, 0) AS p_f,
+                COALESCE(jsc.p_sum, 0) AS p_sum,
+
+                -- የግንዛቤ እቅድ (a_plan)
+                CASE 
+                    WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 45349
+                    WHEN b.name LIKE '%ኮምቦልቻ%' THEN 16548
+                    WHEN b.name LIKE '%ወልዲያ%' THEN 9268
+                    WHEN b.name LIKE '%ደሴ%' THEN 26967
+                    WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 18513
+                    WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 19271
+                    WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 11080
+                    WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 44086
+                    WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 103987
+                    WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 37421
+                    WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 99542
+                    WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 29040
+                    WHEN b.name LIKE '%አዊ%' THEN 61375
+                    WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 24356
+                    WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 60889
+                    WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 70728
+                    WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 64895
+                    WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 97478
+                    WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 115908
+                    WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 16689
+                    WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 110391
+                    WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 12293
+                    ELSE 50000
+                END AS a_plan,
+
+                COALESCE(jsc.a_m, 0) AS a_m,
+                COALESCE(jsc.a_f, 0) AS a_f,
+                COALESCE(jsc.a_sum, 0) AS a_sum
+
+            FROM branches b
+            LEFT JOIN JobSeekerCounts jsc ON CAST(b.id AS CHAR) = jsc.root_zone_id
+            WHERE {$whereCondition}
+              AND (b.is_deleted = 0 OR b.is_deleted IS NULL)
+        ),
+        WithPerformance AS (
+            SELECT 
+                id,
+                internal_id,
+                name,
+                p_plan, p_m, p_f, p_sum,
+                ROUND(IF(p_plan > 0, (p_sum / p_plan) * 100, 0), 2) AS p_per,
+
+                a_plan, a_m, a_f, a_sum,
+                ROUND(IF(a_plan > 0, (a_sum / a_plan) * 100, 0), 2) AS a_per
+            FROM Calculated
+        )
+        SELECT 
+            RANK() OVER (ORDER BY p_per DESC, p_sum DESC) AS rank_no, -- የደረጃ ቁጥር ማሰያ
+            id,
+            internal_id,
+            name,
+            p_plan, p_m, p_f, p_sum, p_per,
+            a_plan, a_m, a_f, a_sum, a_per
+        FROM WithPerformance
+        ORDER BY p_per DESC, p_sum DESC -- በደረጃ ቅደም ተከተል እንዲወጣ
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+}
 }

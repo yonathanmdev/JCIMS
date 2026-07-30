@@ -17,6 +17,32 @@ class ReportgenerationController extends BaseController
     }
 
 
+public function performanceIndexShow()
+    {
+        AuthHelper::checkRole(['team_leader', 'officer']);
+
+        $myBranchId = $_SESSION['user']['branch_id'] ?? '';
+        $myBranchName = $_SESSION['user']['branch_name'] ?? ($_SESSION['user']['name'] ?? '');
+        $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
+
+        $branches = [];
+
+        if (!empty($myBranchId)) {
+            // 💡 በነባሩ $this->reportModel (ReportgenerationModel) አማካኝነት function ውን መጥራት
+            $branches = $this->reportModel->getZonePerformanceReport($myBranchId, $ketemaAstedader);
+        }
+
+        $this->renderPrintable('performance_view', [
+            'branches'          => $branches,
+            'defaultBranchId'   => $myBranchId,
+            'defaultBranchName' => $myBranchName
+        ]);
+    }
+
+
+
+    
+
 public function enterpriseAnalyticsShow()
 {
     if (session_status() === PHP_SESSION_NONE) {

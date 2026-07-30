@@ -204,7 +204,30 @@ class MenuConfig
             'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
             'roles' => ['team_leader', 'officer']
         ],
+
     ]
+    
+],
+
+
+ [
+    'label' => 'የአፈጻጸም ሁኔታ',
+    'icon'  => 'fas fa-users',
+    'roles' => ['team_leader', 'officer'],
+    'children' => [
+        [
+            'label' => 'ምዝገባና ግንዛቤ',
+            'url'   => '/performance_view',
+            'roles' => ['team_leader']
+        ],
+
+        [
+            'label' => 'ስራ እድልና ኢንተርፕራይዝ',
+            'url'   => '/performance_view1',
+            'roles' => ['team_leader']
+        ],
+    ]
+    
 ],
            
             [
