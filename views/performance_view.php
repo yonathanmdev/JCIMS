@@ -164,7 +164,7 @@
                 <td><?= $index++; ?></td>
                 <td class="zone-name text-start ps-3 fw-bold"><?= htmlspecialchars($row['name'] ?? ''); ?></td>
                 
-                <!-- የተመዘገቡ የስራ ፈላጊ -->
+                <!-- የተመዘገቡ የስራ ፈላጊዎች ናቸው -->
                 <td><?= number_format($row['p_plan'] ?? 0); ?></td>
                 <td><?= number_format($row['p_m'] ?? 0); ?></td>
                 <td><?= number_format($row['p_f'] ?? 0); ?></td>
