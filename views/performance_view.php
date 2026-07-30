@@ -87,7 +87,7 @@
 
 <div class="container-fluid report-card">
     
-    <!-- ርዕስ (Header Container) -->
+    <!-- ርዕሱ(Header Container) -->
     <div class="position-relative mb-4">
         <div class="text-center">
             <h5 class="fw-bold text-secondary mt-2">
