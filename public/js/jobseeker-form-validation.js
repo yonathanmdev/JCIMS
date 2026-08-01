@@ -18,6 +18,7 @@
     const NUMERIC_DASH_SLASH_SPACE_PATTERN = /^[\d\-\/\s]*$/;
     const GENERAL_SAFE_PATTERN = /^[\p{L}\d\-\/\s፣]*$/u;
     const DECIMAL_PATTERN = /^\d+(\.\d+)?$/;
+    const ALPHANUMERIC_PATTERN = /^[\p{L}\d]*$/u;
 
     const validators = {
         'name-only': {
@@ -43,6 +44,10 @@
         'decimal': {
             pattern: DECIMAL_PATTERN,
             message: 'ቁጥር ብቻ መጠቀም ይቻላል።' // Only numbers or decimal numbers are allowed.
+        },
+        'alphanumeric': {
+            pattern: ALPHANUMERIC_PATTERN,
+            message: 'ፊደል እና ቁጥር ብቻ መጠቀም ይቻላል፣ ልዩ ምልክት ወይም ክፍተት አይቻልም።' // Only letters and numbers are allowed, no special characters or spaces.
         }
     };
 
@@ -86,16 +91,16 @@
             return false;
         }
 
-        // Exact-length check, only applies if data-length is set
-        const requiredLength = input.getAttribute('data-length');
-        if (requiredLength && value.length !== parseInt(requiredLength, 10)) {
-            const msg = getExactLengthMessage(requiredLength);
-            input.classList.add('is-invalid');
-            input.classList.remove('is-valid');
-            feedback.textContent = msg;
-            input.setCustomValidity(msg);
-            return false;
-        }
+// Exact-length check, only applies if data-length is set
+const requiredLength = input.getAttribute('data-length');
+if (requiredLength && value.length !== parseInt(requiredLength, 10)) {
+    const msg = getExactLengthMessage(requiredLength, type);
+    input.classList.add('is-invalid');
+    input.classList.remove('is-valid');
+    feedback.textContent = msg;
+    input.setCustomValidity(msg);
+    return false;
+}
 
         input.classList.remove('is-invalid');
         input.classList.add('is-valid');
@@ -155,11 +160,26 @@
             // Length check removed for this type
             if (cleaned !== input.value) input.value = cleaned;
         }
+        else if (type === 'alphanumeric') {
+    let cleaned = input.value.replace(/[^\p{L}\d]/gu, ''); // strip anything that isn't a letter or digit
+
+    // Length is taken from the form attribute 'data-length'
+    const maxLength = input.getAttribute('data-length');
+    if (maxLength) {
+        cleaned = cleaned.slice(0, parseInt(maxLength, 10));
     }
 
-    function getExactLengthMessage(length) {
-        return `ይህ Field በትክክል ${length} digits  መሆን አለበት።`; // This field must contain exactly {length} digits.
+    if (cleaned !== input.value) input.value = cleaned;
+
+}
     }
+
+  function getExactLengthMessage(length, type) {
+    if (type === 'numeric-only' || type === 'decimal') {
+        return `ይህ Field በትክክል ${length} digits መሆን አለበት።`; // This field must contain exactly {length} digits.
+    }
+    return `ይህ Field በትክክል ${length} ፊደል/ቁጥር መሆን አለበት።`; // This field must contain exactly {length} characters.
+}
 
     function validateAllFields(container) {
         const scope = container || document;

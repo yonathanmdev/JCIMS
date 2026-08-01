@@ -13,3 +13,4 @@ storage/
 *.sql
 extensions.txt
 AUDIT_LOGGING_README.md
+*.md

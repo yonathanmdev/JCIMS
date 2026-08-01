@@ -25,9 +25,29 @@
 
       </div>
 
-      <div class="card-body">
-        <!-- Example Table (optional) -->
-      <table id="example1" data-empty-msg="ምንም ተቆጣጣሪ የለም።" class="table table-bordered table-hover dataTable dtr-inline small" style="color: #000;" aria-describedby="example2_info">
+<div class="card-body">
+
+        <!-- Search bar -->
+        <form method="GET" action="<?= rtrim($_ENV['BASE_URL'], '/') . '/register-user' ?>" class="form-inline mb-3">
+          <input
+            type="text"
+            name="search"
+            class="form-control form-control-sm mr-2"
+            style="min-width: 260px;"
+            placeholder="በስም፣ በUsername ወይም በስልክ ቁጥር ይፈልጉ"
+            value="<?= htmlspecialchars($search ?? '') ?>"
+          >
+          <button type="submit" class="btn btn-primary btn-sm mr-2">
+            <i class="fas fa-search mr-1"></i> ፈልግ
+          </button>
+          <?php if (!empty($search)): ?>
+            <a href="<?= rtrim($_ENV['BASE_URL'], '/') . '/register-user' ?>" class="btn btn-outline-secondary btn-sm">
+              አጽዳ
+            </a>
+          <?php endif; ?>
+        </form>
+
+      <table id="example1" data-empty-msg="ምንም ተቆጣጣሪ የለም።" class="table table-bordered table-hover dtr-inline small" style="color: #000;" aria-describedby="example2_info">
     <thead class="thead-light">
       <tr>
         <th>#</th>
@@ -35,6 +55,7 @@
           <th>Username</th>
           <th>መ/ቤት</th>
         <th>Role</th>
+        <th>Status</th>
         <th>Action</th>
       </tr>
     </thead>
@@ -42,7 +63,7 @@
       <?php if (!empty($users)): ?>
         <?php foreach ($users as $index => $row): ?>
           <tr id="row-<?= htmlspecialchars($row['id']) ?>">
-            <td><?= $index + 1 ?></td>
+            <td><?= (($currentPage - 1) * $perPage) + $index + 1 ?></td>
             <td><?= htmlspecialchars($row['first_name'].' '.$row['father_name'].' '.$row['grand_father_name']) ?></td>
             <td><?= htmlspecialchars($row['username']) ?></td>
             <td><?= htmlspecialchars($row['branch_name']) ?></td>
@@ -59,6 +80,16 @@ $roleMap = [
 echo htmlspecialchars($roleMap[$role] ?? 'ባለሙያ');
 ?>
 </td>
+            <td>
+<?php
+$statusMap = [
+    'active'   => ['label' => 'Active',              'class' => 'badge-success'],
+    'inactive' => ['label' => 'Suspended',            'class' => 'badge-danger'],
+    ''         => ['label' => 'የይለፍ ቃል ያልቀየሩ',    'class' => 'badge-warning'], // default password not yet changed
+];
+$statusInfo = $statusMap[$row['status'] ?? ''] ?? ['label' => htmlspecialchars($row['status']), 'class' => 'badge-light'];
+?>
+<span class="badge <?= $statusInfo['class'] ?>"><?= $statusInfo['label'] ?></span>           </td>
             <td>
                <button class="btn btn-outline-secondary btn-sm edit-user" 
                       data-id="<?= $row['id'] ?>"  title="አስተካክል"  >
@@ -82,11 +113,18 @@ echo htmlspecialchars($roleMap[$role] ?? 'ባለሙያ');
           </tr>
         <?php endforeach; ?>
 
+      <?php else: ?>
+        <tr>
+          <td colspan="7" class="text-center text-muted">
+            <?= !empty($search) ? 'ምንም ውጤት አልተገኘም።' : 'ምንም ተቆጣጣሪ የለም።' ?>
+          </td>
+        </tr>
       <?php endif; ?>
     </tbody>
   </table>
+<?php $basePath = rtrim($_ENV['BASE_URL'], '/') . '/register-user'; ?>
+<?php include 'partials/pagination.php'; ?>
       </div>
-
     </div>
     <!-- /.card -->
 

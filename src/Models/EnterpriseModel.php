@@ -678,8 +678,10 @@ public function getEnterpriseDetails(int $branchId, string $enterpriseId): ?arra
            g.sub_sector, g.yesra_mesk, g.project_type AS yeaderejajet_ayinet, g.user_level, g.teamleader_id,
            g.manager_phone, g.vice_teamleader_id, g.treasurer, g.procurement,
            g.org_type, g.overseastatus, g.registered_by,
+           s.sectorid as sector_id,
            s.sector AS sector_name,
-           ss.subsector AS subsector_name
+           ss.subsector AS subsector_name,
+           ss.sub_sectorid
     FROM group_table g
     LEFT JOIN sub_sector ss ON ss.sub_sectorid = g.sub_sector
     LEFT JOIN sector_table s ON s.sectorid = ss.sectorid
@@ -695,7 +697,7 @@ $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
     } else {
         $stmt = $this->db->prepare("
             SELECT ie.id, ie.individual_ent_id, ie.job_seeker_id, ie.yeaderejajet_ayinet,
-                   ie.yeminorubet_acababi AS yetederajubet_akababi, ie.sector, ie.sub_sector,
+                   ie.yeminorubet_acababi AS yetederajubet_akababi, ie.sector AS sector_id, ie.sub_sector AS sub_sectorid,
                    s.sector AS sector_name, ss.subsector AS subsector_name, ie.yesra_mesk
             FROM individual_enterprise ie
             LEFT JOIN sector_table s ON s.sectorid = ie.sector
@@ -719,6 +721,8 @@ $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
 
     return $enterprise;
 }
+
+
 public function purge(int $branchId, int $userId, string $enterpriseId, string $reason): array
 {
     // ---- Resolve the enterprise and its type via the junction row ----

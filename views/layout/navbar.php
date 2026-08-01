@@ -1,4 +1,23 @@
-  
+  <?php
+if ($_SESSION['user']['level'] === 1) {
+    $access = '';
+} else if ($_SESSION['user']['level'] === 2) {
+    if (isset($_SESSION['user']['ketema_astedader']) && $_SESSION['user']['ketema_astedader'] === 'on') {
+        $access = 'ክ/አስተዳደር'; // Sub-city Administration
+    } else {
+        $access = 'መምሪያ'; // Department
+    }
+} else if ($_SESSION['user']['level'] === 3) {
+    if (isset($_SESSION['user']['ketema_astedader']) && $_SESSION['user']['ketema_astedader'] === 'on') {
+        $access = 'ክ/ከተማ'; // Sub-city
+    } else {
+        $access = 'ወረዳ'; // Woreda
+    }
+} else if ($_SESSION['user']['level'] === 4) {
+    $access = 'ማዕከል';
+}
+
+  ?>  
   <!-- Navbar -->
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     <!-- Left navbar links -->
@@ -14,7 +33,7 @@
   <?php if ($_SESSION['user']['role'] === 'system_admin'): ?>
       <h4 class="mx-auto mb-0 self-center">Warka Hub</h4>
   <?php else:?>
-      <h4 class="mx-auto mb-0 self-center"><?= htmlspecialchars($_SESSION['user']['branch_name'] ?? '') ?></h4>
+      <h4 class="mx-auto mb-0 self-center"><?= htmlspecialchars($_SESSION['user']['branch_name'] ?? '').' '. $access ?></h4>
   <?php endif; ?>
   
   <!-- Empty placeholder to balance the center -->

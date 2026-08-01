@@ -103,28 +103,8 @@ if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $js['branch_id'] 
     </tbody>
 </table>
 <?php
-$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; // your actual working route
-?>
-
-<?php if ($totalPages > 1): ?>
-<nav aria-label="Page navigation">
-    <ul class="pagination justify-content-end">
-        <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
-            <a class="page-link" href="<?= $basePath ?>?page=<?= $currentPage - 1 ?>">ቀዳሚ</a>
-        </li>
-
-        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-            <li class="page-item <?= $i === $currentPage ? 'active' : '' ?>">
-                <a class="page-link" href="<?= $basePath ?>?page=<?= $i ?>"><?= $i ?></a>
-            </li>
-        <?php endfor; ?>
-
-        <li class="page-item <?= $currentPage >= $totalPages ? 'disabled' : '' ?>">
-            <a class="page-link" href="<?= $basePath ?>?page=<?= $currentPage + 1 ?>">ቀጣይ</a>
-        </li>
-    </ul>
-</nav>
-<?php endif; ?>
+$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; ?>
+<?php include 'partials/pagination.php'; ?>
   </div>
   </div>
   </div>

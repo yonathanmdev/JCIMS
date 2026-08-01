@@ -77,6 +77,15 @@ return [
    'code003' => ['EnterpriseController', 'displayCode003', true],
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
+    
+    
+    //fayda routes
+    'fayda-start'    => ['FaydaController', 'start',    true], // shows the "enter ID" form
+    'fayda-redirect' => ['FaydaController', 'redirect', true], // sends them to the bridge
+    'fayda-verify'   => ['FaydaController', 'verify',   true],
+    'fayda-confirm'  => ['FaydaController', 'confirm',  true],
+    'fayda-register' => ['FaydaController', 'register', true],
+    'fayda-error'    => ['FaydaController', 'showError', false],
     // Audit Logs
     'audit-logs'         => ['AuditController', 'index', true],
     'audit-logs-data'    => ['AuditController', 'data', true],

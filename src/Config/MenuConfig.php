@@ -85,6 +85,12 @@ class MenuConfig
                         'roles' => ['team_leader','officer'],
                         'levels' => [3, 4]
                     ],
+                    [
+                        'label' => 'እድሳት በፋይዳ',
+                        'url'   => '/jobseekers-renewal-by-fan',
+                        'roles' => ['team_leader','officer'],
+                        'levels' => [3, 4]
+                    ],
                 ]
             ],
                 [
