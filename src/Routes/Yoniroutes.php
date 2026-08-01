@@ -80,12 +80,11 @@ return [
     
     
     //fayda routes
-    'fayda-start'    => ['FaydaController', 'start',    true], // shows the "enter ID" form
-    'fayda-redirect' => ['FaydaController', 'redirect', true], // sends them to the bridge
-    'fayda-verify'   => ['FaydaController', 'verify',   true],
-    'fayda-confirm'  => ['FaydaController', 'confirm',  true],
-    'fayda-register' => ['FaydaController', 'register', true],
-    'fayda-error'    => ['FaydaController', 'showError', false],
+    'fayda-start'    => ['FaydaController', 'start',    false],
+    'fayda-redirect' => ['FaydaController', 'redirect', false],
+    'fayda-verify'   => ['FaydaController', 'verify',   false],
+    'fayda-confirm'  => ['FaydaController', 'confirm',  false],
+    'fayda-register' => ['FaydaController', 'register', false],
     // Audit Logs
     'audit-logs'         => ['AuditController', 'index', true],
     'audit-logs-data'    => ['AuditController', 'data', true],
