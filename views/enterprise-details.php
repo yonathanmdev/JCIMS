@@ -23,6 +23,15 @@ $yehabtuMnchLabels = [
     '2' => 'ከመንግስት',
     '3' => 'ብድር',
 ];
+
+$supportedByLabels = [
+    'bemengst'    => 'በመንግስት',
+    'bgelu'       => 'በግል',
+    'benterprise' => 'በኢንተርፕራይዝ',
+    'beproject'   => 'በፕሮጀክት(NGO)',
+    'belela'      => 'በሌላ',
+];
+
 ?>
 <section class="content">
   <div class="container-fluid">
@@ -81,14 +90,15 @@ $yehabtuMnchLabels = [
             <div><?= htmlspecialchars($enterprise['yemrt_ayinet'] ?? '—') ?></div>
           </div>
           <div class="col-md-4 mb-3">
-            <strong>የገበያ አድራሻ</strong>
+            <strong>ምርቱ የሚቀርበው</strong>
             <div><?= htmlspecialchars($enterprise['yemikerb_hager_weys_lewuch'] ?? '—') ?></div>
           </div>
 
           <?php if (!empty($enterprise['supported_by'])): ?>
             <div class="col-md-4 mb-3">
-              <strong>የተደገፈው በ</strong>
-              <div><?= htmlspecialchars($enterprise['supported_by']) ?></div>
+              <strong>ድጋፍ ያደረገው አካል</strong>
+              <div> <?php $supportedByValue = $enterprise['supported_by'] ?? '';
+              $supportedByText  = $supportedByLabels[$supportedByValue] ?? '—';?></div>
             </div>
             <?php if (!empty($enterprise['supporter_NGO'])): ?>
               <div class="col-md-4 mb-3">
@@ -231,3 +241,174 @@ $yehabtuMnchLabels = [
 
   </div>
 </section>
+
+
+<div class="modal fade" id="editEnterpriseModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <form id="editEnterpriseForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/enterprise-update-process" method="POST">
+        <div class="modal-header">
+          <h6 class="modal-title font-weight-bold">
+            <i class="fas fa-edit mr-1"></i> ኢንተርፕራይዝ መረጃ ማስተካከያ
+          </h6>
+          <button type="button" class="close" data-dismiss="modal">
+            <span>&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" name="enterprise_id" value="<?= htmlspecialchars($enterprise['id']) ?>">
+          <input type="hidden" name="enterprise_type" value="<?= $isAssociation ? '1' : '0' ?>">
+
+          <div class="row">
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1"><small class="font-weight-bold">ኢንተርፕራይዝ ስም</small></label>
+                <input type="text" class="form-control form-control-sm"
+                       value="<?= htmlspecialchars($enterprise['enterprisename'] ?? '—') ?>" disabled>
+                <small class="text-muted">ኢንተርፕራይዝ ስም እዚህ ላይ ማስተካከል አይቻልም</small>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_tin_number"><small class="font-weight-bold">የግብር መክፈያ መለያ ቁጥር <span class="text-danger">*</span></small></label>
+                <input type="text" class="form-control form-control-sm" id="edit_tin_number" name="tin_number"
+                       value="<?= htmlspecialchars($enterprise['tine_number'] ?? '') ?>" required>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_yeedget_dereja"><small class="font-weight-bold">የእድገት ደረጃ <span class="text-danger">*</span></small></label>
+                <select class="form-control form-control-sm" id="edit_yeedget_dereja" name="yeedget_dereja" required>
+                  <option value="" disabled>ይምረጡ</option>
+                  <?php foreach ($yeedgetDerejaLabels as $val => $label): ?>
+                    <option value="<?= $val ?>" <?= (string)($enterprise['yeedget_dereja'] ?? '') === $val ? 'selected' : '' ?>><?= $label ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_initial_capital"><small class="font-weight-bold">መነሻ ካፒታል <span class="text-danger">*</span></small></label>
+                <input type="number" step="any" class="form-control form-control-sm" id="edit_initial_capital" name="initial_capital"
+                       value="<?= htmlspecialchars($enterprise['initial_capital'] ?? '') ?>" required>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_starting_capital_in_kind"><small class="font-weight-bold">መነሻ ሃብት በአይነት</small></label>
+                <input type="text" class="form-control form-control-sm" id="edit_starting_capital_in_kind" name="starting_capital_in_kind"
+                       value="<?= htmlspecialchars($enterprise['starting_capital_in_kind'] ?? '') ?>">
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_yehabtu_mnch"><small class="font-weight-bold">የሃብቱ ምንጭ <span class="text-danger">*</span></small></label>
+                <select class="form-control form-control-sm" id="edit_yehabtu_mnch" name="yehabtu_mnch" required>
+                  <option value="" disabled>ይምረጡ</option>
+                  <?php foreach ($yehabtuMnchLabels as $val => $label): ?>
+                    <option value="<?= $val ?>" <?= (string)($enterprise['yehabtu_mnch'] ?? '') === $val ? 'selected' : '' ?>><?= $label ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_wektawi_yehabt_meten"><small class="font-weight-bold">ወቅታዊ የሃብት መጠን <span class="text-danger">*</span></small></label>
+                <input type="text" class="form-control form-control-sm" id="edit_wektawi_yehabt_meten" name="wektawi_yehabt_meten"
+                       value="<?= htmlspecialchars($enterprise['wektawi_yehabt_meten'] ?? '') ?>" required>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_yemrt_ayinet"><small class="font-weight-bold">የምርት ዓይነት <span class="text-danger">*</span></small></label>
+                <input type="text" class="form-control form-control-sm" id="edit_yemrt_ayinet" name="yemrt_ayinet"
+                       value="<?= htmlspecialchars($enterprise['yemrt_ayinet'] ?? '') ?>" required>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_yemikerb"><small class="font-weight-bold">ምርቱ የሚቀርበው <span class="text-danger">*</span></small></label>
+                <select class="form-control form-control-sm" id="edit_yemikerb" name="yemikerb_hager_weys_lewuch" required>
+                  <option value="" disabled>ይምረጡ</option>
+                  <?php $currentMarket = $enterprise['yemikerb_hager_weys_lewuch'] ?? ''; ?>
+                  <option value="ለሃገር ውስጥ" <?= $currentMarket === 'ለሃገር ውስጥ' ? 'selected' : '' ?>>ለሃገር ውስጥ</option>
+                  <option value="ለውጭ ሃገር" <?= $currentMarket === 'ለውጭ ሃገር' ? 'selected' : '' ?>>ለውጭ ሃገር</option>
+                </select>
+              </div>
+            </div>
+
+            <?php if ($isAssociation): ?>
+              <div class="col-12 col-sm-6 col-md-3">
+                <div class="form-group mb-2">
+                  <label class="mb-1"><small class="font-weight-bold">ዘርፍ</small></label>
+                  <input type="text" class="form-control form-control-sm" value="<?= htmlspecialchars($linked['sector_name'] ?? '—') ?>" disabled>
+                </div>
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <div class="form-group mb-2">
+                  <label class="mb-1"><small class="font-weight-bold">ንዑስ ዘርፍ</small></label>
+                  <input type="text" class="form-control form-control-sm" value="<?= htmlspecialchars($linked['subsector_name'] ?? '—') ?>" disabled>
+                </div>
+              </div>
+              <small class="text-muted col-12 mb-2">ዘርፍና ንዑስ ዘርፍ ለማህበር ዓይነት ኢንተርፕራይዞች እዚህ ላይ ማስተካከል አይቻልም</small>
+          <?php else: ?>
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="edit_sector_id"><small class="font-weight-bold">ዘርፍ <span class="text-danger">*</span></small></label>
+      <select class="form-control form-control-sm" id="edit_sector_id" name="sector_id"
+              data-cascade-target="edit_subsector_id"
+              data-current-subsector="<?= htmlspecialchars($linked['sub_sectorid'] ?? '') ?>" required>
+        <option value="" disabled>ይምረጡ</option>
+        <?php foreach ($sectorData['sectors'] as $sector): ?>
+          <option value="<?= htmlspecialchars($sector['id']) ?>"
+            <?= (string)($linked['sector_id'] ?? '') === (string)$sector['id'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($sector['name']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+      <label class="mb-1" for="edit_subsector_id"><small class="font-weight-bold">ንዑስ ዘርፍ <span class="text-danger">*</span></small></label>
+      <select class="form-control form-control-sm" id="edit_subsector_id" name="subsector_id" required>
+        <option value="<?= htmlspecialchars($linked['sub_sectorid'] ?? '') ?>" selected>
+          <?= htmlspecialchars($linked['subsector_name'] ?? '') ?>
+        </option>
+      </select>
+    </div>
+  </div>
+<?php endif; ?>
+
+            <div class="col-12 col-sm-6 col-md-3">
+              <div class="form-group mb-2">
+                <label class="mb-1" for="edit_yesra_mesk"><small class="font-weight-bold">የስራ መስክ</small></label>
+                <input type="text" class="form-control form-control-sm" id="edit_yesra_mesk" name="yesra_mesk"
+                       value="<?= htmlspecialchars($linked['yesra_mesk'] ?? '') ?>" required>
+              </div>
+            </div>
+
+          </div>
+
+          <p class="text-muted mb-0">ከማስቀመጥዎ በፊት የቀየሩትን መረጃ ትክክለኛነት ያረጋግጡ።</p>
+        </div>
+
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">ዝጋ</button>
+          <button type="submit" class="btn btn-primary btn-sm">አስተካክል</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

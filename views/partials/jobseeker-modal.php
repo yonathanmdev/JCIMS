@@ -80,7 +80,7 @@
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="Labor_ID"><small class="font-weight-bold">Labor_ID <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="Labor_ID" name="Labor_ID" data-validate="general-safe" maxlength="10">
+                  <input type="text" class="form-control form-control-sm" id="Labor_ID" name="Labor_ID" data-validate="general-safe" data-length="10">
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">

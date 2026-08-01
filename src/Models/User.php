@@ -86,46 +86,147 @@ private function generateBaseUsername(?string $phone, ?string $email): string
             return false;
         }
     }
-    public function getAllOrgAdmins() {
+    public function getAllOrgAdmins(int $limit = 50, int $offset = 0, string $search = '') {
     $sql = "SELECT u.*, o.name as organization_name, b.name as branch_name 
             FROM users u
             JOIN branches b ON u.branch_id = b.internal_id
             JOIN organizations o ON b.organization_id = o.org_id
             WHERE b.level = 1 
-              AND u.role = 'org_admin'
-            ORDER BY o.name ASC";
-    
+              AND u.role = 'org_admin'";
+
+    if ($search !== '') {
+        $sql .= " AND (
+                    u.first_name LIKE :search
+                    OR u.father_name LIKE :search
+                    OR u.grand_father_name LIKE :search
+                    OR u.username LIKE :search
+                    OR u.phone LIKE :search
+                    OR o.name LIKE :search
+                  )";
+    }
+
+    $sql .= " ORDER BY o.name ASC LIMIT :limit OFFSET :offset";
+
     try {
-        $stmt = $this->db->query($sql);
+        $stmt = $this->db->prepare($sql);
+        if ($search !== '') {
+            $stmt->bindValue(':search', "%{$search}%");
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (\PDOException $e) {
         error_log("Get all org admins error: " . $e->getMessage());
         return [];
     }
+}
+
+public function countAllOrgAdmins(string $search = ''): int {
+    $sql = "SELECT COUNT(*)
+            FROM users u
+            JOIN branches b ON u.branch_id = b.internal_id
+            JOIN organizations o ON b.organization_id = o.org_id
+            WHERE b.level = 1 
+              AND u.role = 'org_admin'";
+
+    if ($search !== '') {
+        $sql .= " AND (
+                    u.first_name LIKE :search
+                    OR u.father_name LIKE :search
+                    OR u.grand_father_name LIKE :search
+                    OR u.username LIKE :search
+                    OR u.phone LIKE :search
+                    OR o.name LIKE :search
+                  )";
     }
- public function getUsersForMyBranchHierarchy($myBranchId, $id) {
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        if ($search !== '') {
+            $stmt->bindValue(':search', "%{$search}%");
+        }
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
+    } catch (\PDOException $e) {
+        error_log("Count org admins error: " . $e->getMessage());
+        return 0;
+    }
+}
+ public function getUsersForMyBranchHierarchy($myBranchId, $id, int $limit = 15, int $offset = 0, string $search = '') {
     $sql = "SELECT u.*, o.name AS organization_name, b.name AS branch_name
             FROM users u
             JOIN branches b ON u.branch_id = b.internal_id
             JOIN organizations o ON b.organization_id = o.org_id
             WHERE u.user_id != :id
-              AND u.status = 'active'
               AND u.is_deleted = 0
               AND b.path LIKE CONCAT(
                     (SELECT path FROM branches WHERE internal_id = :my_branch), '%'
                   )";
 
+    if ($search !== '') {
+        $sql .= " AND (
+                    u.first_name LIKE :search
+                    OR u.father_name LIKE :search
+                    OR u.grand_father_name LIKE :search
+                    OR u.username LIKE :search
+                    OR u.phone LIKE :search
+                  )";
+    }
+
+    $sql .= " ORDER BY u.created_at DESC LIMIT :limit OFFSET :offset";
+
     try {
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':id'        => $id,
-            ':my_branch' => $myBranchId,
-        ]);
+        $stmt->bindValue(':id', $id);
+        $stmt->bindValue(':my_branch', $myBranchId);
+        if ($search !== '') {
+            $stmt->bindValue(':search', "%{$search}%");
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (\PDOException $e) {
         error_log("Get hierarchy users error: " . $e->getMessage());
         return [];
+    }
+}
+
+public function countUsersForMyBranchHierarchy($myBranchId, $id, string $search = ''): int {
+    $sql = "SELECT COUNT(*)
+            FROM users u
+            JOIN branches b ON u.branch_id = b.internal_id
+            WHERE u.user_id != :id
+              AND u.is_deleted = 0
+              AND b.path LIKE CONCAT(
+                    (SELECT path FROM branches WHERE internal_id = :my_branch), '%'
+                  )";
+
+    if ($search !== '') {
+        $sql .= " AND (
+                    u.first_name LIKE :search
+                    OR u.father_name LIKE :search
+                    OR u.grand_father_name LIKE :search
+                    OR u.username LIKE :search
+                    OR u.phone LIKE :search
+                  )";
+    }
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $id);
+        $stmt->bindValue(':my_branch', $myBranchId);
+        if ($search !== '') {
+            $stmt->bindValue(':search', "%{$search}%");
+        }
+        $stmt->execute();
+
+        return (int)$stmt->fetchColumn();
+    } catch (\PDOException $e) {
+        error_log("Count hierarchy users error: " . $e->getMessage());
+        return 0;
     }
 }
 public function findById($id){

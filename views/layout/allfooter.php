@@ -219,7 +219,9 @@ function myAsset($path) {
            <?php if (isset($is_enterprise_details_page) && $is_enterprise_details_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
+   <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
+    <script src="<?= myAsset('js/enterprise/edit-enterprise-submit.js') ?>"></script>
         <?php endif; ?>
 
 

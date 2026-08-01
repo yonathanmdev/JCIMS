@@ -437,6 +437,12 @@ private function validateJobseekerData(array $post): array
             $errors[] = "FAN በትክክል 16 ቁጥር ማካተት አለበት።";
         }
     }
+  $Labor_ID = $get('Labor_ID') ?? '';
+if ($Labor_ID !== '') {
+    if (!preg_match('/^[a-zA-Z0-9]{10}$/', $Labor_ID)) {
+        $errors[] = "Labor_ID በትክክል 10 ፊደል መሆን አለበት።";
+    }
+}
 
     // ═══════════════════════════════════════════════════════════════
     // CATEGORY 4: GENDER VALIDATION
