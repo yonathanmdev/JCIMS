@@ -48,14 +48,14 @@ class FaydaController
 }
 
     /** GET ?action=fayda-verify&token=... */
-    public function verify(): void
-    {
-        $token = $_GET['token'] ?? null;
+   public function verify(array $params = []): void
+{
+    $token = $params['uuid'] ?? null;
 
-        if ($token === null) {
-            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=missing_token');
-            exit;
-        }
+    if ($token === null) {
+        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=missing_token');
+        exit;
+    }
 
         $result = $this->handoffService->consume($token);
 
