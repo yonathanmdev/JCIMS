@@ -724,6 +724,16 @@ if ($Labor_ID !== '') {
 
     $this->render('jobseekers-list', $data);
 }
+ public function renewalByFaydaPage() {
+    AuthHelper::checkRole(['system_admin']);
+    $data = [
+        'title'       => 'JCIMS - የሰራተኛ መመዝገቢያ',
+    ];
+
+    $this->render('jobseeker-renewal-by-fayda', $data);
+}
+   
+
   public function renewalPage() {
     AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
     $myBranchId = $_SESSION['user']['branch_id'];

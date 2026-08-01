@@ -33,9 +33,7 @@ $is_jobseeker_renewal_page = true;
         <div id="jobSeekerSearchResults" class="search-results-dropdown d-none"></div>
     </div>
 </div>
-<a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/index.php?action=fayda-start" class="btn btn-primary">
-    🆔 በፋይዳ ተጠቃሚ አስመዝግብ
-</a>
+
         <!-- Example Table (optional) -->
       <table id="example1" data-empty-msg="ምንም ስራ ፈላጊ የለም።" class="table table-bordered table-hover small">
     <thead class="thead-light">
