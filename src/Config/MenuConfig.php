@@ -82,13 +82,13 @@ class MenuConfig
                     [
                         'label' => 'እድሳት',
                         'url'   => '/jobseekers-renewal',
-                        'roles' => ['system_admin'],
+                        'roles' => ['team_leader','officer'],
+                        'levels' => [3, 4]
                     ],
                     [
                         'label' => 'እድሳት በፋይዳ',
-                        'url'   => '/jobseekers-renewal-by-fan',
-                        'roles' => ['team_leader','officer'],
-                        'levels' => [3, 4]
+                        'url'   => '/jobseeker-renewal-by-fayda',
+                        'roles' => ['system_admin'],
                     ],
                 ]
             ],

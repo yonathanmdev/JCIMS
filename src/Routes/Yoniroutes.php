@@ -80,6 +80,8 @@ return [
     
     
     //fayda routes
+
+    'jobseeker-renewal-by-fayda'   => ['JobseekerController', 'renewalByFaydaPage', true],
     'fayda-start'    => ['FaydaController', 'start',    false],
     'fayda-redirect' => ['FaydaController', 'redirect', false],
     'fayda-verify'   => ['FaydaController', 'verify',   false],
