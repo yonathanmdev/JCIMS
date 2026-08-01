@@ -87,6 +87,7 @@ return [
     'fayda-verify'   => ['FaydaController', 'verify',   false],
     'fayda-confirm'  => ['FaydaController', 'confirm',  false],
     'fayda-register' => ['FaydaController', 'register', false],
+    'fayda-error' => ['FaydaController', 'showError', false],
     // Audit Logs
     'audit-logs'         => ['AuditController', 'index', true],
     'audit-logs-data'    => ['AuditController', 'data', true],
