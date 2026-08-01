@@ -1,21 +1,84 @@
 <?php
-$profile = $_SESSION['fayda_profile'];
+/** @var array $_SESSION['fayda_profile'] expected to be set by FaydaController::confirm() */
+$profile = $_SESSION['fayda_profile'] ?? [];
+$formError = $_SESSION['form_error'] ?? null;
+unset($_SESSION['form_error']);
+
+$genderMap = ['Male' => 'ወንድ', 'Female' => 'ሴት'];
 ?>
-<div class="card">
-    <div class="card-header">የፋይዳ መረጃ ማረጋገጫ</div>
-    <div class="card-body">
-        <?php if (!empty($existing)): ?>
-            <div class="alert alert-info">ይህ ተጠቃሚ አስቀድሞ ተመዝግቧል — መረጃው ይሻሻላል።</div>
-        <?php endif; ?>
-        <table class="table">
-            <tr><th>የመታወቂያ ቁጥር</th><td><?= htmlspecialchars($_SESSION['fayda_id_number'] ?? '') ?></td></tr>
-            <tr><th>ሙሉ ስም</th><td><?= htmlspecialchars($profile['name'] ?? '') ?></td></tr>
-            <tr><th>ስልክ</th><td><?= htmlspecialchars($profile['phone_number'] ?? '') ?></td></tr>
-            <tr><th>ጾታ</th><td><?= htmlspecialchars($profile['gender'] ?? '') ?></td></tr>
-            <tr><th>የልደት ቀን</th><td><?= htmlspecialchars($profile['birthdate'] ?? '') ?></td></tr>
-        </table>
-        <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/index.php?action=fayda-confirm" class="btn btn-primary">
-            አረጋግጥ እና ቀጥል
-        </a>
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <title>የመመዝገቢያ ቅጽ - Fayda ID</title>
+    <link rel="stylesheet" href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/assets/plugins/fontawesome-free/css/all.min.css">
+</head>
+<body>
+<div class="content-wrapper" style="padding:2rem; max-width:700px; margin:0 auto;">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">ከፋይዳ የተገኘ መረጃ ያረጋግጡ</h3>
+        </div>
+        <div class="card-body">
+
+            <?php if ($formError): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($formError) ?></div>
+            <?php endif; ?>
+
+            <form method="POST" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/fayda-register">
+                <div class="form-group">
+                    <label>ሙሉ ስም</label>
+                    <input type="text" name="full_name" class="form-control"
+                           value="<?= htmlspecialchars($profile['name'] ?? '') ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label>ስልክ ቁጥር</label>
+                    <input type="text" name="phone" class="form-control"
+                           value="<?= htmlspecialchars($profile['phone_number'] ?? '') ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label>ጾታ</label>
+                    <select name="gender" class="form-control" required>
+                        <option value="">-- ይምረጡ --</option>
+                        <?php $currentGender = $profile['gender'] ?? ''; ?>
+                        <option value="Male"   <?= $currentGender === 'Male'   ? 'selected' : '' ?>>ወንድ</option>
+                        <option value="Female" <?= $currentGender === 'Female' ? 'selected' : '' ?>>ሴት</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>የልደት ቀን</label>
+                    <input type="date" name="birthdate" class="form-control"
+                           value="<?= htmlspecialchars($profile['birthdate'] ?? '') ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label>የትምህርት ደረጃ</label>
+                    <select name="education_level" class="form-control" required>
+                        <option value="">-- ይምረጡ --</option>
+                        <option value="primary">አንደኛ ደረጃ</option>
+                        <option value="secondary">ሁለተኛ ደረጃ</option>
+                        <option value="diploma">ዲፕሎማ</option>
+                        <option value="degree">ዲግሪ</option>
+                        <option value="masters">ማስተርስ</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>ዘርፍ (Sector)</label>
+                    <select name="sector_id" class="form-control">
+                        <option value="">-- ይምረጡ --</option>
+                        <!-- TODO: populate dynamically from your sectors table -->
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">መዝግብ</button>
+            </form>
+
+        </div>
     </div>
 </div>
+</body>
+</html>
