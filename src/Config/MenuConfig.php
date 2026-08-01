@@ -66,7 +66,7 @@ class MenuConfig
             [
                 'label' => 'ስራ ፈላጊ',
                 'icon'  => 'fas fa-users',
-                'roles' => ['team_leader', 'officer'],
+                'roles' => ['team_leader', 'officer', 'system_admin'],
                 'children' => [
                     [
                         'label' => 'ስራ ፈላጊ መመዝገብ',
@@ -82,8 +82,7 @@ class MenuConfig
                     [
                         'label' => 'እድሳት',
                         'url'   => '/jobseekers-renewal',
-                        'roles' => ['team_leader','officer'],
-                        'levels' => [3, 4]
+                        'roles' => ['system_admin'],
                     ],
                     [
                         'label' => 'እድሳት በፋይዳ',
