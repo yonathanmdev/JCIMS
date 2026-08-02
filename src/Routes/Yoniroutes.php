@@ -82,11 +82,11 @@ return [
     //fayda routes
 
     'jobseeker-renewal-by-fayda'   => ['JobseekerController', 'renewalByFaydaPage', true],
-    'fayda-start'    => ['FaydaController', 'start',    false],
-    'fayda-redirect' => ['FaydaController', 'redirect', false],
-    'fayda-verify'   => ['FaydaController', 'verify',   false],
-    'fayda-confirm'  => ['FaydaController', 'confirm',  false],
-    'fayda-register' => ['FaydaController', 'register', false],
+    'fayda-start'    => ['FaydaController', 'start',    true],
+    'fayda-redirect' => ['FaydaController', 'redirect', true],
+    'fayda-verify'   => ['FaydaController', 'verify',   true],
+    'fayda-confirm'  => ['FaydaController', 'confirm',  true],
+    'fayda-register' => ['FaydaController', 'register', true],
     'fayda-error' => ['FaydaController', 'showError', false],
     // Audit Logs
     'audit-logs'         => ['AuditController', 'index', true],
