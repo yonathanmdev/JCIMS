@@ -107,8 +107,10 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
 }
 .wizard-nav__spacer { flex: 1; }
 </style>
+<section class="content">
+  <div class="container-fluid">
 
-<div class="card">
+<div class="card card-outline card-success">
     <div class="card-header">
         <h6 class="font-weight-bold"><i class="fas fa-id-card mr-1"></i> በፋይዳ የተረጋገጠ የስራ ፈላጊ ምዝገባ</h6>
     </div>
@@ -647,7 +649,8 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         </form>
     </div>
 </div>
-
+ </div>
+</section>
 <script nonce="<?= $GLOBALS['nonce'] ?? '' ?>">
 (function () {
     let wizardCurrentStep = 1;
