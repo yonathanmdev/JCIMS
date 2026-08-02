@@ -19,43 +19,46 @@ class FaydaController
         $this->handoffService = new FaydaHandoffService($db);
     }
 
-    /** GET ?action=fayda-start — shows the "enter ID" form */
+    /** action=fayda-start — shows the "enter ID" form */
     public function start(): void
     {
         require __DIR__ . '/../../views/fayda-start.php';
     }
 
-    /** GET ?action=fayda-redirect&id_number=... — stashes the ID, sends to bridge */
-   public function redirect(): void
-{
-    $idNumber = trim($_GET['id_number'] ?? '');
+    /** action=fayda-redirect&id_number=... — stashes the ID, sends to bridge */
+    public function redirect(): void
+    {
+        $idNumber = trim($_GET['id_number'] ?? '');
 
-    if ($idNumber === '') {
-        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-start');
+        if ($idNumber === '') {
+            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-start');
+            exit;
+        }
+
+        $_SESSION['fayda_id_number'] = $idNumber;
+
+        AuditHelper::log(
+            action: 'fayda_flow_started',
+            entityType: 'job_seeker',
+            entityId: null,
+            oldValues: null,
+            newValues: null,
+            metadata: ['id_number' => $idNumber]
+        );
+
+        header('Location: https://nid.bols.gov.et/callback.php?action=login&id_number=' . urlencode($idNumber));
         exit;
     }
 
-    $_SESSION['fayda_id_number'] = $idNumber;
+    /** action=fayda-verify/{token} — token arrives as $params['uuid'] via the router */
+    public function verify(array $params = []): void
+    {
+        $token = $params['uuid'] ?? null;
 
-    // TODO: re-enable once AuditHelper::init() is confirmed in bootstrap
-    // AuditHelper::log(
-    //     action: 'fayda_flow_started',
-    //     ...
-    // );
-
-    header('Location: https://nid.bols.gov.et/callback.php?action=login&id_number=' . urlencode($idNumber));
-    exit;
-}
-
-    /** GET ?action=fayda-verify&token=... */
-   public function verify(array $params = []): void
-{
-    $token = $params['uuid'] ?? null;
-
-    if ($token === null) {
-        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=missing_token');
-        exit;
-    }
+        if ($token === null) {
+            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=missing_token');
+            exit;
+        }
 
         $result = $this->handoffService->consume($token);
 
@@ -91,7 +94,7 @@ class FaydaController
         require __DIR__ . '/../../views/fayda-compare.php';
     }
 
-    /** GET ?action=fayda-confirm */
+    /** action=fayda-confirm */
     public function confirm(): void
     {
         if (!isset($_SESSION['fayda_profile'])) {
@@ -99,10 +102,10 @@ class FaydaController
             exit;
         }
 
-        require __DIR__ . '/../../views/form.php';
+        require __DIR__ . '/../../views/fayda-form.php';
     }
 
-    /** POST ?action=fayda-register */
+    /** POST action=fayda-register */
     public function register(): void
     {
         if (!isset($_SESSION['fayda_profile'])) {
@@ -147,7 +150,7 @@ class FaydaController
         exit;
     }
 
-    /** GET ?action=fayda-error */
+    /** action=fayda-error */
     public function showError(): void
     {
         $reason = $_GET['reason'] ?? 'unknown';
