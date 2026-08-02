@@ -185,9 +185,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                             <input type="text" class="form-control form-control-sm" value="<?= htmlspecialchars($faydaGender) ?>" readonly>
                         </div>
                     </div>
-                </div>
-
-                <div class="row">
+   
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
                             <label class="mb-1"><small class="font-weight-bold">እድሜ</small></label>
@@ -202,12 +200,6 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     </div>
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
-                            <label class="mb-1"><small class="font-weight-bold">የመታወቂያ ቁጥር (ID Number)</small></label>
-                            <input type="text" class="form-control form-control-sm" value="<?= htmlspecialchars($faydaIdNumber) ?>" readonly>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-md-3">
-                        <div class="form-group mb-2">
                             <label class="mb-1" for="srafelagi_huneta"><small class="font-weight-bold">የስራ ፈላጊ ሁኔታ <span class="text-danger">*</span></small></label>
                             <select class="form-control form-control-sm" id="srafelagi_huneta" name="srafelagi_huneta" data-validate="text-with-spaces" required>
                                 <option value="" selected disabled>ይምረጡ</option>
@@ -218,9 +210,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                             </select>
                         </div>
                     </div>
-                </div>
 
-                <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="Labor_ID"><small class="font-weight-bold">Labor_ID</small></label>
