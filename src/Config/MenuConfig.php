@@ -86,7 +86,7 @@ class MenuConfig
                         'levels' => [3, 4]
                     ],
                     [
-                        'label' => 'ምዝገባ/እድሳት በፋይዳ',
+                        'label' => 'እድሳት ና ምዝገባ በፋይዳ',
                         'url'   => '/fayda-start',
                         'roles' => ['team_leader','officer'],
                         'levels' => [3, 4]
