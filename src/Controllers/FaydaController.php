@@ -34,7 +34,7 @@ class FaydaController extends BaseController
      */
     public function redirect(): void
     {
-        $type = $_POST['registration_type'] ?? '';
+        $type = $_GET['registration_type'] ?? '';
 
         if ($type === 'new') {
             $this->proceedToFayda('new', null);
@@ -42,7 +42,7 @@ class FaydaController extends BaseController
         }
 
         if ($type === 'renewal') {
-            $jobSeekerIdRaw = $_POST['job_seeker_id'] ?? '';
+            $jobSeekerIdRaw = $_GET['job_seeker_id'] ?? '';
 
             if (!ctype_digit((string) $jobSeekerIdRaw)) {
                 header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=job_seeker_not_found');
