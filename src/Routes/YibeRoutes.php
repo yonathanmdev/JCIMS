@@ -3,8 +3,13 @@
 
 return [
 
-    // የአፈጻጸም ሁኔታ ማሳያ
+// የባለሙያን አፈጻጸም ሁኔታ ማሳያ
+    'expert_level_view' => ['ReportgenerationController', 'expertLevelReport', true],
+
+    // የስራ ፈላጊና ግንዛቤ ፈጠራ አፈጻጸም ሁኔታ ማሳያ
     'performance_view' => ['ReportgenerationController', 'performanceIndexShow', true],
+    // የስራ እድልና ኢንተርፕራይዝ ምስረታ አፈጻጸም ሁኔታ ማሳያ
+    'performance_job_creation_view' => ['ReportgenerationController', 'performanceJobCreationShow', true],
 
     // የሪፖርት ፎርሙን ማሳያ ገጽ ራውት
     'report-registration' => ['ReportgenerationController', 'reportIndexShow', true],
@@ -19,8 +24,8 @@ return [
     'report-7'   => ['ReportgenerationController', 'report6Show', true],
     'report-8'   => ['ReportgenerationController', 'report8Show', true],
     'report-9'   => ['ReportgenerationController', 'report8Show', true],
-    //'report-2'   => ['ReportgenerationController', 'report2Show', true],
-    //'report-3'   => ['ReportgenerationController', 'report2Show', true],
+    'report-2'   => ['ReportgenerationController', 'report2Show', true],
+    'report-3'   => ['ReportgenerationController', 'report2Show', true],
 
     // የስራ ፈላጊዎች ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
     'seeker-analytics' => ['ReportgenerationController', 'seekerAnalyticsShow', true],

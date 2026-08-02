@@ -4,9 +4,8 @@
         <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h3 class="font-weight-bold text-dark mb-1">
-                    <i class="fa fa-pie-chart text-primary"></i> <?php echo htmlspecialchars($title ?? 'የአደረጃጀት ስታቲስቲክስ ትንታኔ', ENT_QUOTES, 'UTF-8'); ?>
+                    <i class="fa fa-pie-chart text-primary"></i> <?php echo htmlspecialchars('ገና ኢንተርፕራይዝ ያልመሰረቱ ግን የተደራጁ ስታቲስቲክስ ትንታኔ', ENT_QUOTES, 'UTF-8'); ?>
                 </h3>
-                <p class="text-muted small mb-0">በተመረጠው ቅርንጫፍ እና ንኡስ ቅርንጫፎች ስር የተመዘገቡ የአደረጃጀት መረጃዎች አጠቃላይ ሥታቲስቲክስ</p>
             </div>
             <div class="no-print">
                 <button onclick="window.print()" class="btn btn-outline-secondary">

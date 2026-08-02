@@ -223,7 +223,12 @@ class MenuConfig
 
         [
             'label' => 'ስራ እድልና ኢንተርፕራይዝ',
-            'url'   => '/performance_view1',
+            'url'   => '/performance_job_creation_view',
+            'roles' => ['team_leader']
+        ],
+                [
+            'label' => 'የባለሙያዎች የስራ አፈጻጸም',
+            'url'   => '/expert_level_view',
             'roles' => ['team_leader']
         ],
     ]
