@@ -1,7 +1,4 @@
 <?php
-
-use App\Helpers\FaydaProfileHelper;
-
 $profile = $_SESSION['fayda_profile'] ?? [];
 ?>
 <div class="card">
