@@ -86,9 +86,10 @@ class MenuConfig
                         'levels' => [3, 4]
                     ],
                     [
-                        'label' => 'እድሳት በፋይዳ',
-                        'url'   => '/jobseeker-renewal-by-fayda',
-                        'roles' => ['system_admin'],
+                        'label' => 'ምዝገባ/እድሳት በፋይዳ',
+                        'url'   => '/fayda-start',
+                        'roles' => ['team_leader','officer'],
+                        'levels' => [3, 4]
                     ],
                 ]
             ],

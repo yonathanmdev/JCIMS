@@ -23,7 +23,7 @@ $profile = $_SESSION['fayda_profile'] ?? [];
                 </tr>
                 <tr>
                     <td><strong>ID Number / የመታወቂያ ቁጥር</strong></td>
-                    <td colspan="2"><?= htmlspecialchars($_SESSION['fayda_id_number'] ?? '') ?></td>
+                    <td colspan="2"><?= htmlspecialchars($_SESSION['job_seeker_id'] ?? '') ?></td>
                 </tr>
                 <tr>
                     <td><strong>Name / ሙሉ ስም</strong></td>

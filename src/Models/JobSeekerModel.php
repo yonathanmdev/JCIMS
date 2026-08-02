@@ -1017,8 +1017,7 @@ private function searchArchiveById(int $jobSeekerId, int $myBranchId, int $fisca
                    jsa.gender, jsa.phone_number, b.name AS branch_name
             FROM job_seekers_archive jsa
             INNER JOIN branches b ON jsa.branch_id = b.internal_id
-            INNER JOIN branches root ON root.internal_id = :my_branch
-            WHERE b.path LIKE CONCAT(root.path, '%')
+            WHERE jsa.branch_id = :my_branch
               AND jsa.job_seeker_id = :job_seeker_id
               AND jsa.renewal_year != :fiscal_year
             LIMIT :limit";
@@ -1041,7 +1040,7 @@ private function searchArchiveById(int $jobSeekerId, int $myBranchId, int $fisca
 private function searchArchiveByName(string $query, int $myBranchId, int $fiscal_year, int $limit): array
 {
     $normalized = \App\Helpers\AmharicNormalizer::normalize($query);
-    $booleanQuery = $this->buildBooleanQuery($normalized); // reused as-is
+    $booleanQuery = $this->buildBooleanQuery($normalized);
 
     if ($booleanQuery === '') {
         return [];
@@ -1052,8 +1051,7 @@ private function searchArchiveByName(string $query, int $myBranchId, int $fiscal
                    MATCH(jsa.full_name_normalized) AGAINST(:boolean_query IN BOOLEAN MODE) AS relevance
             FROM job_seekers_archive jsa
             INNER JOIN branches b ON jsa.branch_id = b.internal_id
-            INNER JOIN branches root ON root.internal_id = :my_branch
-            WHERE b.path LIKE CONCAT(root.path, '%')
+            WHERE jsa.branch_id = :my_branch
               AND jsa.renewal_year != :fiscal_year
               AND MATCH(jsa.full_name_normalized) AGAINST(:boolean_query2 IN BOOLEAN MODE)
             ORDER BY relevance DESC
@@ -1074,7 +1072,93 @@ private function searchArchiveByName(string $query, int $myBranchId, int $fiscal
         return [];
     }
 }
+public function findExistingForRenewal(int $jobSeekerId, int $myBranchId, int $fiscal_year): ?array
+{
+    $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name,
+                   jsa.gender, jsa.phone_number, b.name AS branch_name
+            FROM job_seekers_archive jsa
+            INNER JOIN branches b ON jsa.branch_id = b.internal_id
+            WHERE jsa.branch_id = :my_branch
+              AND jsa.job_seeker_id = :job_seeker_id
+              AND jsa.renewal_year != :fiscal_year
+            LIMIT 1";
 
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+        $stmt->bindValue(':job_seeker_id', $jobSeekerId, PDO::PARAM_INT);
+        $stmt->bindValue(':fiscal_year', $fiscal_year, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    } catch (\PDOException $e) {
+        error_log("Renewal verification error: " . $e->getMessage());
+        return null;
+    }
+}
+
+public function createNew(array $data): array
+{
+    try {
+        $this->db->beginTransaction();
+        $jobSeekerId = \Ramsey\Uuid\Uuid::uuid7()->toString();
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO job_seekers
+                (id, fayda_sub, full_name, phone, gender, birthdate, education_level, sector_id)
+             VALUES
+                (:id, :fayda_sub, :full_name, :phone, :gender, :birthdate, :education_level, :sector_id)'
+        );
+        $stmt->execute([
+            ':id'              => $jobSeekerId,
+            ':fayda_sub'       => $data['fayda_sub'],
+            ':full_name'       => $data['full_name'],
+            ':phone'           => $data['phone'],
+            ':gender'          => $data['gender'],
+            ':birthdate'       => $data['birthdate'],
+            ':education_level' => $data['education_level'],
+            ':sector_id'       => $data['sector_id'],
+        ]);
+
+        $this->db->commit();
+        return ['status' => true, 'job_seeker_id' => $jobSeekerId];
+    } catch (\Throwable $e) {
+        $this->db->rollBack();
+        return ['status' => false, 'message' => $e->getMessage()];
+    }
+}
+
+public function updateExisting(int $jobSeekerId, array $data): array
+{
+    try {
+        $this->db->beginTransaction();
+
+        $stmt = $this->db->prepare(
+            'UPDATE job_seekers
+             SET fayda_sub = :fayda_sub, full_name = :full_name, phone = :phone,
+                 gender = :gender, birthdate = :birthdate,
+                 education_level = :education_level, sector_id = :sector_id
+             WHERE job_seeker_id = :job_seeker_id'
+        );
+        $stmt->execute([
+            ':fayda_sub'       => $data['fayda_sub'],
+            ':full_name'       => $data['full_name'],
+            ':phone'           => $data['phone'],
+            ':gender'          => $data['gender'],
+            ':birthdate'       => $data['birthdate'],
+            ':education_level' => $data['education_level'],
+            ':sector_id'       => $data['sector_id'],
+            ':job_seeker_id'   => $jobSeekerId,
+        ]);
+
+        $this->db->commit();
+        return ['status' => true, 'job_seeker_id' => $jobSeekerId];
+    } catch (\Throwable $e) {
+        $this->db->rollBack();
+        return ['status' => false, 'message' => $e->getMessage()];
+    }
+}
 public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId): ?array
 {
     $t0 = microtime(true);
