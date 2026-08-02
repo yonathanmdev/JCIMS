@@ -246,9 +246,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                             </select>
                         </div>
                     </div>
-                </div>
 
-                <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="mender"><small class="font-weight-bold">መንደር</small></label>
