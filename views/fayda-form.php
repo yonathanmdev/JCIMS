@@ -65,7 +65,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
     color: #6c757d;
     margin-top: 6px;
     text-align: center;
-    max-width: 90px;
+    max-width: 100px;
     line-height: 1.3;
 }
 
@@ -154,18 +154,14 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
             </div>
             <div class="wizard-progress__step" data-step-index="2">
                 <div class="wizard-progress__circle">2</div>
-                <div class="wizard-progress__label">ዝርዝር መረጃ</div>
+                <div class="wizard-progress__label">አድራሻ እና ትምህርት</div>
             </div>
             <div class="wizard-progress__step" data-step-index="3">
                 <div class="wizard-progress__circle">3</div>
-                <div class="wizard-progress__label">የትምህርት መረጃ</div>
+                <div class="wizard-progress__label">የስራ ልምድ</div>
             </div>
             <div class="wizard-progress__step" data-step-index="4">
                 <div class="wizard-progress__circle">4</div>
-                <div class="wizard-progress__label">የስራ ልምድ</div>
-            </div>
-            <div class="wizard-progress__step" data-step-index="5">
-                <div class="wizard-progress__circle">5</div>
                 <div class="wizard-progress__label">ተጨማሪ ምርጫ</div>
             </div>
         </div>
@@ -186,7 +182,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
             <input type="hidden" name="phone_number" value="<?= htmlspecialchars($faydaPhone) ?>">
             <input type="hidden" name="age"          value="<?= htmlspecialchars($faydaAge) ?>">
 
-            <!-- ===================== STEP 1 : የግል መረጃ (ፋይዳ የተረጋገጠ) ===================== -->
+            <!-- ===================== STEP 1 : የግል መረጃ ===================== -->
             <div class="wizard-step is-active" data-step="1">
 
                 <div class="row">
@@ -249,12 +245,6 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     </div>
                 </div>
 
-            </div>
-            <!-- ===================== END STEP 1 ===================== -->
-
-            <!-- ===================== STEP 2 : ዝርዝር መረጃ ===================== -->
-            <div class="wizard-step" data-step="2">
-
                 <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
@@ -287,6 +277,12 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                         </div>
                     </div>
                 </div>
+
+            </div>
+            <!-- ===================== END STEP 1 ===================== -->
+
+            <!-- ===================== STEP 2 : አድራሻ እና ትምህርት ===================== -->
+            <div class="wizard-step" data-step="2">
 
                 <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
@@ -332,12 +328,6 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                         </div>
                     </div>
                 </div>
-
-            </div>
-            <!-- ===================== END STEP 2 ===================== -->
-
-            <!-- ===================== STEP 3 : የትምህርት መረጃ ===================== -->
-            <div class="wizard-step" data-step="3">
 
                 <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
@@ -457,10 +447,10 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                 </div>
 
             </div>
-            <!-- ===================== END STEP 3 ===================== -->
+            <!-- ===================== END STEP 2 ===================== -->
 
-            <!-- ===================== STEP 4 : የስራ ልምድ ===================== -->
-            <div class="wizard-step" data-step="4">
+            <!-- ===================== STEP 3 : የስራ ልምድ ===================== -->
+            <div class="wizard-step" data-step="3">
 
                 <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
@@ -547,12 +537,6 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     </div>
                 </div>
 
-            </div>
-            <!-- ===================== END STEP 4 ===================== -->
-
-            <!-- ===================== STEP 5 : ተጨማሪ ምርጫ ===================== -->
-            <div class="wizard-step" data-step="5">
-
                 <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
@@ -592,6 +576,12 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                         </div>
                     </div>
                 </div>
+
+            </div>
+            <!-- ===================== END STEP 3 ===================== -->
+
+            <!-- ===================== STEP 4 : ተጨማሪ ምርጫ ===================== -->
+            <div class="wizard-step" data-step="4">
 
                 <div class="row">
                     <div class="col-12 col-sm-6 col-md-3">
@@ -657,7 +647,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                 <p class="text-muted">ከመመዝገብዎ በፊት የሞሉቱን መረጃ ትክክለኛነት ያረጋግጡ።</p>
 
             </div>
-            <!-- ===================== END STEP 5 ===================== -->
+            <!-- ===================== END STEP 4 ===================== -->
 
             <div class="wizard-nav">
                 <button type="button" class="btn btn-outline-secondary" id="wizardBackBtn" onclick="wizardGoTo(wizardCurrentStep - 1)" style="display:none;">
@@ -676,9 +666,9 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
     </div>
 </div>
 
-<script>
+<script nonce="<?= $GLOBALS['nonce'] ?? '' ?>">
 (function () {
-    var wizardTotalSteps = 5;
+    var wizardTotalSteps = 4;
     window.wizardCurrentStep = 1;
 
     var stepEls = document.querySelectorAll('.wizard-step');
