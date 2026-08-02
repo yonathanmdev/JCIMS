@@ -1,4 +1,5 @@
 <?php
+$is_jobseeker_reg_fayda_page = true; 
 $profile = $_SESSION['fayda_profile'] ?? [];
 
 $nameAm = $profile['name#am'] ?? '';
@@ -120,9 +121,10 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
             <div class="alert alert-danger"><?= htmlspecialchars($formError) ?></div>
         <?php endif; ?>
 
-        <div class="alert alert-info">
-            <strong>ከፋይዳ የተረጋገጠ መረጃ</strong> — ሙሉ ስም፣ ጾታ፣ ስልክ፣ የልደት ቀን ሊስተካከሉ አይችሉም።
-        </div>
+       <div class="bg-light border-left border-success p-2 mb-3">
+    <i class="fas fa-lock text-success mr-1"></i>
+    <strong>ከፋይዳ የተረጋገጠ መረጃ</strong> — ሙሉ ስም፣ ጾታ፣ ስልክ፣ የልደት ቀን ሊስተካከሉ አይችሉም።
+</div>
 
         <div class="wizard-progress" id="wizardProgress">
             <div class="wizard-progress__step" data-step-index="1">
@@ -648,6 +650,9 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
 
         </form>
     </div>
+      <div class="card-footer bg-light">
+        <small class="text-muted">በፋይዳ የተረጋገጠ የስራ ፈላጊ ምዝገባ ስርዓት</small>
+    </div>  <!-- ← new footer goes here, as a sibling -->
 </div>
  </div>
 </section>
