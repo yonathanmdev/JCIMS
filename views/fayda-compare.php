@@ -22,8 +22,8 @@ $profile = $_SESSION['fayda_profile'] ?? [];
                     <td colspan="2"><?= htmlspecialchars($profile['sub'] ?? '') ?></td>
                 </tr>
                 <tr>
-                    <td><strong>ID Number / የመታወቂያ ቁጥር</strong></td>
-                    <td colspan="2"><?= htmlspecialchars($_SESSION['job_seeker_id'] ?? '') ?></td>
+                    <td><strong>የስራ ፈላጊ መለያ ቁጥር</strong></td>
+                    <td colspan="2"><?= htmlspecialchars($_SESSION['id_number'] ?? 'TBA') ?></td>
                 </tr>
                 <tr>
                     <td><strong>Name / ሙሉ ስም</strong></td>
