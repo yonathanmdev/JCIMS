@@ -21,7 +21,10 @@ class FaydaController extends BaseController
     /** action=fayda-start */
     public function start(): void
     {
-        $this->renderwithoutlogin('fayda-start');
+        $data = [
+            'title' => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
+        ];
+        $this->render('fayda-start', $data);
     }
 
     /** action=fayda-redirect&id_number=... */
@@ -89,7 +92,11 @@ class FaydaController extends BaseController
         $jobSeekerModel = new JobSeekerModel($this->db);
         $existing = $jobSeekerModel->findByFaydaSub($result['profile']['sub'] ?? '');
 
-        $this->renderwithoutlogin('fayda-compare', ['existing' => $existing]);
+        $data = [
+            'title' => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
+            'existing' => $existing
+        ];
+        $this->render('fayda-compare', $data);
     }
 
     /** action=fayda-confirm */
@@ -100,7 +107,10 @@ class FaydaController extends BaseController
             exit;
         }
 
-        $this->renderwithoutlogin('form');
+        $data = [
+            'title' => 'JCIMS - የፋይዳ መረጃ አስመዝግብ'
+        ];
+        $this->render('fayda-form', $data);
     }
 
     /** POST action=fayda-register */
