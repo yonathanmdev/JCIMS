@@ -172,9 +172,13 @@ public function verify(array $params = []): void
             header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=no_profile_in_session');
             exit;
         }
-
+$sectorModel = new \App\Models\SectorModel($this->db);
+$sectors  = $sectorModel->getSectors();
+        
         $data = [
-            'title' => 'JCIMS - የፋይዳ መረጃ አስመዝግብ'
+            'title' => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
+            'sectors' => $sectors
+
         ];
         $this->render('fayda-form', $data);
     }
