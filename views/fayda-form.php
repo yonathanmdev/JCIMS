@@ -10,7 +10,7 @@ $faydaLastName   = $nameParts[2] ?? '';
 $faydaGender = $profile['gender#am'] ?? ''; // already "ወንድ" / "ሴት" — matches modal's <select> values exactly
 $faydaPhone  = $profile['phone_number'] ?? '';
 $faydaSub    = $profile['sub'] ?? '';
-$faydaIdNumber = $_SESSION['fayda_id_number'] ?? '';
+$faydaIdNumber = $_SESSION['job_seeker_id'] ?? '';
 
 // birthdate "1993/04/20" → age
 $faydaAge = '';

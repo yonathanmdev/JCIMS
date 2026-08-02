@@ -7,6 +7,7 @@ use PDO;
 use App\Services\FaydaHandoffService;
 use App\Models\JobSeekerModel;
 use App\Helpers\AuditHelper;
+use App\Helpers\AuthHelper;
 
 class FaydaController extends BaseController
 {
@@ -18,7 +19,7 @@ class FaydaController extends BaseController
         $this->handoffService = new FaydaHandoffService($db);
     }
 
-    /** action=fayda-start */
+    /** action=fayda-start — single page, new/renewal radio toggle */
     public function start(): void
     {
         $data = [
@@ -27,28 +28,76 @@ class FaydaController extends BaseController
         $this->render('fayda-start', $data);
     }
 
-    /** action=fayda-redirect&id_number=... */
+    /**
+     * action=fayda-redirect
+     * GET params: registration_type=new|renewal, job_seeker_id (renewal only)
+     */
     public function redirect(): void
     {
-        $idNumber = trim($_GET['id_number'] ?? '');
+        $type = $_GET['registration_type'] ?? '';
 
-        if ($idNumber === '') {
-            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-start');
-            exit;
+        if ($type === 'new') {
+            $this->proceedToFayda('new', null);
+            return;
         }
 
-        $_SESSION['fayda_id_number'] = $idNumber;
+        if ($type === 'renewal') {
+            $jobSeekerIdRaw = $_GET['job_seeker_id'] ?? '';
+
+            if (!ctype_digit((string) $jobSeekerIdRaw)) {
+                header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=job_seeker_not_found');
+                exit;
+            }
+
+            AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+            $fiscalYear = AuthHelper::checkFiscalYear();
+            $branchId = $_SESSION['user']['branch_id'] ?? null;
+
+            if (!$branchId) {
+                http_response_code(403);
+                die('Unauthorized');
+            }
+
+            $model = new JobSeekerModel($this->db);
+            $verified = $model->findExistingForRenewal((int) $jobSeekerIdRaw, (int) $branchId, (int) $fiscalYear);
+
+            if ($verified === null) {
+                AuditHelper::log(
+                    action: 'fayda_renewal_verification_failed',
+                    entityType: 'job_seeker',
+                    entityId: (string) $jobSeekerIdRaw,
+                    oldValues: null,
+                    newValues: null,
+                    metadata: []
+                );
+                header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=job_seeker_not_found');
+                exit;
+            }
+
+            $this->proceedToFayda('renewal', $verified);
+            return;
+        }
+
+        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-start');
+        exit;
+    }
+
+    private function proceedToFayda(string $type, ?array $verifiedRecord): void
+    {
+        $_SESSION['fayda_registration_type'] = $type;
+        $_SESSION['fayda_verified_record']   = $verifiedRecord; // full DB row, or null for new
 
         AuditHelper::log(
             action: 'fayda_flow_started',
             entityType: 'job_seeker',
-            entityId: null,
+            entityId: isset($verifiedRecord['job_seeker_id']) ? (string) $verifiedRecord['job_seeker_id'] : null,
             oldValues: null,
             newValues: null,
-            metadata: ['id_number' => $idNumber]
+            metadata: ['registration_type' => $type]
         );
 
-        header('Location: https://nid.bols.gov.et/callback.php?action=login&system=jcims&id_number=' . urlencode($idNumber));
+        $carryId = $verifiedRecord['job_seeker_id'] ?? '';
+        header('Location: https://nid.bols.gov.et/callback.php?action=login&system=jcims&id_number=' . urlencode((string) $carryId));
         exit;
     }
 
@@ -78,23 +127,21 @@ class FaydaController extends BaseController
         }
 
         $_SESSION['fayda_profile'] = $result['profile'];
-        $_SESSION['fayda_id_number'] = $result['job_seeker_id'] ?? ($_SESSION['fayda_id_number'] ?? null);
 
         AuditHelper::log(
             action: 'fayda_handoff_consumed',
             entityType: 'job_seeker',
-            entityId: null,
+            entityId: isset($_SESSION['fayda_verified_record']['job_seeker_id'])
+                ? (string) $_SESSION['fayda_verified_record']['job_seeker_id']
+                : null,
             oldValues: null,
             newValues: null,
             metadata: ['fayda_sub' => $result['profile']['sub'] ?? null]
         );
 
-        $jobSeekerModel = new JobSeekerModel($this->db);
-        $existing = $jobSeekerModel->findByFaydaSub($result['profile']['sub'] ?? '');
-
         $data = [
-            'title' => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
-            'existing' => $existing
+            'title'    => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
+            'existing' => $_SESSION['fayda_verified_record'] ?? null,
         ];
         $this->render('fayda-compare', $data);
     }
@@ -122,10 +169,11 @@ class FaydaController extends BaseController
         }
 
         $profile = $_SESSION['fayda_profile'];
+        $type = $_SESSION['fayda_registration_type'] ?? 'new';
+        $verified = $_SESSION['fayda_verified_record'] ?? null;
 
         $data = [
             'fayda_sub'        => $profile['sub'] ?? null,
-            'id_number'        => $_SESSION['fayda_id_number'] ?? null,
             'full_name'        => $_POST['full_name']  ?? '',
             'phone'            => $_POST['phone']      ?? '',
             'gender'           => $_POST['gender']     ?? '',
@@ -135,7 +183,10 @@ class FaydaController extends BaseController
         ];
 
         $model = new JobSeekerModel($this->db);
-        $result = $model->createOrUpdateFromFayda($data);
+
+        $result = ($type === 'renewal' && $verified !== null)
+            ? $model->updateExisting((int) $verified['job_seeker_id'], $data)
+            : $model->createNew($data);
 
         if ($result['status'] !== true) {
             $_SESSION['form_error'] = $result['message'] ?? 'ምዝገባ አልተሳካም';
@@ -144,15 +195,15 @@ class FaydaController extends BaseController
         }
 
         AuditHelper::log(
-            action: 'job_seeker_registered_via_fayda',
+            action: $type === 'renewal' ? 'job_seeker_renewed_via_fayda' : 'job_seeker_registered_via_fayda',
             entityType: 'job_seeker',
-            entityId: $result['job_seeker_id'],
+            entityId: (string) $result['job_seeker_id'],
             oldValues: null,
             newValues: $data,
-            metadata: ['fayda_sub' => $data['fayda_sub'], 'id_number' => $data['id_number']]
+            metadata: ['fayda_sub' => $data['fayda_sub'], 'registration_type' => $type]
         );
 
-        unset($_SESSION['fayda_profile'], $_SESSION['fayda_id_number']);
+        unset($_SESSION['fayda_profile'], $_SESSION['fayda_registration_type'], $_SESSION['fayda_verified_record']);
 
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/dashboard?registered=1');
         exit;

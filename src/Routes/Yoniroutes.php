@@ -81,8 +81,9 @@ return [
     
     //fayda routes
 
-    'jobseeker-renewal-by-fayda'   => ['JobseekerController', 'renewalByFaydaPage', true],
     'fayda-start'    => ['FaydaController', 'start',    true],
+    // FaydaRoutes.php or wherever appropriate
+    'renewal-search-by-fayda' => ['JobseekerController', 'renewalSearch', true],
     'fayda-redirect' => ['FaydaController', 'redirect', true],
     'fayda-verify'   => ['FaydaController', 'verify',   true],
     'fayda-confirm'  => ['FaydaController', 'confirm',  true],
