@@ -130,24 +130,25 @@ public function enterpriseAnalyticsShow()
     }
     
     // የቅርንጫፍ መታወቂያውን መውሰድ
-    $branchId = $_SESSION['user']['branch_id'] ??  null;
+    $branchId = $_SESSION['user']['branch_id'] ?? null;
     
     // ከሞዴል ዳታውን መሳብ
     $chartsData = $this->reportModel->getDashboardChartsDataen($branchId);
 
-    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
-    if (!$chartsData) {
+    // ዳታው ባዶ ወይም NULL ከሆነ ቪው ላይ እክል እንዳይፈጥር ነባሪ (Default) መዋቅሩን ማዘጋጀት
+    if (empty($chartsData)) {
         $chartsData = [
-            'yetederajubet_akababi'    => ['ከተማ' => 0, 'ገጠር' => 0],
-            'project_type' => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0]
-            
-            
+            'yetederajubet_akababi' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'project_type'          => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0],
+            'enterprise_by_sector'  => [],
+            'yehabtu_mnch'          => [],
+            'enterprise_type'       => []
         ];
     }
 
-    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
-    $this->render('/orgteam-analytics', [
-        'title'      => 'የአደረጃጀት ስታቲስቲክስ ትንታኔ',
+    // ዳታውን ወደ ቪው መላክ
+    $this->render('/enterprise-analytics', [
+        'title'      => 'የተመሰረቱ ኢንተርፕራይዞች ስታቲስቲክስ ትንታኔ',
         'chartsData' => $chartsData
     ]);
 }
