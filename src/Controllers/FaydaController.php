@@ -34,7 +34,7 @@ class FaydaController extends BaseController
      */
     public function redirect(): void
     {
-        $type = $_GET['registration_type'] ?? '';
+        $type = $_POST['registration_type'] ?? '';
 
         if ($type === 'new') {
             $this->proceedToFayda('new', null);
@@ -42,7 +42,7 @@ class FaydaController extends BaseController
         }
 
         if ($type === 'renewal') {
-            $jobSeekerIdRaw = $_GET['job_seeker_id'] ?? '';
+            $jobSeekerIdRaw = $_POST['job_seeker_id'] ?? '';
 
             if (!ctype_digit((string) $jobSeekerIdRaw)) {
                 header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=job_seeker_not_found');
@@ -102,49 +102,68 @@ class FaydaController extends BaseController
     }
 
     /** action=fayda-verify/{token} */
-    public function verify(array $params = []): void
-    {
-        $token = $params['uuid'] ?? null;
+    /** action=fayda-verify/{token} */
+public function verify(array $params = []): void
+{
+    $token = $params['uuid'] ?? null;
 
-        if ($token === null) {
-            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=missing_token');
-            exit;
-        }
+    if ($token === null) {
+        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=missing_token');
+        exit;
+    }
 
-        $result = $this->handoffService->consume($token);
+    $result = $this->handoffService->consume($token);
 
-        if ($result === null) {
-            AuditHelper::log(
-                action: 'fayda_handoff_consume_failed',
-                entityType: 'job_seeker',
-                entityId: null,
-                oldValues: null,
-                newValues: null,
-                metadata: ['token_prefix' => substr($token, 0, 8)]
-            );
-            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=token_invalid_or_expired');
-            exit;
-        }
-
-        $_SESSION['fayda_profile'] = $result['profile'];
-
+    if ($result === null) {
         AuditHelper::log(
-            action: 'fayda_handoff_consumed',
+            action: 'fayda_handoff_consume_failed',
             entityType: 'job_seeker',
-            entityId: isset($_SESSION['fayda_verified_record']['job_seeker_id'])
-                ? (string) $_SESSION['fayda_verified_record']['job_seeker_id']
-                : null,
+            entityId: null,
             oldValues: null,
             newValues: null,
-            metadata: ['fayda_sub' => $result['profile']['sub'] ?? null]
+            metadata: ['token_prefix' => substr($token, 0, 8)]
         );
-
-        $data = [
-            'title'    => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
-            'existing' => $_SESSION['fayda_verified_record'] ?? null,
-        ];
-        $this->render('fayda-compare', $data);
+        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=token_invalid_or_expired');
+        exit;
     }
+
+    $_SESSION['fayda_profile'] = $result['profile'];
+
+    // Re-derive the verified record independently of whatever survived
+    // in session — the handoff row is the only thing guaranteed to
+    // have crossed the domain boundary intact.
+    $carriedJobSeekerId = $result['job_seeker_id'] ?? null;
+    $verified = null;
+
+    if ($carriedJobSeekerId !== null && ctype_digit((string) $carriedJobSeekerId)) {
+        AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+        $fiscalYear = AuthHelper::checkFiscalYear();
+        $branchId = $_SESSION['user']['branch_id'] ?? null;
+
+        if ($branchId) {
+            $model = new JobSeekerModel($this->db);
+            $verified = $model->findExistingForRenewal((int) $carriedJobSeekerId, (int) $branchId, (int) $fiscalYear);
+        }
+    }
+
+    $_SESSION['fayda_registration_type'] = $verified !== null ? 'renewal' : 'new';
+    $_SESSION['fayda_verified_record']   = $verified;
+
+    AuditHelper::log(
+        action: 'fayda_handoff_consumed',
+        entityType: 'job_seeker',
+        entityId: $verified !== null ? (string) $verified['job_seeker_id'] : null,
+        oldValues: null,
+        newValues: null,
+        metadata: ['fayda_sub' => $result['profile']['sub'] ?? null]
+    );
+
+    $data = [
+        'title'    => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
+        'existing' => $verified,
+    ];
+    $this->render('fayda-compare', $data);
+}
 
     /** action=fayda-confirm */
     public function confirm(): void

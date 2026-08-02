@@ -42,21 +42,26 @@ $baseUrl = rtrim($_ENV['BASE_URL'], '/');
             </div>
 
             <!-- NEW: no local lookup needed at all — straight to Fayda -->
-            <div id="new-section" class="fayda-panel">
-              <div class="fayda-info-box">
-                <div class="fayda-info-icon">
-                  <i class="fas fa-info-circle"></i>
-                </div>
-                <div class="flex-grow-1">
-                  <h6 class="font-weight-bold text-dark mb-1">አዲስ ስራ ፈላጊ ለመመዝገብ</h6>
-                  <p class="text-secondary small mb-3">ምንም ተጨማሪ መረጃ ሳያስፈልግ በቀጥታ ወደ ፋይዳ ብሔራዊ መታወቂያ ማረጋገጫ ይቀጥሉ።</p>
-                  <a href="<?= $baseUrl ?>/index.php?action=fayda-redirect&registration_type=new"
-                     class="btn fayda-btn-primary px-4">
-                     ወደ ፋይዳ ማረጋገጫ ይቀጥሉ <i class="fas fa-arrow-right ml-2"></i>
-                  </a>
-                </div>
-              </div>
-            </div>
+<div id="new-section" class="fayda-panel">
+  <div class="fayda-info-box">
+    <div class="fayda-info-icon">
+      <i class="fas fa-info-circle"></i>
+    </div>
+    <div class="flex-grow-1">
+      <h6 class="font-weight-bold text-dark mb-1">አዲስ ስራ ፈላጊ ለመመዝገብ</h6>
+      <p class="text-secondary small mb-3">ምንም ተጨማሪ መረጃ ሳያስፈልግ በቀጥታ ወደ ፋይዳ ብሔራዊ መታወቂያ ማረጋገጫ ይቀጥሉ።</p>
+
+      <form method="POST" action="<?= $baseUrl ?>/index.php">
+        <input type="hidden" name="action" value="fayda-redirect">
+        <input type="hidden" name="registration_type" value="new">
+
+        <button type="submit" class="btn fayda-btn-primary px-4">
+          ወደ ፋይዳ ማረጋገጫ ይቀጥሉ <i class="fas fa-arrow-right ml-2"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
 
             <!-- RENEWAL: must search and select a real, existing record -->
             <div id="renewal-section" class="fayda-panel" style="display:none;">
@@ -100,7 +105,7 @@ $baseUrl = rtrim($_ENV['BASE_URL'], '/');
                 </div>
               </div>
 
-              <form method="get" action="<?= $baseUrl ?>/index.php">
+              <form method="POST" action="<?= $baseUrl ?>/index.php">
                 <input type="hidden" name="action" value="fayda-redirect">
                 <input type="hidden" name="registration_type" value="renewal">
                 <input type="hidden" name="job_seeker_id" id="job_seeker_id" value="">
