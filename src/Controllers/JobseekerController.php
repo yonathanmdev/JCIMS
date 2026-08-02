@@ -437,6 +437,12 @@ private function validateJobseekerData(array $post): array
             $errors[] = "FAN በትክክል 16 ቁጥር ማካተት አለበት።";
         }
     }
+  $Labor_ID = $get('Labor_ID') ?? '';
+if ($Labor_ID !== '') {
+    if (!preg_match('/^[a-zA-Z0-9]{10}$/', $Labor_ID)) {
+        $errors[] = "Labor_ID በትክክል 10 ፊደል መሆን አለበት።";
+    }
+}
 
     // ═══════════════════════════════════════════════════════════════
     // CATEGORY 4: GENDER VALIDATION
@@ -718,6 +724,16 @@ private function validateJobseekerData(array $post): array
 
     $this->render('jobseekers-list', $data);
 }
+ public function renewalByFaydaPage() {
+    AuthHelper::checkRole(['system_admin']);
+    $data = [
+        'title'       => 'JCIMS - የሰራተኛ መመዝገቢያ',
+    ];
+
+    $this->render('jobseeker-renewal-by-fayda', $data);
+}
+   
+
   public function renewalPage() {
     AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
     $myBranchId = $_SESSION['user']['branch_id'];

@@ -197,8 +197,10 @@ public function getAllSectorsAndSubsectors(): array
     try {
         $sql = "SELECT
                     s.id AS sector_id,
+                    s.sectorid AS sectorIntId,
                     s.sector AS sector_name,
                     ss.id AS subsector_id,
+                    ss.sub_sectorid AS subsectorIntId,
                     ss.subsector AS subsector_name
                 FROM sector_table s
                 LEFT JOIN sub_sector ss ON ss.sectorid = s.sectorid

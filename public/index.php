@@ -39,6 +39,7 @@ if (($_ENV['APP_ENV'] ?? '') === 'local') {
 }
 
 $db = \App\Config\Database::getConnection();
+App\Helpers\AuditHelper::init($db);
 
 /* ---------------- ROUTES ---------------- */
 $baseRoutes = [

@@ -508,7 +508,8 @@ public function details(array $params = []): void
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/enterprise-lists');
         return;
     }
-
+$sectorModel = new SectorModel($this->db);
+    $sectorData  = $sectorModel->getAllSectorsAndSubsectors();
     $enterpriseModel = new EnterpriseModel($this->db);
     $enterprise = $enterpriseModel->getEnterpriseDetails($branchId, $enterpriseId);
 
@@ -519,7 +520,10 @@ public function details(array $params = []): void
     }
 
     // render your existing enterprsie-details.php view with $enterprise
-    $this->render('enterprise-details', ['enterprise' => $enterprise]);
+    $this->render('enterprise-details', [
+        'enterprise' => $enterprise, 
+        'sectorData' => $sectorData
+    ]);
 }
 
 public function purge(): void

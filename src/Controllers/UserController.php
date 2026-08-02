@@ -10,7 +10,7 @@ use Ramsey\Uuid\Uuid;
 // 1. BaseControllerን እንዲወርስ እናደርጋለን
 class UserController extends BaseController {
     
-  public function showRegisterForm() {
+ public function showRegisterForm() {
     AuthHelper::checkRole(['system_admin', 'org_admin']);
 
     $myBranchId = $_SESSION['user']['branch_id'];
@@ -21,16 +21,25 @@ class UserController extends BaseController {
     $branchModel = new Branch($this->db);
     $branchName  = $branchModel->getBranchById($myBranchId);
 
-    $users       = [];
+    // --- pagination + search params ---
+    $page    = max(1, (int)($_GET['page'] ?? 1));
+    $perPage = 50;
+    $offset  = ($page - 1) * $perPage;
+    $search  = trim($_GET['search'] ?? '');
+
+    $users         = [];
     $organizations = [];
     $subBranches   = [];
+    $totalUsers    = 0;
 
     if ($role === 'system_admin') {
-        $users         = $userModel->getAllOrgAdmins();
+        $totalUsers    = $userModel->countAllOrgAdmins($search);
+        $users         = $userModel->getAllOrgAdmins($perPage, $offset, $search);
         $organizations = (new Organization($this->db))->getAll();
 
     } elseif ($role === 'org_admin') {
-        $users       = $userModel->getUsersForMyBranchHierarchy($myBranchId, $id);
+        $totalUsers  = $userModel->countUsersForMyBranchHierarchy($myBranchId, $id, $search);
+        $users       = $userModel->getUsersForMyBranchHierarchy($myBranchId, $id, $perPage, $offset, $search);
         $subBranches = $branchModel->getImmediateSubBranches($myBranchId);
     }
 
@@ -40,6 +49,11 @@ class UserController extends BaseController {
         'users'         => $users,
         'branchName'    => $branchName,
         'subBranches'   => $subBranches,
+        'currentPage'   => $page,
+        'perPage'       => $perPage,
+        'totalUsers'    => $totalUsers,
+        'totalPages'    => (int)ceil($totalUsers / $perPage),
+        'search'        => $search,
     ]);
 }
 
