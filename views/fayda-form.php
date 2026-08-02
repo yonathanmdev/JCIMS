@@ -650,11 +650,11 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
             <!-- ===================== END STEP 4 ===================== -->
 
             <div class="wizard-nav">
-                <button type="button" class="btn btn-outline-secondary" id="wizardBackBtn" onclick="wizardGoTo(wizardCurrentStep - 1)" style="display:none;">
+                <button type="button" class="btn btn-outline-secondary" id="wizardBackBtn" style="display:none;">
                     <i class="fas fa-arrow-left mr-1"></i> ተመለስ
                 </button>
                 <div class="wizard-nav__spacer"></div>
-                <button type="button" class="btn btn-primary" id="wizardNextBtn" onclick="wizardNext()">
+                <button type="button" class="btn btn-primary" id="wizardNextBtn">
                     ቀጣይ <i class="fas fa-arrow-right ml-1"></i>
                 </button>
                 <button type="submit" class="btn btn-success" id="wizardSubmitBtn" style="display:none;">
@@ -665,7 +665,6 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         </form>
     </div>
 </div>
-
 <script nonce="<?= $GLOBALS['nonce'] ?? '' ?>">
 (function () {
     var wizardTotalSteps = 4;
@@ -715,19 +714,24 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         currentStepEl().scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    window.wizardNext = function () {
+    function wizardNext() {
         if (!validateCurrentStep()) return;
         if (wizardCurrentStep < wizardTotalSteps) {
             wizardCurrentStep++;
             renderStep();
         }
-    };
+    }
 
-    window.wizardGoTo = function (step) {
+    function wizardGoTo(step) {
         if (step < 1 || step > wizardTotalSteps) return;
         wizardCurrentStep = step;
         renderStep();
-    };
+    }
+
+    nextBtn.addEventListener('click', wizardNext);
+    backBtn.addEventListener('click', function () {
+        wizardGoTo(wizardCurrentStep - 1);
+    });
 
     renderStep();
 })();
