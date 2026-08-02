@@ -8,24 +8,23 @@ use App\Services\FaydaHandoffService;
 use App\Models\JobSeekerModel;
 use App\Helpers\AuditHelper;
 
-class FaydaController
+class FaydaController extends BaseController
 {
-    private PDO $db;
     private FaydaHandoffService $handoffService;
 
     public function __construct(PDO $db)
     {
-        $this->db = $db;
+        parent::__construct($db); // sets $this->db AND calls AuditHelper::init($db)
         $this->handoffService = new FaydaHandoffService($db);
     }
 
-    /** action=fayda-start — shows the "enter ID" form */
+    /** action=fayda-start */
     public function start(): void
     {
-        require __DIR__ . '/../../views/fayda-start.php';
+        $this->renderwithoutlogin('fayda-start');
     }
 
-    /** action=fayda-redirect&id_number=... — stashes the ID, sends to bridge */
+    /** action=fayda-redirect&id_number=... */
     public function redirect(): void
     {
         $idNumber = trim($_GET['id_number'] ?? '');
@@ -46,11 +45,11 @@ class FaydaController
             metadata: ['id_number' => $idNumber]
         );
 
-        header('Location: https://nid.bols.gov.et/callback.php?action=login&id_number=' . urlencode($idNumber));
+        header('Location: https://nid.bols.gov.et/callback.php?action=login&system=jcims&id_number=' . urlencode($idNumber));
         exit;
     }
 
-    /** action=fayda-verify/{token} — token arrives as $params['uuid'] via the router */
+    /** action=fayda-verify/{token} */
     public function verify(array $params = []): void
     {
         $token = $params['uuid'] ?? null;
@@ -76,7 +75,6 @@ class FaydaController
         }
 
         $_SESSION['fayda_profile'] = $result['profile'];
-        // prefer the id_number carried through the handoff row; fall back to session
         $_SESSION['fayda_id_number'] = $result['job_seeker_id'] ?? ($_SESSION['fayda_id_number'] ?? null);
 
         AuditHelper::log(
@@ -91,7 +89,7 @@ class FaydaController
         $jobSeekerModel = new JobSeekerModel($this->db);
         $existing = $jobSeekerModel->findByFaydaSub($result['profile']['sub'] ?? '');
 
-        require __DIR__ . '/../../views/fayda-compare.php';
+        $this->renderwithoutlogin('fayda-compare', ['existing' => $existing]);
     }
 
     /** action=fayda-confirm */
@@ -102,7 +100,7 @@ class FaydaController
             exit;
         }
 
-        require __DIR__ . '/../../views/fayda-form.php';
+        $this->renderwithoutlogin('form');
     }
 
     /** POST action=fayda-register */
@@ -154,6 +152,6 @@ class FaydaController
     public function showError(): void
     {
         $reason = $_GET['reason'] ?? 'unknown';
-        require __DIR__ . '/../../views/fayda-error.php';
+        $this->renderwithoutlogin('fayda-error', ['reason' => $reason]);
     }
 }
