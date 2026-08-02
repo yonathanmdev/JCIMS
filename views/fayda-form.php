@@ -665,6 +665,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         </form>
     </div>
 </div>
+
 <script nonce="<?= $GLOBALS['nonce'] ?? '' ?>">
 (function () {
     var wizardTotalSteps = 4;
@@ -675,20 +676,169 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
     var backBtn = document.getElementById('wizardBackBtn');
     var nextBtn = document.getElementById('wizardNextBtn');
     var submitBtn = document.getElementById('wizardSubmitBtn');
+    var form = document.getElementById('faydaJobseekerForm');
 
+    // ── Custom field validators (only the ones this form actually uses:
+    //    Labor_ID → general-safe, FAN → numeric-only, CGPA → decimal) ──
+    var GENERAL_SAFE_PATTERN = /^[\p{L}\d\-\/\s፣]*$/u;
+    var NUMERIC_PATTERN = /^\d*$/;
+    var DECIMAL_PATTERN = /^\d+(\.\d+)?$/;
+
+    var validators = {
+        'general-safe': {
+            pattern: GENERAL_SAFE_PATTERN,
+            message: 'ልዩ ምልክት (እንደ <, >, %, ;) መጠቀም አይቻልም።'
+        },
+        'numeric-only': {
+            pattern: NUMERIC_PATTERN,
+            message: 'ቁጥር ብቻ መጠቀም ይቻላል።'
+        },
+        'decimal': {
+            pattern: DECIMAL_PATTERN,
+            message: 'ቁጥር ብቻ መጠቀም ይቻላል።'
+        }
+    };
+
+    function getFeedbackEl(input) {
+        var feedback = input.parentElement.querySelector('.invalid-feedback[data-validator-feedback]');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            feedback.setAttribute('data-validator-feedback', '');
+            input.parentElement.appendChild(feedback);
+        }
+        return feedback;
+    }
+
+    function getExactLengthMessage(length, type) {
+        if (type === 'numeric-only' || type === 'decimal') {
+            return 'ይህ Field በትክክል ' + length + ' digits መሆን አለበት።';
+        }
+        return 'ይህ Field በትክክል ' + length + ' ፊደል/ቁጥር መሆን አለበት።';
+    }
+
+    function validateField(input) {
+        var type = input.getAttribute('data-validate');
+        var validator = validators[type];
+        if (!validator) return true;
+
+        var value = input.value;
+        var feedback = getFeedbackEl(input);
+
+        if (value === '') {
+            input.classList.remove('is-invalid', 'is-valid');
+            input.setCustomValidity('');
+            return true;
+        }
+
+        if (!validator.pattern.test(value)) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            feedback.textContent = validator.message;
+            input.setCustomValidity(validator.message);
+            return false;
+        }
+
+        var requiredLength = input.getAttribute('data-length');
+        if (requiredLength && value.length !== parseInt(requiredLength, 10)) {
+            var msg = getExactLengthMessage(requiredLength, type);
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            feedback.textContent = msg;
+            input.setCustomValidity(msg);
+            return false;
+        }
+
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        input.setCustomValidity('');
+        return true;
+    }
+
+    function sanitizeOnInput(input) {
+        var type = input.getAttribute('data-validate');
+
+        if (type === 'numeric-only') {
+            var cleaned = input.value.replace(/\D/g, '');
+            var maxLength = input.getAttribute('data-length');
+            if (maxLength) {
+                cleaned = cleaned.slice(0, parseInt(maxLength, 10));
+            }
+            if (cleaned !== input.value) input.value = cleaned;
+
+        } else if (type === 'decimal') {
+            var cleanedDec = input.value
+                .replace(/[^\d.]/g, '')
+                .replace(/(\..*)\./g, '$1');
+            if (cleanedDec !== input.value) input.value = cleanedDec;
+
+        } else if (type === 'general-safe') {
+            var cleanedSafe = input.value
+                .replace(/[^\p{L}\d\-\/\s፣]/gu, '')
+                .replace(/\s{2,}/g, ' ')
+                .replace(/^\s+/, '');
+            if (cleanedSafe !== input.value) input.value = cleanedSafe;
+        }
+    }
+
+    function validateChildrenUnderFive() {
+        var numberOfDependentsInput = document.getElementById('number_of_dependents');
+        var childrenUnderFiveInput = document.getElementById('children_under_five');
+        if (!numberOfDependentsInput || !childrenUnderFiveInput) return true;
+
+        var maxDependents = parseInt(numberOfDependentsInput.value, 10) || 0;
+        var childrenValue = parseInt(childrenUnderFiveInput.value, 10) || 0;
+        var feedback = getFeedbackEl(childrenUnderFiveInput);
+
+        if (childrenUnderFiveInput.value !== '' && childrenValue > maxDependents) {
+            var msg = 'ከ5 ዓመት በታች ያሉ ልጆች ቁጥር ከጠቅላላ ቤተሰብ ብዛት (' + maxDependents + ') መብለጥ አይችልም።';
+            childrenUnderFiveInput.classList.add('is-invalid');
+            childrenUnderFiveInput.classList.remove('is-valid');
+            feedback.textContent = msg;
+            childrenUnderFiveInput.setCustomValidity(msg);
+            return false;
+        }
+
+        childrenUnderFiveInput.classList.remove('is-invalid');
+        childrenUnderFiveInput.classList.add('is-valid');
+        feedback.textContent = '';
+        childrenUnderFiveInput.setCustomValidity('');
+        return true;
+    }
+
+    function validateAllFields(container) {
+        var allValid = true;
+
+        container.querySelectorAll('[data-validate]').forEach(function (input) {
+            if (!validateField(input)) allValid = false;
+        });
+
+        if (container.querySelector('#number_of_dependents') && container.querySelector('#children_under_five')) {
+            if (!validateChildrenUnderFive()) allValid = false;
+        }
+
+        return allValid;
+    }
+
+    // ── Step navigation ───────────────────────────────────────────────
     function currentStepEl() {
         return document.querySelector('.wizard-step[data-step="' + wizardCurrentStep + '"]');
     }
 
     function validateCurrentStep() {
-        var fields = currentStepEl().querySelectorAll('[required]');
-        for (var i = 0; i < fields.length; i++) {
-            if (!fields[i].checkValidity()) {
-                fields[i].reportValidity();
+        var stepEl = currentStepEl();
+
+        // Native required-field check
+        var requiredFields = stepEl.querySelectorAll('[required]');
+        for (var i = 0; i < requiredFields.length; i++) {
+            if (!requiredFields[i].checkValidity()) {
+                requiredFields[i].reportValidity();
                 return false;
             }
         }
-        return true;
+
+        // Pattern/length + cross-field validation, scoped to this step
+        return validateAllFields(stepEl);
     }
 
     function renderStep() {
@@ -731,6 +881,33 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
     nextBtn.addEventListener('click', wizardNext);
     backBtn.addEventListener('click', function () {
         wizardGoTo(wizardCurrentStep - 1);
+    });
+
+    // Live sanitize + validate for data-validate fields (Labor_ID, FAN, CGPA)
+    form.querySelectorAll('[data-validate]').forEach(function (input) {
+        input.addEventListener('input', function () {
+            sanitizeOnInput(input);
+            validateField(input);
+        });
+        input.addEventListener('blur', function () {
+            validateField(input);
+        });
+    });
+
+    // Live cross-field validation between dependents and children-under-five
+    var childrenInput = document.getElementById('children_under_five');
+    var dependentsInput = document.getElementById('number_of_dependents');
+    if (childrenInput) childrenInput.addEventListener('input', validateChildrenUnderFive);
+    if (dependentsInput) dependentsInput.addEventListener('input', validateChildrenUnderFive);
+
+    // Final safety net: re-check the cross-field rule on submit, since a user
+    // could reach step 4 without ever triggering the input listeners above.
+    form.addEventListener('submit', function (e) {
+        if (!validateChildrenUnderFive()) {
+            e.preventDefault();
+            wizardGoTo(4);
+            childrenInput.focus();
+        }
     });
 
     renderStep();
