@@ -39,7 +39,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         <?php endif; ?>
 
         <div class="alert alert-info">
-            <strong>ከፋይዳ የተረጋገጠ መረጃ</strong> — ስም፣ ጾታ፣ ስልክ፣ የልደት ቀን በራስ-ሰር ተሞልተዋል እና ሊስተካከሉ አይችሉም።
+            <strong>ከፋይዳ የተረጋገጠ መረጃ</strong> — ሙሉ ስም፣ ጾታ፣ ስልክ፣ የልደት ቀን ሊስተካከሉ አይችሉም።
         </div>
 
         <form id="faydaJobseekerForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/index.php?action=fayda-register" method="POST">
