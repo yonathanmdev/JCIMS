@@ -35,15 +35,14 @@ class FaydaController extends BaseController
     public function redirect(): void
     {
         $type = $_GET['registration_type'] ?? '';
-
         if ($type === 'new') {
             $this->proceedToFayda('new', null);
             return;
         }
 
         if ($type === 'renewal') {
+            
             $jobSeekerIdRaw = $_GET['job_seeker_id'] ?? '';
-
             if (!ctype_digit((string) $jobSeekerIdRaw)) {
                 header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=job_seeker_not_found');
                 exit;
@@ -86,7 +85,7 @@ class FaydaController extends BaseController
     {
         $_SESSION['fayda_registration_type'] = $type;
         $_SESSION['fayda_verified_record']   = $verifiedRecord; // full DB row, or null for new
-
+        $_SESSION['id_number']         = $verifiedRecord['job_seeker_id'] ?? null;
         AuditHelper::log(
             action: 'fayda_flow_started',
             entityType: 'job_seeker',
@@ -133,6 +132,7 @@ public function verify(array $params = []): void
     // in session — the handoff row is the only thing guaranteed to
     // have crossed the domain boundary intact.
     $carriedJobSeekerId = $result['job_seeker_id'] ?? null;
+    $_SESSION['id_number']         = $result['job_seeker_id'] ?? null;
     $verified = null;
 
     if ($carriedJobSeekerId !== null && ctype_digit((string) $carriedJobSeekerId)) {
