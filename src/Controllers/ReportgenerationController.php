@@ -17,6 +17,86 @@ class ReportgenerationController extends BaseController
     }
 
 
+public function expertLevelReport()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $sessionUser = $_SESSION['user'] ?? $_SESSION['user_data'] ?? $_SESSION;
+    $currentUserId = $sessionUser['user_id'] ?? $sessionUser['id'] ?? $_SESSION['user_id'] ?? null;
+
+    if (empty($currentUserId)) {
+        header('Location: index.php?url=auth/login');
+        exit();
+    }
+
+    $accountLevel     = $sessionUser['account_level'] ?? $sessionUser['level'] ?? $_SESSION['account_level'] ?? null;
+    $userBranchId     = $sessionUser['branch_id'] ?? $_SESSION['branch_id'] ?? null;
+    $requestedBranchId = $_GET['branch_id'] ?? null;
+
+    $expertsData = $this->reportModel->getExpertLevelReport(
+        $currentUserId,
+        $accountLevel,
+        $userBranchId,
+        $requestedBranchId
+    );
+    
+    // የተመረጠው የብራንች ID (ከተጠየቀ የሰጠው፣ ካልሆነ የዩዘሩ)
+    $activeBranchId = !empty($requestedBranchId) ? $requestedBranchId : $userBranchId;
+
+    // የብራንች ስሙን ከሞዴል ማምጣት (BranchModel መኖሩን እርግጠኛ ይሁኑ ወይም የሚጠቀሙበትን ሞዴል ያስተካክሉት)
+    $branchName = 'ክልል (ሁሉም ቅርንጫፎች)';
+    if (!empty($activeBranchId) && $activeBranchId != 1 && $activeBranchId != '1') {
+        // እንደ ፕሮጀክትዎ አወቃቀር $this->BranchModel ወይም $this->reportModel መጠቀም ይችላሉ
+        if (method_exists($this, 'BranchModel') && isset($this->BranchModel)) {
+            $branchName = $this->BranchModel->getBranchNameById($activeBranchId);
+        } elseif (isset($this->reportModel) && method_exists($this->reportModel, 'getBranchNameById')) {
+            $branchName = $this->reportModel->getBranchNameById($activeBranchId);
+        }
+    }
+    
+    $data = [
+        'title'               => 'የባለሙያዎች አፈጻጸም እና የደረጃ ተዋረድ ሪፖርት',
+        'experts'             => $expertsData,
+        'selected_branch'     => $activeBranchId,
+        'selected_branch_name' => $branchName
+    ];
+
+    $this->renderPrintable('/expert_level_view', $data);
+}
+
+
+public function performanceJobCreationShow()
+{
+    // Session እና User Info
+    $parentBranchId = $_SESSION['user']['branch_id'] ?? '';
+    $isKetema = ($_SESSION['user']['ketema_astedader'] ?? '') === 'on' || ($_SESSION['user']['ketema_astedader'] ?? '') == 1;
+
+    // Model ጥሪ
+    $reportModel = new ReportgenerationModel($this->db);
+    $branches = $reportModel->getJobCreationReport($parentBranchId, $isKetema);
+
+    // 1. የብራንቹን ስም ማግኘት 
+    // (በSession ውስጥ የብራንች ስም ካለ ከእሱ ይወስዳል፣ ካለደግሞ ከModel ያመጣል)
+    $branchName = $_SESSION['user']['branch_name'] ?? '';
+
+    // በ Session ውስጥ የብራንች ስም ከሌለ ከዳታቤዝ በ ID እንዲያመጣ ማድረግ፡
+    if (empty($branchName) && !empty($parentBranchId)) {
+        // እንደ Model-ዎ አሰራር የብራንች ስም የሚያመጣ Method እዚህ ይጥሩ፡
+        // ለምሳሌ፡ $branchName = $reportModel->getBranchNameById($parentBranchId);
+    }
+
+    // renderPrintable() በመጠቀም Viewን ሲጠሩ 'defaultBranchName'ን አብረው ይላኩ
+    return $this->renderPrintable('performance_job_creation_view', [
+        'title' => 'የስራ እድል እና ኢንተርፕራይዝ አፈጻጸም ሪፖርት',
+        'defaultBranchName' => $branchName, // <-- ይህ እዚህ ጋር መግባት አለበት!
+        'branches' => $branches
+    ]);
+}
+
+
+
 public function performanceIndexShow()
     {
         AuthHelper::checkRole(['team_leader', 'officer']);

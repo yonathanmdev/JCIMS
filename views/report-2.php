@@ -227,38 +227,6 @@ function getVal($data, $subSector, $field) {
                     <td><?= number_format($f_pm + $f_pf + $f_tm + $f_tf) ?></td>
                 </tr>
             <?php endforeach; ?>
-
-            <!-- ጠቅላላ ድምር (Grand Total) -->
-            <?php
-            $tot_fam_bm = getVal($data, 'family_total', 'biz_mahber');
-            $tot_fam_bp = getVal($data, 'family_total', 'biz_private');
-            $tot_fam_pm = getVal($data, 'family_total', 'perm_m');
-            $tot_fam_pf = getVal($data, 'family_total', 'perm_f');
-            $tot_fam_tm = getVal($data, 'family_total', 'temp_m');
-            $tot_fam_tf = getVal($data, 'family_total', 'temp_f');
-
-            $grand_bm = $g_biz_m + $tot_fam_bm;
-            $grand_bp = $g_biz_p + $tot_fam_bp;
-            $grand_pm = $g_perm_m + $tot_fam_pm;
-            $grand_pf = $g_perm_f + $tot_fam_pf;
-            $grand_tm = $g_temp_m + $tot_fam_tm;
-            $grand_tf = $g_temp_f + $tot_fam_tf;
-            ?>
-            <tr class="fw-bold bg-primary text-white border-top border-dark border-3">
-                <td class="text-left fs-6">ጠቅላላ ድምር</td>
-                <td><?= number_format($grand_bm) ?></td>
-                <td><?= number_format($grand_bp) ?></td>
-                <td><?= number_format($grand_bm + $grand_bp) ?></td>
-                <td><?= number_format($grand_pm) ?></td>
-                <td><?= number_format($grand_pf) ?></td>
-                <td><?= number_format($grand_pm + $grand_pf) ?></td>
-                <td><?= number_format($grand_tm) ?></td>
-                <td><?= number_format($grand_tf) ?></td>
-                <td><?= number_format($grand_tm + $grand_tf) ?></td>
-                <td><?= number_format($grand_pm + $grand_tm) ?></td>
-                <td><?= number_format($grand_pf + $grand_tf) ?></td>
-                <td><?= number_format($grand_pm + $grand_pf + $grand_tm + $grand_tf) ?></td>
-            </tr>
         </tbody>
     </table>
 </div>
