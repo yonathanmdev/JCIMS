@@ -1,4 +1,5 @@
 <?php
+$is_jobseeker_reg_fayda_page = true; 
 $profile = $_SESSION['fayda_profile'] ?? [];
 
 $nameAm = $profile['name#am'] ?? '';
