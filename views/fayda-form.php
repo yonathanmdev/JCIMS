@@ -141,7 +141,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
             </div>
         </div>
 
-        <form id="faydaJobseekerForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/index.php?action=fayda-register" method="POST">
+        <form id="faydaJobseekerForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/fayda-register" method="POST">
 
             <input type="hidden" name="mode" value="create">
             <input type="hidden" name="fayda_sub" value="<?= htmlspecialchars($faydaSub) ?>">
