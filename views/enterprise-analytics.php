@@ -215,23 +215,63 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው (Pie Chart)
+// 4. የኢንተርፕራይዝ የሀብት ምንጫቸው (Pie Chart)
     const wealthElem = document.getElementById('wealthSourceChart');
     if (wealthElem) {
+        // የቁጥር ኮዶችን ወደ ቋንቋው ትርጉም መቀየሪያ ካርታ
+        const wealthMapping = {
+            '0': 'ከራስ ተቀማጭ',
+            '1': 'ከቤተሰብ',
+            '2': 'ከመንግስት',
+            '3': 'ከብደር'
+        };
+
+        const rawWealthData = rawData.yehabtu_mnch || {};
+        const wealthLabels = [];
+        const wealthValues = [];
+
+        for (const [key, val] of Object.entries(rawWealthData)) {
+            const mappedLabel = wealthMapping[key] || key;
+            wealthLabels.push(mappedLabel);
+            wealthValues.push(val);
+        }
+
         new Chart(wealthElem, {
             type: 'pie',
             data: {
-                labels: Object.keys(rawData.yehabtu_mnch || {}),
+                labels: wealthLabels,
                 datasets: [{
-                    data: Object.values(rawData.yehabtu_mnch || {}),
+                    data: wealthValues,
                     backgroundColor: ['#ffc107', '#fd7e14', '#20c997', '#6610f2', '#d63384'],
                     borderWidth: 2
                 }]
             },
-            options: commonOptions
+            options: {
+                ...commonOptions,
+                animation: {
+                    onComplete: function() {
+                        const chart = this;
+                        const ctx = chart.ctx;
+                        ctx.font = 'bold 13px sans-serif';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            meta.data.forEach((element, index) => {
+                                const dataVal = dataset.data[index];
+                                if (dataVal > 0) {
+                                    const position = element.tooltipPosition();
+                                    ctx.fillText(dataVal.toLocaleString(), position.x, position.y);
+                                }
+                            });
+                        });
+                    }
+                }
+            }
         });
     }
-
     // 5. የኢንተርፕራይዙ ዓይነት (Polar Area Chart)
     const entTypeElem = document.getElementById('enterpriseTypeChart');
     if (entTypeElem) {

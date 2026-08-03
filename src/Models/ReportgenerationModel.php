@@ -51,24 +51,28 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
         return 0;
     }
 
-    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የስራ እድል የተፈጠረላቸውን መቁጠሪያ ኩየሪ
-$sql = "WITH RECURSIVE SubBranches AS (
-            SELECT b.internal_id
-            FROM branches b
-            INNER JOIN branches root ON root.internal_id = :my_branch
-            WHERE b.path LIKE CONCAT(root.path, '%')
-        )
-        SELECT COUNT(ce.id) as total 
-        FROM code003 ce
-        INNER JOIN SubBranches sb ON ce.branch_id = sb.internal_id 
-        ";
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ እና full_enterprise_and_job_seekerdata ቴብልን በመጠቀም 
+    // ባዶ እና ትርጉም የለሽ የቲን ቁጥሮችን በማስወገድ በ Distinct የሚቆጥር ኩየሪ
+    $sql = "WITH RECURSIVE SubBranches AS (
+                SELECT b.internal_id
+                FROM branches b
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+            )
+            SELECT COUNT(DISTINCT fe.tine_number) as total 
+            FROM full_enterprise_and_job_seekerdata fe
+            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+            WHERE fe.tine_number IS NOT NULL 
+              AND TRIM(fe.tine_number) != '' 
+              AND LOWER(TRIM(fe.tine_number)) != 'null'
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'";
 
     $stmt = $this->db->prepare($sql);
     $stmt->execute(['my_branch' => $branchId]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
     return isset($result['total']) ? (int)$result['total'] : 0;
-}   
+}
 
 public function getDashboardChartsDataen($branchId)
 {
@@ -164,15 +168,25 @@ public function getDashboardChartsDataen($branchId)
             $sectorCounts[$sectorName]++;
         }
 
-        // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
-        $wealthSource = isset($row['yehabtu_mnch']) ? trim((string)$row['yehabtu_mnch']) : '';
-        if (!empty($wealthSource) && $isUniqueEnterprise) {
+       // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
+        $wealthSourceRaw = isset($row['yehabtu_mnch']) ? trim((string)$row['yehabtu_mnch']) : '';
+        if ($isUniqueEnterprise && $wealthSourceRaw !== '') {
+            $wealthSource = $wealthSourceRaw;
+            if ($wealthSourceRaw === '0') {
+                $wealthSource = 'ከራስ ተቀማጭ';
+            } else if ($wealthSourceRaw === '1') {
+                $wealthSource = 'ከቤተሰብ';
+            } else if ($wealthSourceRaw === '2') {
+                $wealthSource = 'ከመንግስት';
+            } else if ($wealthSourceRaw === '3') {
+                $wealthSource = 'ከብደር';
+            }
+
             if (!isset($wealthSources[$wealthSource])) {
                 $wealthSources[$wealthSource] = 0;
             }
             $wealthSources[$wealthSource]++;
         }
-
         // 5. የኢንተርፕራይዙ ዓይነት - enterprise_type
         $entType = isset($row['enterprise_type']) ? trim((string)$row['enterprise_type']) : '';
         if (!empty($entType) && $isUniqueEnterprise) {
@@ -371,7 +385,7 @@ $sql = "WITH RECURSIVE SubBranches AS (
         )
         SELECT COUNT(gt.id) as total 
         FROM group_table gt
-        INNER JOIN SubBranches sb ON gt.branch_id = sb.internal_id 
+        INNER JOIN SubBranches sb ON gt.branch_id = sb.internal_id where is_enterprise=0
         ";
 
     $stmt = $this->db->prepare($sql);
@@ -1967,14 +1981,15 @@ if ($isKetemaAstedader) {
             FROM Calculated
         )
         SELECT 
-            RANK() OVER (ORDER BY p_per DESC, p_sum DESC) AS rank_no, -- የደረጃ ቁጥር ማሰያ
+            RANK() OVER (ORDER BY p_per DESC, p_sum DESC) AS rank_no, -- የምዝገባ ደረጃ ቁጥር (እንደቀድሞው)
+            RANK() OVER (ORDER BY a_per DESC, a_sum DESC) AS a_rank,  -- የግንዛቤ ራሱን የቻለ ደረጃ ቁጥር (አዲስ የተጨመረ)
             id,
             internal_id,
             name,
             p_plan, p_m, p_f, p_sum, p_per,
             a_plan, a_m, a_f, a_sum, a_per
         FROM WithPerformance
-        ORDER BY p_per DESC, p_sum DESC -- በደረጃ ቅደም ተከተል እንዲወጣ
+        ORDER BY p_per DESC, p_sum DESC -- በምዝገባ ደረጃ ቅደም ተከተል እንዲወጣ (እንደቀድሞው)
     ";
 
     $stmt = $this->db->prepare($sql);
@@ -2120,6 +2135,20 @@ public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
                         ELSE 0
                     END AS ent_plan
                 FROM branches b
+            ),
+            -- የኢንተርፕራይዝ መረጃዎችን በTIN ቁጥር Distinct በማድረግ እና በቅርንጫፍ ሂራርኪ በማቀናጀት
+            UniqueEnterprises AS (
+                SELECT 
+                    fe.tine_number,
+                    fe.sector_name,
+                    sb.root_zone_id
+                FROM full_enterprise_and_job_seekerdata fe
+                JOIN SubBranches sb ON CAST(fe.job_seeker_branch_id AS CHAR) = sb.current_branch_id 
+                                   OR CAST(fe.job_seeker_branch_id AS CHAR) = sb.current_internal_id
+                WHERE fe.is_enterprise = '1' 
+                  AND fe.tine_number IS NOT NULL 
+                  AND fe.tine_number != ''
+                GROUP BY fe.tine_number, fe.sector_name, sb.root_zone_id
             )
             SELECT 
                 main_b.id,
@@ -2161,22 +2190,26 @@ public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
                     SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) DESC
                 ) AS tot_job_rank,
 
-                -- 4. የኢንተርፕራይዝ ምሥረታ (Enterprise Creation)
+                -- 4. የኢንተርፕራይዝ ምሥረታ (Enterprise Creation በሴክተር እና Distinct TIN)
                 bp.ent_plan,
-                0 AS ent_agri,
-                0 AS ent_ind,
-                0 AS ent_serv,
-                0 AS ent_sum,
-                0 AS ent_per,
-                0 AS ent_rank
+                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%ግብርና%'  THEN ue.tine_number END) AS ent_agri,
+                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%ኢንዱስትሪ%'  THEN ue.tine_number END) AS ent_ind,
+                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%አገልግሎት%'  THEN ue.tine_number END) AS ent_serv,
+                COUNT(DISTINCT ue.tine_number) AS ent_sum,
+                CASE WHEN bp.ent_plan > 0 THEN ROUND((COUNT(DISTINCT ue.tine_number) / bp.ent_plan) * 100, 2) ELSE 0 END AS ent_per,
+                DENSE_RANK() OVER (
+                    ORDER BY 
+                    (CASE WHEN bp.ent_plan > 0 THEN (COUNT(DISTINCT ue.tine_number) / bp.ent_plan) * 100 ELSE 0 END) DESC,
+                    COUNT(DISTINCT ue.tine_number) DESC
+                ) AS ent_rank
 
             FROM branches main_b
             JOIN BranchPlans bp ON bp.id = main_b.id
             JOIN SubBranches sb ON sb.root_zone_id = main_b.id
             LEFT JOIN job_seekers js ON CAST(js.branch_id AS CHAR) = sb.current_branch_id OR CAST(js.branch_id AS CHAR) = sb.current_internal_id
+            LEFT JOIN UniqueEnterprises ue ON ue.root_zone_id = main_b.id
             
             GROUP BY main_b.id, main_b.name, bp.perm_plan, bp.temp_plan, bp.ent_plan
-            -- በቋሚ አፈጻጸም ፐርሰንቴጅ እና በድምር ቁጥር መሰረት ድርደራው እንዲስተካከል፦
             ORDER BY perm_per DESC, perm_sum DESC";
 
     $stmt = $this->db->prepare($sql);

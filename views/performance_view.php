@@ -58,24 +58,6 @@
             font-weight: bold;
         }
         
-        .rank-1 {
-            background-color: #ffc107 !important; /* Gold */
-            color: #000 !important;
-            font-weight: 800;
-        }
-
-        .rank-2 {
-            background-color: #adb5bd !important; /* Silver */
-            color: #000 !important;
-            font-weight: 800;
-        }
-
-        .rank-3 {
-            background-color: #cd7f32 !important; /* Bronze */
-            color: #fff !important;
-            font-weight: 800;
-        }
-
         .zone-name {
             text-align: left !important;
             font-weight: 600;
@@ -94,8 +76,6 @@
                 የ<?= htmlspecialchars($defaultBranchName ?? 'ቅርንጫፍ'); ?> የስራ ፈላጊዎች ምዝገባ እና የግንዛቤ ፈጠራ አፈጻጸም ሁኔታ
             </h5>
         </div>
-        <!-- Print Button -->
-
     </div>
 
 <div class="table-responsive">
@@ -106,7 +86,7 @@
                 <th rowspan="2" style="width: 40px;">ተ.ቁ</th>
                 <th rowspan="2" style="width: 180px;" class="text-start ps-3">የዞን / ከተማ አስተዳደር ስም</th>
                 <th colspan="6" class="section-header">የተመዘገቡ የስራ ፈላጊ</th>
-                <th colspan="5" class="section-header">ግንዛቤ የተፈጠረላቸው</th>
+                <th colspan="6" class="section-header">ግንዛቤ የተፈጠረላቸው</th>
             </tr>
             <!-- Sub Header Row -->
             <tr>
@@ -124,6 +104,7 @@
                 <th>ሴት</th>
                 <th>ድምር</th>
                 <th>አፈጻጸም %</th>
+                <th style="width: 75px;">ደረጃ</th>
             </tr>
         </thead>
         <tbody>
@@ -132,8 +113,22 @@
             $tot_p_plan = $tot_p_m = $tot_p_f = $tot_p_sum = 0;
             $tot_a_plan = $tot_a_m = $tot_a_f = $tot_a_sum = 0;
 
-            // 🌟 ለምዝገባ አፈጻጸም ደረጃ ብቻ የማሳያ Helper Function
+            // 🌟 ለምዝገባ አፈጻጸም ደረጃ ማሳያ Helper Function
             function renderRankBadge($rank) {
+                if ($rank == 1) {
+                    return '<span class="badge bg-warning text-dark p-2 shadow-sm" style="font-size: 0.85rem; border-radius: 6px;">🥇 1ኛ</span>';
+                } elseif ($rank == 2) {
+                    return '<span class="badge bg-secondary text-white p-2 shadow-sm" style="font-size: 0.85rem; border-radius: 6px;">🥈 2ኛ</span>';
+                } elseif ($rank == 3) {
+                    return '<span class="badge text-white p-2 shadow-sm" style="font-size: 0.85rem; border-radius: 6px; background-color: #cd7f32;">🥉 3ኛ</span>';
+                } elseif ($rank > 3) {
+                    return '<span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.85rem;">' . $rank . '</span>';
+                }
+                return '-';
+            }
+
+            // 🌟 ለግንዛቤ አፈጻጸም ደረጃ ማሳያ Helper Function (አዲስ የተጨመረ)
+            function renderAwarenessRankBadge($rank) {
                 if ($rank == 1) {
                     return '<span class="badge bg-warning text-dark p-2 shadow-sm" style="font-size: 0.85rem; border-radius: 6px;">🥇 1ኛ</span>';
                 } elseif ($rank == 2) {
@@ -164,7 +159,7 @@
                 <td><?= $index++; ?></td>
                 <td class="zone-name text-start ps-3 fw-bold"><?= htmlspecialchars($row['name'] ?? ''); ?></td>
                 
-                <!-- የተመዘገቡ የስራ ፈላጊዎች ናቸው -->
+                <!-- የተመዘገቡ የስራ ፈላጊዎች እና ደረጃቸው -->
                 <td><?= number_format($row['p_plan'] ?? 0); ?></td>
                 <td><?= number_format($row['p_m'] ?? 0); ?></td>
                 <td><?= number_format($row['p_f'] ?? 0); ?></td>
@@ -174,19 +169,22 @@
                     <?= renderRankBadge($row['p_rank'] ?? ($row['rank_no'] ?? 0)); ?>
                 </td>
 
-                <!-- ግንዛቤ የተፈጠረላቸው (ደረጃ የለውም) -->
+                <!-- ግንዛቤ የተፈጠረላቸው እና ደረጃቸው (አዲስ የተጨመረው a_rank) -->
                 <td><?= number_format($row['a_plan'] ?? 0); ?></td>
                 <td><?= number_format($row['a_m'] ?? 0); ?></td>
                 <td><?= number_format($row['a_f'] ?? 0); ?></td>
                 <td class="fw-bold"><?= number_format($row['a_sum'] ?? 0); ?></td>
                 <td><?= number_format($row['a_per'] ?? 0, 2); ?>%</td>
+                <td class="text-center">
+                    <?= renderAwarenessRankBadge($row['a_rank'] ?? 0); ?>
+                </td>
             </tr>
             <?php 
                 endforeach;
             else: 
             ?>
             <tr>
-                <td colspan="13" class="text-center text-muted py-4">
+                <td colspan="14" class="text-center text-muted py-4">
                     <i class="fa-solid fa-info-circle me-1"></i> ምንም አይነት የቅርንጫፍ መረጃ አልተገኘም።
                 </td>
             </tr>
@@ -212,6 +210,7 @@
                 <td><?= number_format($tot_a_f); ?></td>
                 <td class="fw-bold"><?= number_format($tot_a_sum); ?></td>
                 <td><?= $tot_a_plan > 0 ? number_format(($tot_a_sum / $tot_a_plan) * 100, 2) . '%' : '-'; ?></td>
+                <td>-</td>
             </tr>
         </tfoot>
         <?php endif; ?>
