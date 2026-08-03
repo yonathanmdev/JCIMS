@@ -1,5 +1,6 @@
 <?php
 $profile = $_SESSION['fayda_profile'] ?? [];
+
 ?>
 <style>
 .fayda-card {
@@ -190,8 +191,8 @@ $profile = $_SESSION['fayda_profile'] ?? [];
 
         <div class="fayda-fields">
             <div class="fayda-field">
-                <div class="fayda-field__label">Sub ID</div>
-                <div class="fayda-field__value fayda-field__value--mono"><?= htmlspecialchars($profile['sub'] ?? '') ?></div>
+                <div class="fayda-field__label">FAN</div>
+                <div class="fayda-field__value fayda-field__value--mono"><?= htmlspecialchars($profile['individual_id'] ?? '') ?></div>
             </div>
 
             <div class="fayda-field">

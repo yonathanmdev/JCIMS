@@ -1246,6 +1246,300 @@ public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId
 
     return implode(' ', $terms);
 }
+
+
+public function checkDuplicateFaydaLegacyFields(
+    array $data,
+    ?int $excludeJobseekerId = null,
+    ?string $excludeSourceTable = null
+): array {
+    // Each rule: match_type label => list of [column => value] that must ALL match
+    $rules = [
+        'kebele'   => ['kebele_id_no' => trim($data['kebele_id_no'] ?? '')],
+        'labor'    => ['Labor_ID' => trim($data['Labor_ID'] ?? '')],
+        'g8id'     => [
+            'g8id' => trim($data['g8id'] ?? ''),
+            'full_name_normalized' => trim($data['full_name_normalized'] ?? ''),
+        ],
+        'identity' => [
+            'full_name_normalized' => trim($data['full_name_normalized'] ?? ''),
+            'phone_number'         => trim($data['phone_number'] ?? ''),
+            'mothername'           => trim($data['mothername'] ?? ''),
+        ],
+    ];
+
+    $branchId = (int) ($data['branch_id'] ?? 0);
+
+    $excludeClause = '';
+    if ($excludeJobseekerId && $excludeSourceTable) {
+        $excludeClause = $excludeSourceTable === 'active'
+            ? ' AND job_seeker_id <> :exclude_id '
+            : " AND NOT (job_seeker_id = :exclude_id AND source_table = 'archive') ";
+    }
+
+    $unionBlocks = [];
+    $bindings = [];
+    $hasAnyValue = false;
+
+    foreach ($rules as $matchType => $fields) {
+        // Skip a rule entirely if any of its required fields is blank
+        if (in_array('', $fields, true)) {
+            continue;
+        }
+        $hasAnyValue = true;
+
+        $conditions = [];
+        foreach ($fields as $column => $value) {
+            $param = ":{$matchType}_{$column}";
+            $conditions[] = "{$column} = {$param}";
+            $bindings[$param] = $value;
+        }
+
+        // Only the kebele rule is scoped to branch_id
+        $branchCondition = '';
+        if ($matchType === 'kebele') {
+            $branchCondition = ' AND branch_id = :branch_id';
+            $bindings[':branch_id'] = $branchId;
+        }
+
+        $where = implode(' AND ', $conditions) . $branchCondition . $excludeClause;
+
+        $unionBlocks[] = "(SELECT job_seeker_id, branch_id, source_table, '{$matchType}' AS match_type
+                            FROM source WHERE {$where})";
+    }
+
+    if (!$hasAnyValue) {
+        return [];
+    }
+
+    $unionSql = implode(' UNION ALL ', $unionBlocks);
+
+    $sql = "
+        WITH source AS (
+            SELECT job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID,
+                   full_name_normalized, phone_number, mothername, 'active' AS source_table
+            FROM job_seekers
+            UNION ALL
+            SELECT job_seeker_id, branch_id, kebele_id_no, g8id, Labor_ID,
+                   full_name_normalized, phone_number, mothername, 'archive' AS source_table
+            FROM job_seekers_archive
+        )
+        SELECT job_seeker_id, branch_id, match_type, source_table
+        FROM ({$unionSql}) matches
+        LIMIT 1
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+
+        foreach ($bindings as $param => $value) {
+            $stmt->bindValue($param, $value);
+        }
+        if ($excludeClause !== '') {
+            $stmt->bindValue(':exclude_id', $excludeJobseekerId);
+        }
+
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return [];
+    }
+}
+public function checkDuplicateFAN(
+    string $FAN,
+    ?int $excludeJobseekerId = null,
+    ?string $excludeSourceTable = null
+): array {
+    $FAN = trim($FAN);
+
+    if ($FAN === '') {
+        return [];
+    }
+
+    $excludeClause = '';
+    if ($excludeJobseekerId && $excludeSourceTable) {
+        $excludeClause = $excludeSourceTable === 'active'
+            ? ' AND job_seeker_id <> :exclude_id '
+            : " AND NOT (job_seeker_id = :exclude_id AND source_table = 'archive') ";
+    }
+
+    $sql = "
+        WITH source AS (
+            SELECT job_seeker_id, branch_id, FAN, 'active' AS source_table
+            FROM job_seekers
+            UNION ALL
+            SELECT job_seeker_id, branch_id, FAN, 'archive' AS source_table
+            FROM job_seekers_archive
+        )
+        SELECT job_seeker_id, branch_id, 'FAN' AS match_type, source_table
+        FROM source
+        WHERE FAN = :FAN
+          {$excludeClause}
+        LIMIT 1
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+
+        $stmt->bindValue(':FAN', $FAN, PDO::PARAM_STR);
+
+        if ($excludeClause !== '') {
+            $stmt->bindValue(':exclude_id', $excludeJobseekerId);
+        }
+
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    } catch (\PDOException $e) {
+        error_log(__METHOD__ . ': ' . $e->getMessage());
+        return [];
+    }
+}
+
+
+public function createJobseekerwithFayda(array $data) {
+    try {
+        $this->db->beginTransaction();
+
+        $baseColumns = [
+            'id'                          => $data['uuid'],
+            'branch_id'                   => $data['branch_id'],
+            'first_name'                  => $data['first_name'],
+            'father_name'                 => $data['father_name'],
+            'last_name'                   => $data['last_name'],
+            'gender'                      => $data['gender'],
+            'birth_date'                  => $data['birthdate'] ?? null,
+            'age'                         => $data['age'],
+            'education_level_category'    => $data['education_level_catagory'],
+            'educational_level'           => $data['educational_level'],
+            'educated_dpt'                => $data['educated_dpt'],
+            'education_trmnet_finsh_year' => $data['education_trmnet_finsh_year'],
+            'g8id'                        => $data['g8id'],
+            'CGPA'                        => $data['CGPA'],
+            'school_type'                 => $data['school_type'],
+            'physical_condition'          => $data['physical_condition'],
+            'physical_condition_desc'     => $data['physical_condition_desc'],
+            'kebele'                      => $data['kebele'],
+            'mender'                      => $data['mender'],
+            'kebele_id_no'                => $data['kebele_id_no'],
+            'phone_number'                => $data['phone_number'],
+            'choice_sector1'              => $data['sector1_id'] ?? null,
+            'sub_choose1'                 => $data['subsector1_id'] ?? null,
+            'choice_sector2'              => $data['sector2_id'] ?? null,
+            'sub_choose2'                 => $data['subsector2_id'] ?? null,
+            'choice_sector3'              => $data['sector3_id'] ?? null,
+            'sub_choose3'                 => $data['subsector3_id'] ?? null,
+            'meteleya_huneta'             => $data['meteleya_huneta'],
+            'residence_status'            => $data['residence_status'],
+            'srafelagi_huneta'            => $data['srafelagi_huneta'],
+            'housewife'                   => $data['housewife'],
+            'graguation_catagory'         => $data['graguation_catagory'],
+            'maritalstatus'               => $data['maritalstatus'],
+            'haveexp'                     => $data['haveexp'],
+            'workplace'                   => $data['workplace'],
+            'experience'                  => $data['experience'],
+            'profession'                  => $data['profession'],
+            'nameofcountry'               => $data['nameofcountry'],
+            'language'                    => $data['language'],
+            'wageorself'                  => $data['wageorself'],
+            'mothername'                  => $data['mothername'],
+            'Labor_ID'                    => $data['Labor_ID'],
+            'FAN'                         => $data['FAN'],
+            'fiscal_year'                 => $data['fiscal_year'],
+            'agri_business_experience_status' => $data['agri_business_experience_status'] ?? null,
+            'agri_business_experience'    => $data['agri_business_experience'],
+            'has_dependents'              => $data['has_dependents'],
+            'number_of_dependents'        => $data['number_of_dependents'],
+            'children_under_five'         => $data['children_under_five'],
+            'full_name_normalized'        => $data['full_name_normalized'] ?? null,
+            'registered_by'               => $data['reg_by'] ?? null,
+            'verified_with_fayda'         => 1,
+        ];
+
+        if (array_key_exists('job_seeker_id', $data)) {
+            $baseColumns['job_seeker_id'] = $data['job_seeker_id'];
+        }
+
+        // ── Only job_seeker_id determines renewal vs new ────────────
+        $isRenewal = array_key_exists('job_seeker_id', $data);
+
+        // ── Renewal: preserve original created_at from the archive ─────
+        $originalCreatedAt = null;
+        if ($isRenewal) {
+            $stmtFetch = $this->db->prepare(
+                "SELECT created_at FROM job_seekers_archive WHERE job_seeker_id = :job_seeker_id LIMIT 1"
+            );
+            $stmtFetch->bindValue(':job_seeker_id', $data['job_seeker_id'], PDO::PARAM_INT);
+            $stmtFetch->execute();
+            $archiveRow = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+
+            if (!$archiveRow || empty($archiveRow['created_at'])) {
+                throw new \Exception("Original created_at not found in archive for job_seeker_id {$data['job_seeker_id']}");
+            }
+
+            $originalCreatedAt = $archiveRow['created_at'];
+        }
+
+        $columns      = array_keys($baseColumns);
+        $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+        $columnList   = implode(', ', array_map(fn($c) => "`{$c}`", $columns));
+        $values       = array_values($baseColumns);
+
+        // created_at: preserved value for renewal, NOW() for new
+        $columnList .= ", `created_at`";
+        if ($isRenewal) {
+            $placeholders .= ", ?";
+            $values[] = $originalCreatedAt;
+        } else {
+            $placeholders .= ", NOW()";
+        }
+
+        $sql = "INSERT INTO `job_seekers` ({$columnList}) VALUES ({$placeholders})";
+
+        $stmt = $this->db->prepare($sql);
+        $executed = $stmt->execute($values);
+
+        if (!$executed) {
+            throw new \Exception("Failed to insert job seeker");
+        }
+
+        $newJobSeekerId = $data['job_seeker_id'] ?? (int) $this->db->lastInsertId();
+
+        // ── Renewal only: stamp the archive row with the renewal year ──
+        if ($isRenewal) {
+            $sql2 = "
+                UPDATE job_seekers_archive
+                SET renewal_year = :fiscal_year
+                WHERE job_seeker_id = :job_seeker_id
+            ";
+
+            $stmt2 = $this->db->prepare($sql2);
+
+            $executed2 = $stmt2->execute([
+                'job_seeker_id' => $data['job_seeker_id'],
+                'fiscal_year'   => $data['fiscal_year'] ?? null,
+            ]);
+
+            if (!$executed2) {
+                throw new \Exception("Failed to update archive renewal_year");
+            }
+        }
+
+        $this->db->commit();
+
+        return ['status' => true, 'job_seeker_id' => $newJobSeekerId];
+
+    } catch (\Exception $e) {
+        $this->db->rollBack();
+        error_log("Job seeker registration transaction failed: " . $e->getMessage());
+        return ['status' => false, 'message' => 'ምዝገባ አልተሳካም'];
+    }
+}
+
 public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
         $stmt = $this->db->prepare("SELECT job_seeker_id, first_name, father_name, last_name FROM job_seekers 
                                     WHERE   branch_id = :bid and job_seeker_id LIKE :term and fiscal_year = :fiscal_year and employment_status!=1
@@ -1253,6 +1547,8 @@ public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
         $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+
      public function findByFaydaSub(string $faydaSub): ?array
     {
         if ($faydaSub === '') {
