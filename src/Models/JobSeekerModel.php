@@ -1412,7 +1412,7 @@ public function createJobseekerwithFayda(array $data) {
             'father_name'                 => $data['father_name'],
             'last_name'                   => $data['last_name'],
             'gender'                      => $data['gender'],
-            'birth_date'                  => $data['birthdate'] ?? null,
+            'birth_date'                  => $data['birthdate'],
             'age'                         => $data['age'],
             'education_level_category'    => $data['education_level_catagory'],
             'educational_level'           => $data['educational_level'],
@@ -1427,12 +1427,12 @@ public function createJobseekerwithFayda(array $data) {
             'mender'                      => $data['mender'],
             'kebele_id_no'                => $data['kebele_id_no'],
             'phone_number'                => $data['phone_number'],
-            'choice_sector1'              => $data['sector1_id'] ?? null,
-            'sub_choose1'                 => $data['subsector1_id'] ?? null,
-            'choice_sector2'              => $data['sector2_id'] ?? null,
-            'sub_choose2'                 => $data['subsector2_id'] ?? null,
-            'choice_sector3'              => $data['sector3_id'] ?? null,
-            'sub_choose3'                 => $data['subsector3_id'] ?? null,
+            'choice_sector1'              => $data['sector1_id'],
+            'sub_choose1'                 => $data['subsector1_id'],
+            'choice_sector2'              => $data['sector2_id'],
+            'sub_choose2'                 => $data['subsector2_id'],
+            'choice_sector3'              => $data['sector3_id'],
+            'sub_choose3'                 => $data['subsector3_id'],
             'meteleya_huneta'             => $data['meteleya_huneta'],
             'residence_status'            => $data['residence_status'],
             'srafelagi_huneta'            => $data['srafelagi_huneta'],
@@ -1446,6 +1446,7 @@ public function createJobseekerwithFayda(array $data) {
             'nameofcountry'               => $data['nameofcountry'],
             'language'                    => $data['language'],
             'wageorself'                  => $data['wageorself'],
+            'regstration_level'           => $data['regstration_level'],   // Added
             'mothername'                  => $data['mothername'],
             'Labor_ID'                    => $data['Labor_ID'],
             'FAN'                         => $data['FAN'],
@@ -1457,9 +1458,8 @@ public function createJobseekerwithFayda(array $data) {
             'children_under_five'         => $data['children_under_five'],
             'full_name_normalized'        => $data['full_name_normalized'] ?? null,
             'registered_by'               => $data['reg_by'] ?? null,
-            'verified_with_fayda'         => 1,
+            'verfied_with_fayda'          => 1, // Matches database spelling
         ];
-
         if (array_key_exists('job_seeker_id', $data)) {
             $baseColumns['job_seeker_id'] = $data['job_seeker_id'];
         }

@@ -206,6 +206,8 @@ $sectors  = $sectorModel->getSectors();
     $profile  = $_SESSION['fayda_profile'];
     $type     = $_SESSION['fayda_registration_type'] ?? 'new';
     $verified = $_SESSION['fayda_verified_record'] ?? null;
+    $user     = $_SESSION['user'] ?? [];
+    $branchId = $user['branch_id'] ?? null;
 
     if ($type === 'renewal' && empty($verified['job_seeker_id'])) {
         $_SESSION['form_error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
@@ -226,7 +228,7 @@ $sectors  = $sectorModel->getSectors();
     }
 
     $faydaData = [
-        'FAN'       => $profile['individual_id'] ?? null,
+        'FAN'             => $profile['individual_id'] ?? null,
         'first_name'      => $nameParts[0] ?? '',
         'father_name'     => $nameParts[1] ?? '',
         'last_name'       => $nameParts[2] ?? '',
@@ -263,7 +265,7 @@ $sectors  = $sectorModel->getSectors();
         $ids = $sectorModel->getSubsectorBigIntIds($pair['sub']);
 
         if (!$ids) {
-            $_SESSION['form_error'] = "የተመረጠው ሙያ {$sectorId} መረጃ አልተገኘም።";
+            $_SESSION['form_error'] = "የተመረጠው ንዑስ ዘርፍ {$sectorId} መረጃ አልተገኘም።";
             header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
             exit;
         }
@@ -279,49 +281,51 @@ $sectors  = $sectorModel->getSectors();
     );
 
     $data = array_merge($faydaData, [
-        'branch_id'        => $_SESSION['user']['branch_id'] ?? null,
-        'srafelagi_huneta' => $_POST['srafelagi_huneta'] ?? '',
-        'Labor_ID'         => $_POST['Labor_ID'] ?? null,
-        'maritalstatus'    => $_POST['maritalstatus'] ?? '',
-        'kebele'           => $_POST['kebele'] ?? '',
-        'housewife'        => $_POST['housewife'] ?? null,
-        'mender'           => $_POST['mender'] ?? null,
-        'kebele_id_no'     => $_POST['kebele_id_no'] ?? '',
-        'residence_status' => $_POST['residence_status'] ?? '',
-
+        'branch_id'                   => $branchId,
+        'regstration_level'           => $user['level'],
+        'srafelagi_huneta'            => $_POST['srafelagi_huneta'] ?? '',
+        'Labor_ID'                    => $_POST['Labor_ID'] ?? '',
+        'maritalstatus'               => $_POST['maritalstatus'] ?? '',
+        'kebele'                      => $_POST['kebele'] ?? '',
+       'housewife'      => (int) ($_POST['housewife'] ?? 0),
+        'mender'                      => $_POST['mender'] ?? '',
+        'kebele_id_no'                => $_POST['kebele_id_no'],
+        'residence_status'            => $_POST['residence_status'] ?? '',
         'educational_level'           => $_POST['educational_level'] ?? '',
         'education_level_catagory'    => $educationLevelCategory,
-        'school_type'                 => $_POST['school_type'] ?? null,
-        'educated_dpt'                => $_POST['educated_dpt'] ?? null,
-        'education_trmnet_finsh_year' => $_POST['education_trmnet_finsh_year'] ?? null,
-        'g8id'                        => $_POST['g8id'] ?? null,
-        'graguation_catagory'         => $_POST['graguation_catagory'] ?? null,
-        'CGPA'                        => $_POST['CGPA'] ?? null,
+        'school_type'                 => $_POST['school_type'] ?? '',
+        'educated_dpt'                => $_POST['educated_dpt'] ?? '',
+        'education_trmnet_finsh_year' => $_POST['education_trmnet_finsh_year'] ?? '',
+        'g8id'                        => $_POST['g8id'] ?? '',
+        'graguation_catagory'         => $_POST['graguation_catagory'] ?? '',
+        'CGPA'                        => $_POST['CGPA'] ?? '',
         'meteleya_huneta'             => $_POST['meteleya_huneta'] ?? '',
         'physical_condition'          => $_POST['physical_condition'] ?? '',
-        'physical_condition_desc'     => $_POST['physical_condition_desc'] ?? null,
+        'physical_condition_desc'     => $_POST['physical_condition_desc'] ?? '',
         'haveexp'                     => $_POST['haveexp'] ?? '',
-        'experience'                  => $_POST['experience'] ?? null,
-        'workplace'                   => $_POST['workplace'] ?? null,
-        'profession'                  => $_POST['profession'] ?? null,
-        'nameofcountry'               => $_POST['nameofcountry'] ?? null,
-        'language'                    => $_POST['language'] ?? null,
+        'experience'                  => $_POST['experience'] ?? '',
+        'workplace'                   => $_POST['workplace'] ?? '',
+        'profession'                  => $_POST['profession'] ?? '',
+        'nameofcountry'               => $_POST['nameofcountry'] ?? '',
+        'language'                    => $_POST['language'] ?? '',
         'wageorself'                  => $_POST['wageorself'] ?? '',
         'mothername'                  => $_POST['mothername'] ?? '',
         'fiscal_year'                 => AuthHelper::checkFiscalYear(),
 
-        'sector1_id' => $resolvedSectors[1]['sector_id'],
-        'subsector1_id' => $resolvedSectors[1]['subsector_id'],
-        'sector2_id' => $resolvedSectors[2]['sector_id'],
-        'subsector2_id' => $resolvedSectors[2]['subsector_id'],
-        'sector3_id' => $resolvedSectors[3]['sector_id'],
-        'subsector3_id' => $resolvedSectors[3]['subsector_id'],
+        'sector1_id'                  => $resolvedSectors[1]['sector_id'],
+        'subsector1_id'               => $resolvedSectors[1]['subsector_id'],
+        'sector2_id'                  => $resolvedSectors[2]['sector_id'],
+        'subsector2_id'               => $resolvedSectors[2]['subsector_id'],
+        'sector3_id'                  => $resolvedSectors[3]['sector_id'],
+        'subsector3_id'               => $resolvedSectors[3]['subsector_id'],
 
-        'agri_business_experience_status' => $_POST['agri_business_experience_status'] ?? null,
-        'agri_business_experience'        => $_POST['agri_business_experience'] ?? null,
-        'has_dependents'                  => $_POST['has_dependents'] ?? null,
-        'number_of_dependents'            => $_POST['number_of_dependents'] ?? null,
-        'children_under_five'             => $_POST['children_under_five'] ?? null,
+        'agri_business_experience_status' => $_POST['agri_business_experience_status'] ?? '',
+        'agri_business_experience'        => $_POST['agri_business_experience'] ?? '',
+        'has_dependents'                  => $_POST['has_dependents'] ?? '',
+        'number_of_dependents'            => $_POST['number_of_dependents'] ?? '',
+        'children_under_five'             => $_POST['children_under_five'] ?? '',
+        'registered_by'                   => $user['id'] ?? '',
+        'verfied_with_fayda'              => 1,
     ]);
 
     $data['uuid'] = Uuid::uuid7()->toString();
@@ -336,7 +340,11 @@ $sectors  = $sectorModel->getSectors();
     $excludeId    = ($type === 'renewal' && $verified !== null) ? (int) $verified['job_seeker_id'] : null;
     $excludeTable = ($type === 'renewal' && $verified !== null) ? 'archive' : null;
 
-    // ── Permanent check: fayda_sub uniqueness ───────────────────────────
+    $fullNameRaw        = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['last_name'];
+    $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
+    $data['full_name_normalized'] = $normalizedFullName;
+
+    // ── 1. Permanent check: fayda_sub / FAN uniqueness ─────────────────
     $faydaSubCheck = $model->checkDuplicateFAN(
         $data['FAN'] ?? '',
         $excludeId,
@@ -344,20 +352,41 @@ $sectors  = $sectorModel->getSectors();
     );
 
     if (!empty($faydaSubCheck)) {
-        $_SESSION['form_error'] = 'ይህ የፋይዳ መታወቂያ ቀድሞ ተመዝግቧል።';
-        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
-        exit;
+        $duplicate = $faydaSubCheck; // assuming it returns array row details
+        $triggerType = 'fan';
+        
+        $model->logDuplicateAttempt([
+            'id'                     => Uuid::uuid7()->toString(),
+            'attempted_by'           => $user['id'] ?? null,
+            'branch_id'              => $branchId,
+            'trigger_type'           => $triggerType,
+            'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
+            'matched_source_table'   => $duplicate['source_table'] ?? 'active',
+            'attempted_kebele_id_no' => trim($_POST['kebele_id_no'] ?? ''),
+            'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
+            'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
+            'attempted_fan'          => $data['FAN'],
+            'attempted_full_name'    => $normalizedFullName,
+            'attempted_phone_number' => trim($_POST['phone_number'] ?? ''),
+            'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
+            'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
+        ]);
+
+        $branchHierarchy = $model->getBranchHierarchy($duplicate['branch_id'] ?? null);
+        $sourceTable     = $duplicate['source_table'] ?? 'active';
+
+        $_SESSION['error'] = "ስራ ፈላጊው ከዚህ በፊት <strong>{$branchHierarchy}</strong> ተመዝግቧል። (ፋይዳ መታወቂያ)";
+        if ($sourceTable === 'archive') {
+            $_SESSION['error'] .= " ነባር ስራፈላጊ ላይ የተመዘገበ ስራ ፈላጊ ማድስ ብቻ ነው የሚቻለው። እንደ አዲስ መመዝገብ አይቻልም";
+        }
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+        exit();
     }
 
-    // ── TEMPORARY: legacy field-based check — remove once all job ───────
-    // ── seekers are expected to have fayda_sub on file.                ──
+    // ── 2. Legacy field-based check ────────────────────────────────────
     if (self::ENABLE_LEGACY_DUPLICATE_CHECK) {
-        $fullNameRaw        = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['last_name'];
-        $normalizedFullName = AmharicNormalizer::normalize($fullNameRaw);
-        $data['full_name_normalized'] = $normalizedFullName;
-
         $legacyCheck = $model->checkDuplicateFaydaLegacyFields([
-            'branch_id'            => $_SESSION['user']['branch_id'] ?? null,
+            'branch_id'            => $branchId,
             'kebele_id_no'         => $data['kebele_id_no'],
             'g8id'                 => $data['g8id'] ?? '',
             'Labor_ID'             => $data['Labor_ID'] ?? '',
@@ -367,17 +396,45 @@ $sectors  = $sectorModel->getSectors();
         ], $excludeId, $excludeTable);
 
         if (!empty($legacyCheck)) {
-            $_SESSION['form_error'] = 'ተመሳሳይ መረጃ ያለው ስራ ፈላጊ ቀድሞ ተመዝግቧል።';
-            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
-            exit;
-        }
-    } else {
-        // still need full_name_normalized stored even if not used for matching
-        $fullNameRaw = $data['first_name'] . ' ' . $data['father_name'] . ' ' . $data['last_name'];
-        $data['full_name_normalized'] = AmharicNormalizer::normalize($fullNameRaw);
-    }
+            $duplicate   = $legacyCheck;
+            $rawMatchType = $duplicate['match_type'] ?? 'identity';
+            
+            $triggerTypeMap = [
+                'kebele'   => 'kebele_id',
+                'g8id'     => 'g8id',
+                'labor'    => 'labor_id',
+                'identity' => 'identity',
+            ];
+            $triggerType = $triggerTypeMap[$rawMatchType] ?? 'identity';
 
-    $data['reg_by'] = $_SESSION['user']['id'] ?? null;
+            $model->logDuplicateAttempt([
+                'id'                     => Uuid::uuid7()->toString(),
+                'attempted_by'           => $user['id'] ?? null,
+                'branch_id'              => $branchId,
+                'trigger_type'           => $triggerType,
+                'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
+                'matched_source_table'   => $duplicate['source_table'] ?? 'active',
+                'attempted_kebele_id_no' => trim($_POST['kebele_id_no'] ?? ''),
+                'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
+                'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
+                'attempted_fan'          => $data['FAN'],
+                'attempted_full_name'    => $normalizedFullName,
+                'attempted_phone_number' => trim($_POST['phone_number'] ?? ''),
+                'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
+                'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
+            ]);
+
+            $branchHierarchy = $model->getBranchHierarchy($duplicate['branch_id'] ?? null);
+            $sourceTable     = $duplicate['source_table'] ?? 'active';
+
+            $_SESSION['error'] = "ስራ ፈላጊው ከዚህ በፊት <strong>{$branchHierarchy}</strong> ተመዝግቧል።";
+            if ($sourceTable === 'archive') {
+                $_SESSION['error'] .= " ነባር ስራፈላጊ ላይ የተመዘገበ ስራ ፈላጊ ማድስ ብቻ ነው የሚቻለው። እንደ አዲስ መመዝገብ አይቻልም";
+            }
+            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+            exit();
+        }
+    }
 
     $result = $model->createJobseekerwithFayda($data);
 
