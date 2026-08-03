@@ -226,7 +226,7 @@ $sectors  = $sectorModel->getSectors();
     }
 
     $faydaData = [
-        'fayda_sub'       => $profile['sub'] ?? null,
+        'FAN'       => $profile['individual_id'] ?? null,
         'first_name'      => $nameParts[0] ?? '',
         'father_name'     => $nameParts[1] ?? '',
         'last_name'       => $nameParts[2] ?? '',
@@ -308,6 +308,7 @@ $sectors  = $sectorModel->getSectors();
         'language'                    => $_POST['language'] ?? null,
         'wageorself'                  => $_POST['wageorself'] ?? '',
         'mothername'                  => $_POST['mothername'] ?? '',
+        'fiscal_year'                 => AuthHelper::checkFiscalYear(),
 
         'sector1_id' => $resolvedSectors[1]['sector_id'],
         'subsector1_id' => $resolvedSectors[1]['subsector_id'],
@@ -336,8 +337,8 @@ $sectors  = $sectorModel->getSectors();
     $excludeTable = ($type === 'renewal' && $verified !== null) ? 'archive' : null;
 
     // ── Permanent check: fayda_sub uniqueness ───────────────────────────
-    $faydaSubCheck = $model->checkDuplicateFaydaSub(
-        $data['fayda_sub'] ?? '',
+    $faydaSubCheck = $model->checkDuplicateFAN(
+        $data['FAN'] ?? '',
         $excludeId,
         $excludeTable
     );
@@ -392,7 +393,7 @@ $sectors  = $sectorModel->getSectors();
         entityId: (string) $result['job_seeker_id'],
         oldValues: null,
         newValues: $data,
-        metadata: ['fayda_sub' => $data['fayda_sub'], 'registration_type' => $type]
+        metadata: ['fan' => $data['FAN'], 'registration_type' => $type]
     );
 
     unset(
