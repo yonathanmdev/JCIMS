@@ -1348,14 +1348,14 @@ public function checkDuplicateFaydaLegacyFields(
         return [];
     }
 }
-public function checkDuplicateFaydaSub(
-    string $faydaSub,
+public function checkDuplicateFAN(
+    string $FAN,
     ?int $excludeJobseekerId = null,
     ?string $excludeSourceTable = null
 ): array {
-    $faydaSub = trim($faydaSub);
+    $FAN = trim($FAN);
 
-    if ($faydaSub === '') {
+    if ($FAN === '') {
         return [];
     }
 
@@ -1368,15 +1368,15 @@ public function checkDuplicateFaydaSub(
 
     $sql = "
         WITH source AS (
-            SELECT job_seeker_id, branch_id, fayda_sub, 'active' AS source_table
+            SELECT job_seeker_id, branch_id, FAN, 'active' AS source_table
             FROM job_seekers
             UNION ALL
-            SELECT job_seeker_id, branch_id, fayda_sub, 'archive' AS source_table
+            SELECT job_seeker_id, branch_id, FAN, 'archive' AS source_table
             FROM job_seekers_archive
         )
-        SELECT job_seeker_id, branch_id, 'fayda_sub' AS match_type, source_table
+        SELECT job_seeker_id, branch_id, 'FAN' AS match_type, source_table
         FROM source
-        WHERE fayda_sub = :fayda_sub
+        WHERE FAN = :FAN
           {$excludeClause}
         LIMIT 1
     ";
@@ -1384,7 +1384,7 @@ public function checkDuplicateFaydaSub(
     try {
         $stmt = $this->db->prepare($sql);
 
-        $stmt->bindValue(':fayda_sub', $faydaSub, PDO::PARAM_STR);
+        $stmt->bindValue(':FAN', $FAN, PDO::PARAM_STR);
 
         if ($excludeClause !== '') {
             $stmt->bindValue(':exclude_id', $excludeJobseekerId);
@@ -1448,6 +1448,8 @@ public function createJobseekerwithFayda(array $data) {
             'wageorself'                  => $data['wageorself'],
             'mothername'                  => $data['mothername'],
             'Labor_ID'                    => $data['Labor_ID'],
+            'FAN'                         => $data['FAN'],
+            'fiscal_year'                 => $data['fiscal_year'],
             'agri_business_experience_status' => $data['agri_business_experience_status'] ?? null,
             'agri_business_experience'    => $data['agri_business_experience'],
             'has_dependents'              => $data['has_dependents'],
@@ -1455,22 +1457,14 @@ public function createJobseekerwithFayda(array $data) {
             'children_under_five'         => $data['children_under_five'],
             'full_name_normalized'        => $data['full_name_normalized'] ?? null,
             'registered_by'               => $data['reg_by'] ?? null,
-            'employment_status'           => $data['employment_status'] ?? 0,
+            'verified_with_fayda'         => 1,
         ];
 
-        if (array_key_exists('FAN', $data)) {
-            $baseColumns['FAN'] = $data['FAN'];
-        }
-        if (array_key_exists('fayda_sub', $data)) {
-            $baseColumns['fayda_sub'] = $data['fayda_sub'];
-        }
         if (array_key_exists('job_seeker_id', $data)) {
             $baseColumns['job_seeker_id'] = $data['job_seeker_id'];
         }
-        if (array_key_exists('fiscal_year', $data)) {
-            $baseColumns['fiscal_year'] = $data['fiscal_year'];
-        }
 
+        // ── Only job_seeker_id determines renewal vs new ────────────
         $isRenewal = array_key_exists('job_seeker_id', $data);
 
         // ── Renewal: preserve original created_at from the archive ─────
@@ -1553,6 +1547,7 @@ public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
         $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
 
      public function findByFaydaSub(string $faydaSub): ?array
     {
