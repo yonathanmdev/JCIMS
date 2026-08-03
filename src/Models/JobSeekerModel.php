@@ -1457,7 +1457,7 @@ public function createJobseekerwithFayda(array $data) {
             'number_of_dependents'        => $data['number_of_dependents'],
             'children_under_five'         => $data['children_under_five'],
             'full_name_normalized'        => $data['full_name_normalized'] ?? null,
-            'registered_by'               => $data['reg_by'] ?? null,
+            'registered_by'               => $data['registered_by'] ?? null,
             'verfied_with_fayda'          => 1, // Matches database spelling
         ];
         if (array_key_exists('job_seeker_id', $data)) {
