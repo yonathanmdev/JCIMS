@@ -265,7 +265,7 @@ $sectors  = $sectorModel->getSectors();
         $ids = $sectorModel->getSubsectorBigIntIds($pair['sub']);
 
         if (!$ids) {
-            $_SESSION['form_error'] = "የተመረጠው ሙያ {$sectorId} መረጃ አልተገኘም።";
+            $_SESSION['form_error'] = "የተመረጠው ንዑስ ዘርፍ {$sectorId} መረጃ አልተገኘም።";
             header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
             exit;
         }
@@ -282,12 +282,12 @@ $sectors  = $sectorModel->getSectors();
 
     $data = array_merge($faydaData, [
         'branch_id'                   => $branchId,
-        'regstration_level'           => $user['level'] ?? null,
+        'regstration_level'           => $user['level'],
         'srafelagi_huneta'            => $_POST['srafelagi_huneta'] ?? '',
         'Labor_ID'                    => $_POST['Labor_ID'] ?? null,
         'maritalstatus'               => $_POST['maritalstatus'] ?? '',
         'kebele'                      => $_POST['kebele'] ?? '',
-        'housewife'                   => $_POST['housewife'] ?? null,
+       'housewife'      => (int) ($_POST['housewife'] ?? 0),
         'mender'                      => $_POST['mender'] ?? null,
         'kebele_id_no'                => $_POST['kebele_id_no'] ?? '',
         'residence_status'            => $_POST['residence_status'] ?? '',
