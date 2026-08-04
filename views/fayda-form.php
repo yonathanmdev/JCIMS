@@ -1,5 +1,7 @@
 <?php
 $is_jobseeker_reg_fayda_page = true; 
+use App\Helpers\AuthHelper;
+$fiscal_year = AuthHelper::checkFiscalYear();
 $profile = $_SESSION['fayda_profile'] ?? [];
 
 $nameAm = $profile['name#am'] ?? '';
@@ -144,19 +146,6 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         <form id="faydaJobseekerForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/fayda-register" method="POST">
 
             <input type="hidden" name="mode" value="create">
-            <input type="hidden" name="fayda_sub" value="<?= htmlspecialchars($faydaSub) ?>">
-            <input type="hidden" name="fayda_id_number" value="<?= htmlspecialchars($faydaIdNumber) ?>">
-
-            <!-- Fayda-verified identity fields: locked, submitted as hidden inputs.
-                 register() re-derives these from $_SESSION server-side regardless
-                 of what's posted here — this display is for the person's confirmation only. -->
-            <input type="hidden" name="first_name"   value="<?= htmlspecialchars($faydaFirstName) ?>">
-            <input type="hidden" name="father_name"  value="<?= htmlspecialchars($faydaFatherName) ?>">
-            <input type="hidden" name="last_name"    value="<?= htmlspecialchars($faydaLastName) ?>">
-            <input type="hidden" id="gender" name="gender" value="<?= htmlspecialchars($faydaGender) ?>">
-            <input type="hidden" name="phone_number" value="<?= htmlspecialchars($faydaPhone) ?>">
-            <input type="hidden" name="age"          value="<?= htmlspecialchars($faydaAge) ?>">
-
             <!-- ===================== STEP 1 : መግቢያ ===================== -->
             <div class="wizard-step is-active" data-step="1">
 
@@ -388,7 +377,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     <div class="col-12 col-sm-6 col-md-3 field-cgpa">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="CGPA"><small class="font-weight-bold">CGPA <span class="text-danger">*</span></small></label>
-                            <input type="text" class="form-control form-control-sm" id="CGPA" name="CGPA" data-validate="decimal" data-length="4">
+                            <input type="text" class="form-control form-control-sm" id="CGPA" name="CGPA" data-validate="decimal" data-length="4" step="any" min="1.00" max="4.00">
                         </div>
                     </div>
                 </div>
