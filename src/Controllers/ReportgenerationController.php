@@ -16,7 +16,210 @@ class ReportgenerationController extends BaseController
         $this->reportModel = new ReportgenerationModel($this->db);
     }
 
-public function awarenessallanalyticsShow()
+
+public function expertLevelReport()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $sessionUser = $_SESSION['user'] ?? $_SESSION['user_data'] ?? $_SESSION;
+    $currentUserId = $sessionUser['user_id'] ?? $sessionUser['id'] ?? $_SESSION['user_id'] ?? null;
+
+    if (empty($currentUserId)) {
+        header('Location: index.php?url=auth/login');
+        exit();
+    }
+
+    $accountLevel     = $sessionUser['account_level'] ?? $sessionUser['level'] ?? $_SESSION['account_level'] ?? null;
+    $userBranchId     = $sessionUser['branch_id'] ?? $_SESSION['branch_id'] ?? null;
+    $requestedBranchId = $_GET['branch_id'] ?? null;
+
+    $expertsData = $this->reportModel->getExpertLevelReport(
+        $currentUserId,
+        $accountLevel,
+        $userBranchId,
+        $requestedBranchId
+    );
+    
+    // የተመረጠው የብራንች ID (ከተጠየቀ የሰጠው፣ ካልሆነ የዩዘሩ)
+    $activeBranchId = !empty($requestedBranchId) ? $requestedBranchId : $userBranchId;
+
+    // የብራንች ስሙን ከሞዴል ማምጣት (BranchModel መኖሩን እርግጠኛ ይሁኑ ወይም የሚጠቀሙበትን ሞዴል ያስተካክሉት)
+    $branchName = 'ክልል (ሁሉም ቅርንጫፎች)';
+    if (!empty($activeBranchId) && $activeBranchId != 1 && $activeBranchId != '1') {
+        // እንደ ፕሮጀክትዎ አወቃቀር $this->BranchModel ወይም $this->reportModel መጠቀም ይችላሉ
+        if (method_exists($this, 'BranchModel') && isset($this->BranchModel)) {
+            $branchName = $this->BranchModel->getBranchNameById($activeBranchId);
+        } elseif (isset($this->reportModel) && method_exists($this->reportModel, 'getBranchNameById')) {
+            $branchName = $this->reportModel->getBranchNameById($activeBranchId);
+        }
+    }
+    
+    $data = [
+        'title'               => 'የባለሙያዎች አፈጻጸም እና የደረጃ ተዋረድ ሪፖርት',
+        'experts'             => $expertsData,
+        'selected_branch'     => $activeBranchId,
+        'selected_branch_name' => $branchName
+    ];
+
+    $this->renderPrintable('/expert_level_view', $data);
+}
+
+
+public function performanceJobCreationShow()
+{
+    // Session እና User Info
+    $parentBranchId = $_SESSION['user']['branch_id'] ?? '';
+    $isKetema = ($_SESSION['user']['ketema_astedader'] ?? '') === 'on' || ($_SESSION['user']['ketema_astedader'] ?? '') == 1;
+
+    // Model ጥሪ
+    $reportModel = new ReportgenerationModel($this->db);
+    $branches = $reportModel->getJobCreationReport($parentBranchId, $isKetema);
+
+    // 1. የብራንቹን ስም ማግኘት 
+    // (በSession ውስጥ የብራንች ስም ካለ ከእሱ ይወስዳል፣ ካለደግሞ ከModel ያመጣል)
+    $branchName = $_SESSION['user']['branch_name'] ?? '';
+
+    // በ Session ውስጥ የብራንች ስም ከሌለ ከዳታቤዝ በ ID እንዲያመጣ ማድረግ፡
+    if (empty($branchName) && !empty($parentBranchId)) {
+        // እንደ Model-ዎ አሰራር የብራንች ስም የሚያመጣ Method እዚህ ይጥሩ፡
+        // ለምሳሌ፡ $branchName = $reportModel->getBranchNameById($parentBranchId);
+    }
+
+    // renderPrintable() በመጠቀም Viewን ሲጠሩ 'defaultBranchName'ን አብረው ይላኩ
+    return $this->renderPrintable('performance_job_creation_view', [
+        'title' => 'የስራ እድል እና ኢንተርፕራይዝ አፈጻጸም ሪፖርት',
+        'defaultBranchName' => $branchName, // <-- ይህ እዚህ ጋር መግባት አለበት!
+        'branches' => $branches
+    ]);
+}
+
+
+
+public function performanceIndexShow()
+    {
+        AuthHelper::checkRole(['team_leader', 'officer']);
+
+        $myBranchId = $_SESSION['user']['branch_id'] ?? '';
+        $myBranchName = $_SESSION['user']['branch_name'] ?? ($_SESSION['user']['name'] ?? '');
+        $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
+
+        $branches = [];
+
+        if (!empty($myBranchId)) {
+            // 💡 በነባሩ $this->reportModel (ReportgenerationModel) አማካኝነት function ውን መጥራት
+            $branches = $this->reportModel->getZonePerformanceReport($myBranchId, $ketemaAstedader);
+        }
+
+        $this->renderPrintable('performance_view', [
+            'branches'          => $branches,
+            'defaultBranchId'   => $myBranchId,
+            'defaultBranchName' => $myBranchName
+        ]);
+    }
+
+
+
+    
+
+public function enterpriseAnalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ?? null;
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsDataen($branchId);
+
+    // ዳታው ባዶ ወይም NULL ከሆነ ቪው ላይ እክል እንዳይፈጥር ነባሪ (Default) መዋቅሩን ማዘጋጀት
+    if (empty($chartsData)) {
+        $chartsData = [
+            'yetederajubet_akababi' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'project_type'          => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0],
+            'enterprise_by_sector'  => [],
+            'yehabtu_mnch'          => [],
+            'enterprise_type'       => []
+        ];
+    }
+
+    // ዳታውን ወደ ቪው መላክ
+    $this->render('/enterprise-analytics', [
+        'title'      => 'የተመሰረቱ ኢንተርፕራይዞች ስታቲስቲክስ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
+
+
+
+
+public function orgteamAnalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ??  null;
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsDataot($branchId);
+
+    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
+    if (!$chartsData) {
+        $chartsData = [
+            'yetederajubet_akababi'    => ['ከተማ' => 0, 'ገጠር' => 0],
+            'project_type' => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0]
+            
+            
+        ];
+    }
+
+    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
+    $this->render('/orgteam-analytics', [
+        'title'      => 'የአደረጃጀት ስታቲስቲክስ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
+
+
+
+
+
+public function jcreationAnalyticsShow()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // የቅርንጫፍ መታወቂያውን መውሰድ
+    $branchId = $_SESSION['user']['branch_id'] ??  null;
+    
+    // ከሞዴል ዳታውን መሳብ
+    $chartsData = $this->reportModel->getDashboardChartsDatajc($branchId);
+
+    // ዳታው በሆነ ምክንያት NULL ከሆነ እንዳይበላሽ መከላከል
+    if (!$chartsData) {
+        $chartsData = [
+            'employmentstatus'    => ['ቋሚ' => 0, 'ጊዜያዊ' => 0],
+            'jobcreationreason' => ['አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' => 0, 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' => 0, 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' => 0, 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' => 0, 'በህ/ስ/ማህበራት የተቀጠሩ' => 0, 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' => 0, 'በመንግስት መ/ቤቶች የተቀጠሩ' => 0, 'የውጭ አገር ሥራ ስምሪት' => 0],
+            'persector' => ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0]
+            
+        ];
+    }
+
+    // ያለ ምንም nonce በቀጥታ ወደ ቪው መላክ
+    $this->render('/jcreation-analytics', [
+        'title'      => 'የስራ እድል ስታቲስቲክስ ትንታኔ',
+        'chartsData' => $chartsData
+    ]);
+}
+
+
+    public function awarenessallanalyticsShow()
 {
     // ሰሽን ቀድሞ ካልተጀመረ ብቻ እንዲጀምር ማድረግ (ፍሬምወርኩ ራሱ የሚጀምረው ከሆነ ይህንን ማጥፋት ትችላለህ)
     if (session_status() === PHP_SESSION_NONE) {
@@ -413,5 +616,227 @@ public function report4Show()
      
     
    
+}
+
+public function report6Show()
+{
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
+    
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
+
+    $ketemaAstedader = $_SESSION['user']['ketema_astedader'] ?? false;
+    $residenceStatus = null;
+    $selectedreport_type = null;
+
+    if ($report_type == "ሠ6") {
+        $residenceStatus = 'ከተማ';
+        $selectedreport_type = "report-6";
+    } elseif ($report_type == "ሠ7") {
+        $residenceStatus = 'ገጠር';
+        $selectedreport_type = "report-6";
+    } else {
+        $residenceStatus = 'ከተማ';
+        $selectedreport_type = "report-6";
+    }
+
+    $branchData = [];
+    $branchModel = new Branch($this->db);
+
+    if (!empty($postedBranchId)) {
+        $myBranchId = $postedBranchId;
+    } else {
+        $myBranchId = $sessionBranchId;
+    }
+
+    $myBranchId = (string)$myBranchId;
+
+    if (!empty($myBranchId)) {
+        $branchData = $branchModel->getBranchById($myBranchId);
+    }
+
+    $today = date('Y-m-d');
+
+    $rawStartDate = $_POST['start_date'] ?? ($_GET['start_date'] ?? '');
+    $rawEndDate = $_POST['end_date'] ?? ($_GET['end_date'] ?? '');
+
+    $startdate = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-08';
+    $firstchoice = '2026-07-08';
+    
+    $enddate = (!empty(trim($rawEndDate))) ? trim($rawEndDate) : $today;
+
+    if ($startdate < $firstchoice) {
+        $_SESSION['error'] = 'የሪፖርት መጀመሪያ ቀን በጀት ዓመት ከመጀመሩ በፊት መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit(); 
+    }
+    if ($startdate > $today) {
+        $_SESSION['error'] = 'የሪፖርት መጀመሪያ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit(); 
+    }
+    if ($enddate > $today) {
+        $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከዛሬ ቀን በኋላ መሆን የለበትም';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+    if ($startdate > $enddate) {
+        $_SESSION['error'] = 'የሪፖርት መጨረሻ ቀን ከመጀምሪያ ቀን በኋላ መሆን አለበት።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+
+    $startDateTime = $startdate . ' 00:00:00';
+    $endDateTime = $enddate . ' 23:59:59';
+
+    $reportModel = new ReportgenerationModel($this->db);
+    
+    $branchName = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
+
+    $reportData = [
+        'ግብርና' => $reportModel->getJobSeekers06ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, 'ግብርና'),
+        'ኢንዱስትሪ' => $reportModel->getJobSeekers06ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, 'ኢንዱስትሪ'),
+        'አገልግሎት' => $reportModel->getJobSeekers06ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, 'አገልግሎት'),
+    ];
+
+    return $this->renderPrintable('report-6', [
+        'reportData'         => $reportData,
+        'selectedBranchName' => $branchName,
+        'startdate'          => $startdate,
+        'enddate'            => $enddate,
+        'residenceStatus'    => $residenceStatus
+    ]);  
+}
+
+
+public function report8Show()
+{
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
+    
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
+
+    $residenceStatus = null;
+
+    if ($report_type == "ሠ8") {
+        $residenceStatus = 'ከተማ';
+    } elseif ($report_type == "ሠ9") {
+        $residenceStatus = 'ገጠር';
+    } else {
+        $residenceStatus = 'ከተማ';
+    }
+
+    $branchData = [];
+    $branchModel = new Branch($this->db);
+
+    $myBranchId = !empty($postedBranchId) ? $postedBranchId : $sessionBranchId;
+    $myBranchId = (string)$myBranchId;
+
+    if (!empty($myBranchId)) {
+        $branchData = $branchModel->getBranchById($myBranchId);
+    }
+
+    $today = date('Y-m-d');
+
+    $rawStartDate = $_POST['start_date'] ?? ($_GET['start_date'] ?? '');
+    $rawEndDate = $_POST['end_date'] ?? ($_GET['end_date'] ?? '');
+
+    $startdate = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-08';
+    $firstchoice = '2026-07-08';
+    $enddate = (!empty(trim($rawEndDate))) ? trim($rawEndDate) : $today;
+
+    if ($startdate < $firstchoice || $startdate > $today || $enddate > $today || $startdate > $enddate) {
+        $_SESSION['error'] = 'የተሳሳተ የሪፖርት ቀን መርጠዋል።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+
+    $startDateTime = $startdate . ' 00:00:00';
+    $endDateTime = $enddate . ' 23:59:59';
+
+    $reportModel = new ReportgenerationModel($this->db);
+    $branchName = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
+
+    $reportData = $reportModel->getJobSeekers08ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus);
+
+    return $this->renderPrintable('report-8', [
+        'reportData'         => $reportData,
+        'selectedBranchName' => $branchName,
+        'startdate'          => $startdate,
+        'enddate'            => $enddate,
+        'residenceStatus'    => $residenceStatus
+    ]);  
+}
+
+public function report2Show()
+{
+    // 1. Role Authorization
+    AuthHelper::checkRole(['team_leader', 'officer']);
+    
+    // 2. Branch Resolution
+    $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
+
+    // 3. Residence Status Filter Resolution (ከተማ / ገጠር)
+    $residenceStatus = null;
+    if ($report_type == "ሠ2") {
+        $residenceStatus = 'ከተማ';
+    } elseif ($report_type == "ሠ3") {
+        $residenceStatus = 'ገጠር';
+    } else {
+        $residenceStatus = 'ከተማ';
+    }
+
+    // 4. Branch Model and ID Mapping
+    $branchData = [];
+    $branchModel = new Branch($this->db);
+
+    $myBranchId = !empty($postedBranchId) ? $postedBranchId : $sessionBranchId;
+    $myBranchId = (string)$myBranchId;
+
+    if (!empty($myBranchId)) {
+        $branchData = $branchModel->getBranchById($myBranchId);
+    }
+
+    // 5. Date Validation Logic
+    $today = date('Y-m-d');
+
+    $rawStartDate = $_POST['start_date'] ?? ($_GET['start_date'] ?? '');
+    $rawEndDate   = $_POST['end_date'] ?? ($_GET['end_date'] ?? '');
+
+    $startdate   = (!empty(trim($rawStartDate))) ? trim($rawStartDate) : '2026-07-08';
+    $firstchoice = '2026-07-08';
+    $enddate     = (!empty(trim($rawEndDate))) ? trim($rawEndDate) : $today;
+
+    if ($startdate < $firstchoice || $startdate > $today || $enddate > $today || $startdate > $enddate) {
+        $_SESSION['error'] = 'የተሳሳተ የሪፖርት ቀን መርጠዋል።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        exit();
+    }
+
+    $startDateTime = $startdate . ' 00:00:00';
+    $endDateTime   = $enddate . ' 23:59:59';
+
+    // 6. Report Model Call & Data Fetching
+    $reportModel = new ReportgenerationModel($this->db);
+    $branchName  = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
+
+    // ለReport-2 የተዘጋጀውን ሞዴል ሜቶድ መጥራት
+    $reports = $reportModel->getJobSeekers02ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus);
+
+    // 7. Render Printable View with Extracted Parameters
+    return $this->renderPrintable('report-2', [
+        'reports'            => $reports,
+        'reportData'         => $reports,
+        'selectedBranchName' => $branchName,
+        'startdate'          => $startdate,
+        'enddate'            => $enddate,
+        'residenceStatus'    => $residenceStatus
+    ]);   
 }
 }

@@ -246,7 +246,7 @@ public function getAllSectors() {
             return [];
         }
     }
-    public function getSubSectorsBySector($sectorId) {
+    public function getSubSectorsBySector($sectorId) { 
     // Parameterized query ለደህንነት ሲባል
     $query = "SELECT sub_sectorid, subsector FROM sub_sector WHERE sectorid = :sectorid ORDER BY subsector ASC";
     $stmt = $this->db->prepare($query);

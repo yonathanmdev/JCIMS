@@ -64,11 +64,12 @@ $hasPermission = AuthHelper::hasRole(['officer'], [4]);
 // መረጃው የተመዘገበበት ቀን ከዛሬ 7 ቀን በታች ከሆነ (ማለትም አዲስ ከሆነ)
 $registrationDate = strtotime($row['created_at']);
 $sevenDaysAgo = strtotime('-7 days');
-
+$regby = $row['created_at'];
 // መረጃው ከ7 ቀን በታች ከሆነ (ማለትም እስካሁን አልሞላውም) እና መብቱ ካለው
 $isWithin7Days = ($registrationDate > $sevenDaysAgo);
+$regbysraedil = $row['jcsource'];
 // ሁለቱም ሁኔታዎች ሲሟሉ ብቻ በተኑ ይታያል
-if ($hasPermission && $isWithin7Days): 
+if ($hasPermission && $isWithin7Days && $regbysraedil==2): 
 ?>
     <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/job-creation-delete?uuid=<?= $row['uuid'] ?>&branchid=<?= $row['branchid'] ?>&jobseeker_id=<?= $row['jobseeker_id'] ?>" 
        class="btn btn-danger btn-sm delete-btn">

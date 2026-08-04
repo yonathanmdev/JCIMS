@@ -48,61 +48,135 @@ public function getSubSectors() {
     exit; // ይህ በጣም አስፈላጊ ነው!
 }
 public function processRegistration() {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
-    //error_log("DEBUG DATA: " . print_r($_POST, true));
-
-    // የፎርም መረጃዎች
-    $data = [
-        'branchid'             => $_SESSION['user']['branch_id'] ?? null,
-        'code003_id'           => null,
-        'jobseeker_id'         => $_POST['jid'] ?? null,
-        'sector'               => $_POST['sector'] ?? null,
-        'subsector'            => $_POST['sub_sector'] ?? null,
-        'job_creation_reason'  => $_POST['job_category'] ?? null, 
-        'employment_type'      => $_POST['job_type'] ?? null,
-        'employed_institution' => $_POST['enid'] ?? null,
-        'suportedby'           => $_POST['pid'] ?? null, // አሁን ስሙ ትክክል ነው
-        'fiscal_year'          => AuthHelper::checkFiscalYear(),
-        'job_field'         => $_POST['job_field'] ?? null, // አሁን ስሙ ትክክል ነው
-        'registered_by'        => $_SESSION['user']['id'] ?? null
-    ];
-
-    // 2. አስፈላጊ የሆኑትን አምዶች ዝርዝር (እነዚህ ባዶ መሆን የለባቸውም)
-    $requiredFields = ['branchid', 'jobseeker_id', 'sector', 'subsector', 'employment_type','job_creation_reason'];
-
-    // 3. Validation
-    foreach ($requiredFields as $field) {
-        if (empty($data[$field])) {
-            $_SESSION['error'] = "እባክዎ ሁሉንም አስፈላጊ መረጃዎች በትክክል ይሙሉ! (" . $field . " ክፍት ነው)";
-            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg"); // ወይም ወደነበረበት ገጽ
-            exit();
-        }
-    }
-    //error_log("DATA ARRAY TO INSERT: " . print_r($data, true));
-
-    // ይህንን መረጃ በ Browser ላይ ለማየት (ለሙከራ ብቻ)
-    //echo "<pre>"; print_r($data); echo "</pre>"; exit;
-    
-    $model = new JobCreationModel($this->db);
-    try {
-        // አዲሱን Transaction እና Update የያዘውን registerJobCreation እንጠራለን
-        if ($model->registerJobCreation($data)) {
-            $_SESSION['success'] = 'መረጃው በተሳካ ሁኔታ ተመዝግቧል!';
+        // HTTP Request method ቼክ ማድረግ
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
             exit();
         }
-// ኮንትሮለርህ ላይ ያለው catch ብሎክ
-} catch (\Exception $e) {
-    error_log("DB Error: " . $e->getMessage());
-    
-    // የሞዴሉን የራሱ መልእክት (Exception message) ለተጠቃሚው አሳይ
-    //$_SESSION['error'] = $e->getMessage(); 
-    $_SESSION['error'] ="ስራ እድል ፈጠራ ምዝገባዉ አልተሳካም እባከወ መረጃወን በትክክል ያስገቡ በተለይ የስራ ፈላጊ መለያ ቁጥርን በትክክል ያስገቡ ";
-    header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
-    exit();
-}
 
+        // የሥራ እድል ፈጠራው ምክንያት አዲስ ኢንተርፕራይዝ ማቋቋም መሆኑን ማረጋገጥ
+        $jobCategory = $_POST['job_category'] ?? null;
+        $isNewEnterprise = ($jobCategory === "አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ");
+
+        if ($isNewEnterprise) {
+            // አዳዲስ ኢንተርፕራይዞች ሲሆኑ sector እና subsector በ ሞዴሉ በኩል በራስ-ሰር ይፈለጋሉ
+            $data = [
+                'branchid'             => $_SESSION['user']['branch_id'] ?? null,
+                'code003_id'           => $_POST['enid'] ?? null,
+                'jobseeker_id'         => $_POST['jid'] ?? null,
+                'sector'               => null, // በ Model ውስጥ ከትክክለኛው ኢንተርፕራይዝ ይሞላል
+                'subsector'            => null, // በ Model ውስጥ ከትክክለኛው ኢንተርፕራይዝ ይሞላል
+                'job_creation_reason'  => $jobCategory, 
+                'employment_type'      => $_POST['job_type'] ?? null,
+                'employed_institution' => $_POST['enid'] ?? null,
+                'suportedby'           => $_POST['pid'] ?? null,
+                'fiscal_year'          => AuthHelper::checkFiscalYear(),
+                'job_field'            => $_POST['job_field'] ?? null,
+                'registered_by'        => $_SESSION['user']['id'] ?? null
+            ];
+
+            // ለአዳዲስ ኢንተርፕራይዝ አስፈላጊ የሆኑ ፊልዶች
+            $requiredFields = ['branchid', 'code003_id', 'jobseeker_id', 'employment_type', 'job_creation_reason'];
+
+        } else {
+            // ለሌሎች የሥራ እድል ፈጠራ ዓይነቶች መረጃው ከፎርሙ ይወሰዳል
+            $data = [
+                'branchid'             => $_SESSION['user']['branch_id'] ?? null,
+                'code003_id'           => null,
+                'jobseeker_id'         => $_POST['jid'] ?? null,
+                'sector'               => $_POST['sector'] ?? null,
+                'subsector'            => $_POST['sub_sector'] ?? null,
+                'job_creation_reason'  => $jobCategory, 
+                'employment_type'      => $_POST['job_type'] ?? null,
+                'employed_institution' => $_POST['enid'] ?? null,
+                'suportedby'           => $_POST['pid'] ?? null,
+                'fiscal_year'          => AuthHelper::checkFiscalYear(),
+                'job_field'            => $_POST['job_field'] ?? null,
+                'registered_by'        => $_SESSION['user']['id'] ?? null
+            ];
+
+            // ለሌሎች ዓይነቶች አስፈላጊ የሆኑ ፊልዶች
+            $requiredFields = ['branchid', 'jobseeker_id', 'sector', 'subsector', 'employment_type', 'job_creation_reason'];
+        }
+
+        // 1. Validation: አስፈላጊ የሆኑ መረጃዎች መሞላታቸውን ማረጋገጥ
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                $_SESSION['error'] = "እባክዎ ሁሉንም አስፈላጊ መረጃዎች በትክክል ይሙሉ! (" . htmlspecialchars($field, ENT_QUOTES, 'UTF-8') . " ክፍት ነው)";
+                header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
+                exit();
+            }
+        }
+
+        // 2. በ Model በኩል መረጃውን መዝግቦ መያዝ
+        $model = new JobCreationModel($this->db);
+
+        try {
+            if ($model->registerJobCreation($data)) {
+         // 1. የሎጊን ያደረገውን ተጠቃሚ ደረጃ እና ቅርንጫፍ መረጃ መውሰድ
+    $branch_name = $_SESSION['user']['branch_name'] ?? '';
+    $level       = $_SESSION['user']['level'] ?? null;
+
+    if ($level == 4) {
+        $levelname = "ማእከል";
+    } elseif ($level == 3) {
+        $levelname = "ወረዳ";
+    } elseif ($level == 2) {
+        $levelname = "ዞን";
+    } else {
+        $levelname = "ቢሮ";
     }
+
+    // 2. የሥራ ፈላጊውን መረጃ መፈለግ
+    $jcModel     = new JobCreationModel($this->db);
+    $jobseekerId = $jcModel->findByjobseekerId($data['jobseeker_id']);
+
+    // 3. መረጃው መኖሩን እና ስልክ ቁጥር መኖሩን ማረጋገጥ
+    if ($jobseekerId && !empty($jobseekerId['phone_number']) && $data['employment_type']==1) {
+        
+        // የስልክ ቁጥሩን ፎርማት ማስተካከል (251...)
+        $rawPhone = trim($jobseekerId['phone_number']);
+        $cleanPhone = preg_replace('/^\+?251|^0/', '', $rawPhone); 
+        $phoneNumber = '251' . $cleanPhone;
+
+        // የሥራ ፈላጊው ስም
+        $firstName = htmlspecialchars($jobseekerId['first_name'], ENT_QUOTES, 'UTF-8');
+        $jobTypeStr = ($data['employment_type'] == '1') ? 'ቋሚ' : 'ጊዜያዊ';
+
+        // 4. መልእክቱን ማዘጋጀት
+        $message = "{$firstName}፣ {$jobTypeStr} ስራ እድል እንደተፈጠረሎት በ {$branch_name} {$levelname} ሪፖርት ተደርጎልናል። "
+                 . "የውሸት/ሀሰት ከሆነ {$branch_name} {$levelname} ያናግሩ ወይም በ 0918394716 ያሳውቁ። "
+                 . "ስራና ክህሎት ቢሮ።";
+
+        // 5. ኤስኤምኤስ መላክ (የደህንነት Try-Catch)
+        try {
+           // $response=\App\Helpers\SmsHelper::send($phoneNumber, $message);
+            \App\Helpers\SmsHelper::send($phoneNumber, $message);
+           // var_dump($response); 
+    //die();
+        } catch (\Exception $e) {
+            // ኤስኤምኤስ ሳይላክ ቢቀር እንኳን ሲስተሙ እንዳይቋረጥ Log ማድረግ ይቻላል
+           echo "የኤስኤምኤስ ስህተት፡ " . $e->getMessage();
+   // die();
+        }
+    }
+                $_SESSION['success'] = 'የሥራ እድል የተፈጠረለት መረጃ በተሳካ ሁኔታ ተመዝግቧል!';
+                header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
+                exit();
+            }
+        } catch (\Exception $e) {
+            // የስህተት መረጃዎችን ወደ log መጻፍ
+            error_log("Job Creation Registration DB Error: " . $e->getMessage());
+
+            // ከ Model የመጣውን የ exception መልእክት ለተጠቃሚው ማሳየት (ለምሳሌ የቋሚ ቅጥር ድግግሞሽ ወይም የዘርፍ ማጣራት ችግር)
+            $_SESSION['error'] = $e->getMessage();
+            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/job-creation-reg");
+            exit();
+        }
+    }
+
+
+    
     public function jobcreationcreatedview() {
     $branchid = $_SESSION['user']['branch_id'];
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -152,7 +226,51 @@ if ($model->deletearchiveJobCreation($uuid, $branchid, $js_id, $reason, $userId)
 header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobcreation-list");
 exit(); // exit() መጠቀም በጣም አስፈላጊ ነው
 }
-       
+public function getEnterpriseList(): void {
+        // የ JSON Header ማስተካከያ
+        header('Content-Type: application/json; charset=utf-8');
+
+        // 1. Session መጀመሩን እና Branch ID መኖሩን ማረጋገጥ
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // በሲስተምህ Session አሰያየም መሰረት ($ _SESSION['branchid'] ወይም $_SESSION['branch_id'])
+       // $branchId = $_SESSION['branchid'] ?? $_SESSION['branch_id'] ?? null;
+        $branchId = $_SESSION['user']['branch_id'];
+
+        if (!$branchId) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'ያልተፈቀደ አክሰስ ወይም Branch ID አልተገኘም'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // 2. ከ Frontend (AJAX) የመጣውን የፍለጋ ቃል መቀበል እና ማጽዳት
+        $search = isset($_GET['q']) ? trim($_GET['q']) : '';
+
+        if (mb_strlen($search) < 2) {
+            echo json_encode([]);
+            exit;
+        }
+
+        try {
+              $JobCreationModel = new JobCreationModel($this->db);
+            // 3. ከ Model ላይ የመፈለጊያ ተግባሩን መጥራት
+            $enterprises = $JobCreationModel->searchEnterprisesByBranch($search, $branchId);
+            
+            // 4. ህጋዊ JSON Response መመለስ
+            echo json_encode($enterprises, JSON_UNESCAPED_UNICODE);
+            exit;
+
+        } catch (\PDOException $e) {
+            // ለደህንነት ሲባል የዳታቤዝ ዝርዝር ስህተትን በ Log መያዝ እንጂ ለተጠቃሚው አለማሳየት
+            error_log("Database Error in EnterpriseController: " . $e->getMessage());
+            
+            http_response_code(500);
+            echo json_encode(['error' => 'የዳታቤዝ ስህተት ተፈጥሯል'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }       
  
 }
      

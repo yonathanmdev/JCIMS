@@ -196,13 +196,18 @@ new Chart(document.getElementById('educationChart'), {
 });
 
     // 5. ሁኔታ ቻርት
-    new Chart(document.getElementById('statusChart'), {
-        type: 'bar',
-        data: {
-            labels: Object.keys(chartsData.status),
-            datasets: [{ data: Object.values(chartsData.status), backgroundColor: '#8b5cf6', barPercentage: 0.6 }]
-        },
-        options: commonOptions
-    });
+new Chart(document.getElementById('statusChart'), {
+    type: 'bar',
+    data: {
+        // "ስራ ፈላጊ" የሚለውን ወደ "መደበኞች" ይቀይረዋል፤ ሌሎቹን እንዳሉ ይተዋቸዋል
+        labels: Object.keys(chartsData.status || {}).map(label => label === 'ስራ ፈላጊ' ? 'መደበኞች' : label),
+        datasets: [{ 
+            data: Object.values(chartsData.status || {}), 
+            backgroundColor: '#8b5cf6', 
+            barPercentage: 0.6 
+        }]
+    },
+    options: commonOptions
+});
 });
 </script>

@@ -15,6 +15,388 @@ class ReportgenerationModel
         $this->db = $db;
     }
 
+
+
+public function getTotalUserCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የስራ እድል የተፈጠረላቸውን መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(us.id) as total 
+        FROM users us
+        INNER JOIN SubBranches sb ON us.branch_id = sb.internal_id 
+        ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}   
+
+
+
+
+public function getTotalEnterpriseCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ እና full_enterprise_and_job_seekerdata ቴብልን በመጠቀም 
+    // ባዶ እና ትርጉም የለሽ የቲን ቁጥሮችን በማስወገድ በ Distinct የሚቆጥር ኩየሪ
+    $sql = "WITH RECURSIVE SubBranches AS (
+                SELECT b.internal_id
+                FROM branches b
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+            )
+            SELECT COUNT(DISTINCT fe.tine_number) as total 
+            FROM full_enterprise_and_job_seekerdata fe
+            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+            WHERE fe.tine_number IS NOT NULL 
+              AND TRIM(fe.tine_number) != '' 
+              AND LOWER(TRIM(fe.tine_number)) != 'null'
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}
+
+public function getDashboardChartsDataen($branchId)
+{
+    // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
+    if (empty($branchId)) {
+        return [
+            'yetederajubet_akababi' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'project_type'          => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0],
+            'enterprise_by_sector'  => [],
+            'yehabtu_mnch'          => [],
+            'enterprise_type'       => []
+        ];
+    }
+
+    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ - RECURSIVE SubBranches)
+    $sqlBranches = "WITH RECURSIVE SubBranches AS (
+                        SELECT b.internal_id FROM branches b
+                        INNER JOIN branches root ON root.internal_id = :my_branch
+                        WHERE b.path LIKE CONCAT(root.path, '%')
+                    ) SELECT internal_id FROM SubBranches";
+                    
+    $stmtB = $this->db->prepare($sqlBranches);
+    $stmtB->execute(['my_branch' => $branchId]);
+    $branchIds = array_filter($stmtB->fetchAll(PDO::FETCH_COLUMN));
+
+    if (empty($branchIds)) {
+        $branchIds = [$branchId];
+    }
+
+    // ቅርንጫፎቹን ለ SQL IN ክላውስ ማዘጋጀት (job_seeker_branch_id ን በመጠቀም)
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    // 2. የተጠየቁትን አምዶች ብቻ ከ full_enterprise_and_job_seekerdata ማምጣት (is_enterprise='1' እና በቅርንጫፍ ሂራርኪ ልክ)
+    $sqlData = "SELECT residence_status, project_type_or_aderejajet, sector_name, yehabtu_mnch, enterprise_type, tine_number 
+                FROM full_enterprise_and_job_seekerdata 
+                WHERE job_seeker_branch_id IN ($inClause) AND is_enterprise = '1'";
+                
+    $res = $this->db->query($sqlData)->fetchAll(PDO::FETCH_ASSOC);
+
+    // ነባሪ መዋቅር ማዘጋጀት
+    $akababiCounts = ['ከተማ' => 0, 'ገጠር' => 0];
+    $projectTypes  = [
+        'የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0
+    ];
+    $sectorCounts = [];
+    $wealthSources = [];
+    $enterpriseTypes = [];
+
+    // ኢንተርፕራይዞች በTIN Number አንዴ ብቻ እንዲቆጠሩ የተደረገበት (Distinct Enterprise Tracking)
+    $processedTins = [];
+
+    foreach ($res as $row) {
+        $tineNumber = isset($row['tine_number']) ? trim((string)$row['tine_number']) : '';
+        $isUniqueEnterprise = false;
+
+        // TIN Number ካለው እና ገና ያልተቆጠረ ከሆነ እንደ አንድ ኢንተርፕራይዝ እንወስደዋለን
+        if (!empty($tineNumber)) {
+            if (!in_array($tineNumber, $processedTins)) {
+                $processedTins[] = $tineNumber;
+                $isUniqueEnterprise = true;
+            }
+        } else {
+            // TIN Number ከሌለው እያንዳንዱን ረድፍ እንደየብቻው እንቆጥረዋለን
+            $isUniqueEnterprise = true;
+        }
+
+        // 1. የተደራጁበት አካባቢ (Doughnut Chart) - residence_status
+        $valAkababi = isset($row['residence_status']) ? trim((string)$row['residence_status']) : '';
+        if ($isUniqueEnterprise) {
+            if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
+                $akababiCounts['ከተማ']++;
+            } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
+                $akababiCounts['ገጠር']++;
+            }
+        }
+
+        // 2. የአደረጃጀቱ ዓይነት / Project Type (Vertical Bar Chart) - project_type_or_aderejajet
+        $reason = isset($row['project_type_or_aderejajet']) ? trim((string)$row['project_type_or_aderejajet']) : '';
+        if (!empty($reason) && $isUniqueEnterprise) {
+            if (array_key_exists($reason, $projectTypes)) {
+                $projectTypes[$reason]++;
+            } else {
+                $projectTypes[$reason] = 1;
+            }
+        }
+
+        // 3. የኢንተርፕራይዝ ምስረታ በሴክተር - sector_name
+        $sectorName = isset($row['sector_name']) ? trim((string)$row['sector_name']) : '';
+        if (!empty($sectorName) && $isUniqueEnterprise) {
+            if (!isset($sectorCounts[$sectorName])) {
+                $sectorCounts[$sectorName] = 0;
+            }
+            $sectorCounts[$sectorName]++;
+        }
+
+       // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
+        $wealthSourceRaw = isset($row['yehabtu_mnch']) ? trim((string)$row['yehabtu_mnch']) : '';
+        if ($isUniqueEnterprise && $wealthSourceRaw !== '') {
+            $wealthSource = $wealthSourceRaw;
+            if ($wealthSourceRaw === '0') {
+                $wealthSource = 'ከራስ ተቀማጭ';
+            } else if ($wealthSourceRaw === '1') {
+                $wealthSource = 'ከቤተሰብ';
+            } else if ($wealthSourceRaw === '2') {
+                $wealthSource = 'ከመንግስት';
+            } else if ($wealthSourceRaw === '3') {
+                $wealthSource = 'ከብደር';
+            }
+
+            if (!isset($wealthSources[$wealthSource])) {
+                $wealthSources[$wealthSource] = 0;
+            }
+            $wealthSources[$wealthSource]++;
+        }
+        // 5. የኢንተርፕራይዙ ዓይነት - enterprise_type
+        $entType = isset($row['enterprise_type']) ? trim((string)$row['enterprise_type']) : '';
+        if (!empty($entType) && $isUniqueEnterprise) {
+            if (!isset($enterpriseTypes[$entType])) {
+                $enterpriseTypes[$entType] = 0;
+            }
+            $enterpriseTypes[$entType]++;
+        }
+    }
+
+    return [
+        'yetederajubet_akababi' => $akababiCounts,
+        'project_type'          => $projectTypes,
+        'enterprise_by_sector'  => $sectorCounts,
+        'yehabtu_mnch'          => $wealthSources,
+        'enterprise_type'       => $enterpriseTypes
+    ];
+}
+
+
+
+public function getDashboardChartsDataot($branchId)
+{
+    // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
+    if (empty($branchId)) {
+        return [
+            'yetederajubet_akababi' => ['ከተማ' => 0, 'ገጠር' => 0],
+            'project_type'          => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0]
+        ];
+    }
+
+    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ)
+    $sqlBranches = "WITH RECURSIVE SubBranches AS (
+                        SELECT b.internal_id FROM branches b
+                        INNER JOIN branches root ON root.internal_id = :my_branch
+                        WHERE b.path LIKE CONCAT(root.path, '%')
+                    ) SELECT internal_id FROM SubBranches";
+                    
+    $stmtB = $this->db->prepare($sqlBranches);
+    $stmtB->execute(['my_branch' => $branchId]);
+    $branchIds = array_filter($stmtB->fetchAll(PDO::FETCH_COLUMN));
+
+    if (empty($branchIds)) {
+        $branchIds = [$branchId];
+    }
+
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    // 2. የአደረጃጀት ዳታዎችን ከዳታቤዝ መሳብ
+    $res = $this->db->query("SELECT yetederajubet_akababi, project_type
+                             FROM group_table 
+                             WHERE branch_id IN ($inClause) and is_enterprise=0")->fetchAll(PDO::FETCH_ASSOC);
+
+    // ነባሪ መዋቅር ማዘጋጀት
+    $akababiCounts = ['ከተማ' => 0, 'ገጠር' => 0];
+    $projectTypes  = [
+        'የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0
+    ];
+
+    foreach ($res as $row) {
+        // 1. የተደራጁበት አካባቢ (1 = ከተማ, 2 = ገጠር)
+        $valAkababi = isset($row['yetederajubet_akababi']) ? trim((string)$row['yetederajubet_akababi']) : '';
+        if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
+            $akababiCounts['ከተማ']++;
+        } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
+            $akababiCounts['ገጠር']++;
+        }
+
+        // 2. የአደረጃጀቱ አይነት (Project Type)
+        $reason = isset($row['project_type']) ? trim((string)$row['project_type']) : '';
+        if (!empty($reason)) {
+            if (array_key_exists($reason, $projectTypes)) {
+                $projectTypes[$reason]++;
+            } else {
+                $projectTypes[$reason] = 1;
+            }
+        }
+    }
+
+    return [
+        'yetederajubet_akababi' => $akababiCounts,
+        'project_type'          => $projectTypes
+    ];
+}
+
+
+
+
+public function getDashboardChartsDatajc($branchId)
+{
+    // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
+    if (empty($branchId)) {
+        return [
+            'employmentstatus'  => ['ቋሚ' => 0, 'ጊዜያዊ' => 0],
+            'jobcreationreason' => [
+                'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' => 0,
+                'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' => 0,
+                'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' => 0,
+                'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' => 0,
+                'በህ/ስ/ማህበራት የተቀጠሩ' => 0,
+                'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' => 0,
+                'በመንግስት መ/ቤቶች የተቀጠሩ' => 0,
+                'የውጭ አገር ሥራ ስምሪት' => 0
+            ],
+            'physical'  => ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0],
+            'persector' => ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0],
+            'gender'    => ['ወንድ' => 0, 'ሴት' => 0]
+        ];
+    }
+
+    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ)
+    $sqlBranches = "WITH RECURSIVE SubBranches AS (
+                        SELECT b.internal_id FROM branches b
+                        INNER JOIN branches root ON root.internal_id = :my_branch
+                        WHERE b.path LIKE CONCAT(root.path, '%')
+                    ) SELECT internal_id FROM SubBranches";
+                    
+    $stmtB = $this->db->prepare($sqlBranches);
+    $stmtB->execute(['my_branch' => $branchId]);
+    $branchIds = array_filter($stmtB->fetchAll(PDO::FETCH_COLUMN));
+
+    if (empty($branchIds)) {
+        $branchIds = [$branchId];
+    }
+
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    // 2. የስራ እድል ፈጠራ ዳታዎችን ከዳታቤዝ መሳብ
+    $res = $this->db->query("SELECT employment_type, job_creation_reason, sector 
+                             FROM code003sraedl 
+                             WHERE branchid IN ($inClause)")->fetchAll(PDO::FETCH_ASSOC);
+
+    // ነባሪ መዋቅር ማዘጋጀት
+    $employmentstatus = ['ቋሚ' => 0, 'ጊዜያዊ' => 0];
+    $jobcreationreason = [
+        'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' => 0,
+        'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' => 0,
+        'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' => 0,
+        'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' => 0,
+        'በህ/ስ/ማህበራት የተቀጠሩ' => 0,
+        'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' => 0,
+        'በመንግስት መ/ቤቶች የተቀጠሩ' => 0,
+        'የውጭ አገር ሥራ ስምሪት' => 0
+    ];
+    $persector = ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0];
+
+    foreach ($res as $row) {
+        // 1. የቅጥር ሁኔታ (1 = ቋሚ, 2 = ጊዜያዊ)
+        $empStatus = isset($row['employment_type']) ? trim((string)$row['employment_type']) : '';
+        if ($empStatus === '1' || $empStatus === 'ቋሚ') {
+            $employmentstatus['ቋሚ']++;
+        } else if ($empStatus === '2' || $empStatus === 'ጊዜያዊ') {
+            $employmentstatus['ጊዜያዊ']++;
+        }
+
+        // 2. የሥራ እድል መፍጠሪያ አማራጮች
+        $reason = isset($row['job_creation_reason']) ? trim((string)$row['job_creation_reason']) : '';
+        if (!empty($reason)) {
+            if (array_key_exists($reason, $jobcreationreason)) {
+                $jobcreationreason[$reason]++;
+            } else {
+                $jobcreationreason[$reason] = 1;
+            }
+        }
+
+        // 3. በዋና ዋና ዘርፎች (1 = ኢንዱስትሪ, 2 = ግብርና, 3 = አገልግሎት)
+        $sec = isset($row['sector']) ? trim((string)$row['sector']) : '';
+        if ($sec === '2' || $sec === 'ግብርና') {
+            $persector['ግብርና']++;
+        } else if ($sec === '1' || $sec === 'ኢንዱስትሪ') {
+            $persector['ኢንዱስትሪ']++;
+        } else if ($sec === '3' || $sec === 'አገልግሎት') {
+            $persector['አገልግሎት']++;
+        }
+    }
+
+    return [
+        'employmentstatus'  => $employmentstatus,
+        'jobcreationreason' => $jobcreationreason,
+        'persector'         => $persector
+    ];
+}
+    
+public function getTotalOrgteamCountByHierarchy($branchId)
+{
+    if (empty($branchId)) {
+        return 0;
+    }
+
+    // በፓዝ (path) ተዋረድ ላይ የተመሰረተ ፈጣን የስራ እድል የተፈጠረላቸውን መቁጠሪያ ኩየሪ
+$sql = "WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT COUNT(gt.id) as total 
+        FROM group_table gt
+        INNER JOIN SubBranches sb ON gt.branch_id = sb.internal_id where is_enterprise=0
+        ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return isset($result['total']) ? (int)$result['total'] : 0;
+}
+
+
+
 public function getTotalCreationCountByHierarchy($branchId)
 {
     if (empty($branchId)) {
@@ -39,6 +421,8 @@ $sql = "WITH RECURSIVE SubBranches AS (
 
     return isset($result['total']) ? (int)$result['total'] : 0;
 }
+
+
 
     public function getTotalAwarenessCountByHierarchy($branchId)
 {
@@ -1117,4 +1501,806 @@ public function getJobSeekers04ByHierarchy(string $myBranchId, $startdate, $endd
         return [];
     }
 }
+
+
+public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, string $sectorName): array
+{
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        ),
+        FilteredJobSeekers AS (
+            SELECT
+                c.subsector AS sub_sector_id,
+                TRIM(c.employment_type) AS employment_type,
+                TRIM(c.job_creation_reason) AS job_creation_reason,
+                TRIM(js.gender) AS gender
+            FROM code003sraedl c
+            INNER JOIN job_seekers js ON c.jobseeker_id = js.job_seeker_id
+            INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
+            INNER JOIN sub_sector sub_filter ON c.subsector = sub_filter.sub_sectorid
+            INNER JOIN sector_table sec_filter ON sub_filter.sectorid = sec_filter.sectorid
+            WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check)
+              AND sec_filter.sector = :sector_name
+              AND c.created_at BETWEEN :start_date AND :end_date
+        )
+        SELECT 
+            sub.subsector AS sub_sector_name,
+            
+            -- 1. አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c1,
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c2,
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c3,
+            SUM(CASE WHEN fjs.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c4,
+
+            -- 2. ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c5,
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c6,
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c7,
+            SUM(CASE WHEN fjs.job_creation_reason = 'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c8,
+
+            -- 3. የግል ዘርፍ ኢንቭስትመንት/ድርጅቶች የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c9,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c10,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c11,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የግል ዘርፍ ኢንቨስትመንት/ድርጅቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c12,
+
+            -- 4. በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c13,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c14,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c15,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት ኢንተርፕራይዞች/ግዙፍ ፕሮጀክቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c16,
+
+            -- 5. በህ/ስ/ማህበራት የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c17,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c18,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c19,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በህ/ስ/ማህበራት የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c20,
+
+            -- 6. መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c21,
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c22,
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c23,
+            SUM(CASE WHEN fjs.job_creation_reason = 'መንግስታዊ ያልሆኑ ድርጅቶች ቅጥር' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c24,
+
+            -- 7. በመንግስት መ/ቤቶች የተቀጠሩ
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c25,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c26,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c27,
+            SUM(CASE WHEN fjs.job_creation_reason = 'በመንግስት መ/ቤቶች የተቀጠሩ' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c28,
+
+            -- 8. የውጭ አገር ሥራ ስምሪት
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '1' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c29,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '1' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c30,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '2' AND fjs.gender = 'ወንድ' THEN 1 ELSE 0 END) AS c31,
+            SUM(CASE WHEN fjs.job_creation_reason = 'የውጭ አገር ሥራ ስምሪት' AND fjs.employment_type = '2' AND fjs.gender = 'ሴት' THEN 1 ELSE 0 END) AS c32
+
+        FROM sub_sector sub
+        INNER JOIN sector_table sec ON sub.sectorid = sec.sectorid
+        LEFT JOIN FilteredJobSeekers fjs ON sub.sub_sectorid = fjs.sub_sector_id 
+        WHERE sec.sector = :sector_name
+        GROUP BY sub.sub_sectorid, sub.subsector
+        ORDER BY sub.subsector ASC
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        
+        if ($residenceStatus === null) {
+            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+        }
+        
+        $stmt->bindValue(':sector_name', $sectorName, \PDO::PARAM_STR);
+        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    } catch (\PDOException $e) {
+        return [];
+    }
 }
+
+
+
+public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus): array
+{
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        )
+        SELECT 
+            TRIM(c.job_creation_reason) AS job_reason,
+            sec.sector AS sector_name,
+            
+            -- ቋሚ (Employment Type = 1)
+            SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ወንድ' THEN 1 ELSE 0 END) AS perm_m,
+            SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ሴት' THEN 1 ELSE 0 END) AS perm_f,
+            
+            -- ጊዜያዊ (Employment Type = 2)
+            SUM(CASE WHEN TRIM(c.employment_type) = '2' AND TRIM(js.gender) = 'ወንድ' THEN 1 ELSE 0 END) AS temp_m,
+            SUM(CASE WHEN TRIM(c.employment_type) = '2' AND TRIM(js.gender) = 'ሴት' THEN 1 ELSE 0 END) AS temp_f
+
+        FROM code003sraedl c
+        INNER JOIN job_seekers js ON c.jobseeker_id = js.job_seeker_id
+        INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
+        INNER JOIN sub_sector sub ON c.subsector = sub.sub_sectorid
+        INNER JOIN sector_table sec ON sub.sectorid = sec.sectorid
+        WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check)
+          AND c.created_at BETWEEN :start_date AND :end_date
+        GROUP BY TRIM(c.job_creation_reason), sec.sector
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        
+        if ($residenceStatus === null) {
+            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+        }
+        
+        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    } catch (\PDOException $e) {
+        return [];
+    }
+}
+
+public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus): array
+{
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :my_branch
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        ),
+        BaseData AS (
+            SELECT 
+                TRIM(f.sub_sector_name) AS sub_sector_name,
+                TRIM(f.sector_name) AS sector_name,
+                TRIM(f.enterprise_type) AS enterprise_type,
+                TRIM(f.employment_type) AS employment_type,
+                TRIM(f.gender) AS gender,
+                TRIM(f.project_type_or_aderejajet) AS project_type_or_aderejajet,
+                TRIM(f.tine_number) AS tine_number
+            FROM full_enterprise_and_job_seekerdata f
+            INNER JOIN SubBranches sb ON CAST(f.job_seeker_branch_id AS CHAR) = CAST(sb.internal_id AS CHAR) 
+            WHERE (:residence_status IS NULL OR f.residence_status = :residence_status_check)
+              AND f.established_date BETWEEN :start_date AND :end_date
+              AND f.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ'
+        ),
+        -- እያንዳንዱ ኢንተርፕራይዝ በንዑስ ዘርፍ እና በ TIN Number ልክ አንዴ ብቻ እንዲታወቅ ማድረግ
+        DistinctEnterprises AS (
+            SELECT 
+                sub_sector_name,
+                sector_name,
+                tine_number,
+                MAX(CASE WHEN enterprise_type = 'የማህበር' THEN 1 ELSE 0 END) AS is_mahber,
+                MAX(CASE WHEN enterprise_type = 'የግል' THEN 1 ELSE 0 END) AS is_private,
+                MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' THEN 1 ELSE 0 END) AS is_family,
+                MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%' THEN 1 ELSE 0 END) AS is_family_agri,
+                MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%' THEN 1 ELSE 0 END) AS is_family_ind,
+                MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%' THEN 1 ELSE 0 END) AS is_family_serv
+            FROM BaseData
+            WHERE tine_number IS NOT NULL AND tine_number != ''
+            GROUP BY sub_sector_name, sector_name, tine_number
+        )
+        -- 1. መደበኛ የንዑስ ዘርፎች መረጃ (ኢንተርፕራይዝ ከ DistinctEnterprises ተጠቃለ ቤዝ ቆጠራ ይደረጋል፣ ሥራ ዕድል ከ BaseData ይመጣል)
+        SELECT 
+            de.sub_sector_name,
+            de.sector_name,
+            SUM(de.is_mahber) AS biz_mahber,
+            SUM(de.is_private) AS biz_private,
+            (SELECT SUM(CASE WHEN b.employment_type = '1' AND b.gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData b WHERE b.sub_sector_name = de.sub_sector_name AND b.sector_name = de.sector_name) AS perm_m,
+            (SELECT SUM(CASE WHEN b.employment_type = '1' AND b.gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData b WHERE b.sub_sector_name = de.sub_sector_name AND b.sector_name = de.sector_name) AS perm_f,
+            (SELECT SUM(CASE WHEN b.employment_type = '2' AND b.gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData b WHERE b.sub_sector_name = de.sub_sector_name AND b.sector_name = de.sector_name) AS temp_m,
+            (SELECT SUM(CASE WHEN b.employment_type = '2' AND b.gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData b WHERE b.sub_sector_name = de.sub_sector_name AND b.sector_name = de.sector_name) AS temp_f
+        FROM DistinctEnterprises de
+        WHERE de.sub_sector_name IS NOT NULL AND de.sub_sector_name != ''
+        GROUP BY de.sub_sector_name, de.sector_name
+
+        UNION ALL
+
+        -- 2. በቤተሰብ ንግድ የተደራጁ ጠቅላላ ድምር (family_total)
+        SELECT 
+            'family_total' AS sub_sector_name,
+            'family_total' AS sector_name,
+            SUM(is_mahber) AS biz_mahber,
+            SUM(is_private) AS biz_private,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS perm_m,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS perm_f,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_m,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_f
+        FROM DistinctEnterprises
+        WHERE is_family = 1
+
+        UNION ALL
+
+        -- 3. በግብርና ዘርፍ በቤተሰብ ንግድ (family_agri)
+        SELECT 
+            'family_agri' AS sub_sector_name,
+            'ግብርና' AS sector_name,
+            SUM(is_mahber) AS biz_mahber,
+            SUM(is_private) AS biz_private,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS perm_m,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS perm_f,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_m,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_f
+        FROM DistinctEnterprises
+        WHERE is_family_agri = 1
+
+        UNION ALL
+
+        -- 4. በኢንዱስትሪ ዘርፍ በቤተሰብ ንግድ (family_ind)
+        SELECT 
+            'family_ind' AS sub_sector_name,
+            'ኢንዱስትሪ' AS sector_name,
+            SUM(is_mahber) AS biz_mahber,
+            SUM(is_private) AS biz_private,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS perm_m,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS perm_f,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_m,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_f
+        FROM DistinctEnterprises
+        WHERE is_family_ind = 1
+
+        UNION ALL
+
+        -- 5. በአገልግሎት ዘርፍ በቤተሰብ ንግድ (family_serv)
+        SELECT 
+            'family_serv' AS sub_sector_name,
+            'አገልግሎት' AS sector_name,
+            SUM(is_mahber) AS biz_mahber,
+            SUM(is_private) AS biz_private,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS perm_m,
+            (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS perm_f,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_m,
+            (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_f
+        FROM DistinctEnterprises
+        WHERE is_family_serv = 1
+    ";
+
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        
+        if ($residenceStatus === null) {
+            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+        }
+        
+        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_CLASS);
+
+    } catch (\PDOException $e) {
+        return [];
+    }
+}
+
+
+
+/**
+ * የዞኖችን እና በስራቸው ያሉ ወረዳዎችን አፈጻጸም ከምስሉ ከተወሰዱ የዞን እቅዶች እና ከደረጃ (Rank) ጋር አቀናጅቶ የሚያመጣ Function
+ */
+public function getZonePerformanceReport($parentBranchId, $isKetemaAstedader = false)
+{
+    $parentBranchId = (string)$parentBranchId;
+
+    // 1. የከተማ አስተዳደር ወይም የዞን መሆኗን መያዣ Where Condition
+if ($isKetemaAstedader) {
+    // 🌟 1. የደብረታቦርን (internal_id = 3) UUID ID መጀመሪያ በ subquery ይፈልጋል
+    // 2. parent_id ከተማዋ የሆነላቸውን የልጅ ክፍሎች ብቻ ያመጣል (ደብረታቦር ራሷ አትወጣም)
+    $whereCondition = "(
+        CAST(b.parent_id AS CHAR) = :m_id1 
+        OR b.parent_id IN (
+            SELECT CAST(id AS CHAR) FROM branches 
+            WHERE CAST(internal_id AS CHAR) = :m_id2 OR CAST(id AS CHAR) = :m_id3
+        )
+    )";
+    
+    $params = [
+        ':m_id1' => $parentBranchId,
+        ':m_id2' => $parentBranchId,
+        ':m_id3' => $parentBranchId
+    ];
+} else {
+    // መደበኛ ዞን ከሆነ (ለሌሎቹ)
+    $whereCondition = "(
+        CAST(b.parent_id AS CHAR) = :p_id1 
+        OR b.parent_id IN (
+            SELECT CAST(id AS CHAR) FROM branches 
+            WHERE CAST(internal_id AS CHAR) = :p_id2 OR CAST(id AS CHAR) = :p_id3
+        )
+    )";
+    
+    $params = [
+        ':p_id1' => $parentBranchId,
+        ':p_id2' => $parentBranchId,
+        ':p_id3' => $parentBranchId
+    ];
+}
+
+    $sql = "
+        WITH RECURSIVE SubBranches AS (
+            SELECT 
+                CAST(b.id AS CHAR) AS root_zone_id,
+                CAST(b.id AS CHAR) AS current_branch_id,
+                CAST(b.internal_id AS CHAR) AS current_internal_id
+            FROM branches b
+            WHERE {$whereCondition}
+              AND (b.is_deleted = 0 OR b.is_deleted IS NULL)
+
+            UNION ALL
+
+            SELECT 
+                sb.root_zone_id,
+                CAST(child.id AS CHAR) AS current_branch_id,
+                CAST(child.internal_id AS CHAR) AS current_internal_id
+            FROM branches child
+            INNER JOIN SubBranches sb 
+                ON CAST(child.parent_id AS CHAR) = sb.current_branch_id 
+                OR CAST(child.parent_id AS CHAR) = sb.current_internal_id
+            WHERE (child.is_deleted = 0 OR child.is_deleted IS NULL)
+        ),
+        JobSeekerCounts AS (
+            SELECT 
+                sb.root_zone_id,
+                
+                COUNT(CASE WHEN j.gender = 'ወንድ' THEN 1 END) AS p_m,
+                COUNT(CASE WHEN j.gender = 'ሴት' THEN 1 END) AS p_f,
+                COUNT(j.id) AS p_sum,
+
+                COUNT(CASE WHEN j.awareness = '1' AND j.gender = 'ወንድ' THEN 1 END) AS a_m,
+                COUNT(CASE WHEN j.awareness = '1' AND j.gender = 'ሴት' THEN 1 END) AS a_f,
+                COUNT(CASE WHEN j.awareness = '1' THEN 1 END) AS a_sum
+
+            FROM SubBranches sb
+            LEFT JOIN job_seekers j 
+                ON (
+                    CAST(j.branch_id AS CHAR) = sb.current_internal_id
+                    OR CAST(j.branch_id AS CHAR) = sb.current_branch_id
+                )
+            GROUP BY sb.root_zone_id
+        ),
+        Calculated AS (
+            SELECT 
+                b.id AS id,
+                b.internal_id AS internal_id,
+                b.name AS name,
+                
+                -- የምዝገባ እቅድ (p_plan)
+                CASE 
+                    WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 45349
+                    WHEN b.name LIKE '%ኮምቦልቻ%' THEN 16548
+                    WHEN b.name LIKE '%ወልዲያ%' THEN 9268
+                    WHEN b.name LIKE '%ደሴ%' THEN 26967
+                    WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 18513
+                    WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 19271
+                    WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 11080
+                    WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 44086
+                    WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 103987
+                    WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 37421
+                    WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 99542
+                    WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 29040
+                    WHEN b.name LIKE '%አዊ%' THEN 61375
+                    WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 24356
+                    WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 60889
+                    WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 70728
+                    WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 64895
+                    WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 97478
+                    WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 115908
+                    WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 16689
+                    WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 110391
+                    WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 12293
+                    ELSE 50000
+                END AS p_plan,
+
+                COALESCE(jsc.p_m, 0) AS p_m,
+                COALESCE(jsc.p_f, 0) AS p_f,
+                COALESCE(jsc.p_sum, 0) AS p_sum,
+
+                -- የግንዛቤ እቅድ (a_plan)
+                CASE 
+                    WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 45349
+                    WHEN b.name LIKE '%ኮምቦልቻ%' THEN 16548
+                    WHEN b.name LIKE '%ወልዲያ%' THEN 9268
+                    WHEN b.name LIKE '%ደሴ%' THEN 26967
+                    WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 18513
+                    WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 19271
+                    WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 11080
+                    WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 44086
+                    WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 103987
+                    WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 37421
+                    WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 99542
+                    WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 29040
+                    WHEN b.name LIKE '%አዊ%' THEN 61375
+                    WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 24356
+                    WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 60889
+                    WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 70728
+                    WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 64895
+                    WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 97478
+                    WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 115908
+                    WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 16689
+                    WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 110391
+                    WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 12293
+                    ELSE 50000
+                END AS a_plan,
+
+                COALESCE(jsc.a_m, 0) AS a_m,
+                COALESCE(jsc.a_f, 0) AS a_f,
+                COALESCE(jsc.a_sum, 0) AS a_sum
+
+            FROM branches b
+            LEFT JOIN JobSeekerCounts jsc ON CAST(b.id AS CHAR) = jsc.root_zone_id
+            WHERE {$whereCondition}
+              AND (b.is_deleted = 0 OR b.is_deleted IS NULL)
+        ),
+        WithPerformance AS (
+            SELECT 
+                id,
+                internal_id,
+                name,
+                p_plan, p_m, p_f, p_sum,
+                ROUND(IF(p_plan > 0, (p_sum / p_plan) * 100, 0), 2) AS p_per,
+
+                a_plan, a_m, a_f, a_sum,
+                ROUND(IF(a_plan > 0, (a_sum / a_plan) * 100, 0), 2) AS a_per
+            FROM Calculated
+        )
+        SELECT 
+            RANK() OVER (ORDER BY p_per DESC, p_sum DESC) AS rank_no, -- የምዝገባ ደረጃ ቁጥር (እንደቀድሞው)
+            RANK() OVER (ORDER BY a_per DESC, a_sum DESC) AS a_rank,  -- የግንዛቤ ራሱን የቻለ ደረጃ ቁጥር (አዲስ የተጨመረ)
+            id,
+            internal_id,
+            name,
+            p_plan, p_m, p_f, p_sum, p_per,
+            a_plan, a_m, a_f, a_sum, a_per
+        FROM WithPerformance
+        ORDER BY p_per DESC, p_sum DESC -- በምዝገባ ደረጃ ቅደም ተከተል እንዲወጣ (እንደቀድሞው)
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+}
+
+
+public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
+{
+    // የ Hierarchy WHERE condition (ለዞን እና ለከተማ አስተዳደር)
+    if ($isKetemaAstedader) {
+        $whereCondition = "(
+            CAST(b.parent_id AS CHAR) = :m_id1 
+            OR b.parent_id IN (
+                SELECT CAST(id AS CHAR) FROM branches 
+                WHERE CAST(internal_id AS CHAR) = :m_id2 OR CAST(id AS CHAR) = :m_id3
+            )
+        )";
+        $params = [
+            ':m_id1' => $parentBranchId,
+            ':m_id2' => $parentBranchId,
+            ':m_id3' => $parentBranchId
+        ];
+    } else {
+        $whereCondition = "(
+            CAST(b.parent_id AS CHAR) = :p_id1 
+            OR b.parent_id IN (
+                SELECT CAST(id AS CHAR) FROM branches 
+                WHERE CAST(internal_id AS CHAR) = :p_id2 OR CAST(id AS CHAR) = :p_id3
+            )
+        )";
+        $params = [
+            ':p_id1' => $parentBranchId,
+            ':p_id2' => $parentBranchId,
+            ':p_id3' => $parentBranchId
+        ];
+    }
+
+    $sql = "WITH RECURSIVE SubBranches AS (
+                SELECT 
+                    CAST(b.id AS CHAR) AS root_zone_id,
+                    CAST(b.id AS CHAR) AS current_branch_id,
+                    CAST(b.internal_id AS CHAR) AS current_internal_id
+                FROM branches b
+                WHERE {$whereCondition}
+                  AND (b.is_deleted = 0 OR b.is_deleted IS NULL)
+
+                UNION ALL
+
+                SELECT 
+                    sb.root_zone_id,
+                    CAST(child.id AS CHAR) AS current_branch_id,
+                    CAST(child.internal_id AS CHAR) AS current_internal_id
+                FROM branches child
+                INNER JOIN SubBranches sb 
+                    ON CAST(child.parent_id AS CHAR) = sb.current_branch_id 
+                    OR CAST(child.parent_id AS CHAR) = sb.current_internal_id
+                WHERE (child.is_deleted = 0 OR child.is_deleted IS NULL)
+            ),
+            BranchPlans AS (
+                SELECT 
+                    b.id,
+                    b.name,
+                    -- 1. ቋሚ እቅድ (Permanent Plan)
+                    CASE 
+                        WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 36279
+                        WHEN b.name LIKE '%ኮምቦልቻ%' THEN 13238
+                        WHEN b.name LIKE '%ወልዲያ%' THEN 7414
+                        WHEN b.name LIKE '%ደሴ%' THEN 21574
+                        WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 14810
+                        WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 15417
+                        WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 8864
+                        WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 35269
+                        WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 83190
+                        WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 29937
+                        WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 79634
+                        WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 23232
+                        WHEN b.name LIKE '%አዊ%' THEN 49100
+                        WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 19485
+                        WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 48711
+                        WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 56582
+                        WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 51916
+                        WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 77982
+                        WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 92726
+                        WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 13351
+                        WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 88313
+                        WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 9834
+                        ELSE 0
+                    END AS perm_plan,
+
+                    -- 2. ጊዜያዊ እቅድ (Temporary Plan)
+                    CASE 
+                        WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 9070
+                        WHEN b.name LIKE '%ኮምቦልቻ%' THEN 3310
+                        WHEN b.name LIKE '%ወልዲያ%' THEN 1854
+                        WHEN b.name LIKE '%ደሴ%' THEN 5393
+                        WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 3703
+                        WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 3854
+                        WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 2216
+                        WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 8817
+                        WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 20797
+                        WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 7484
+                        WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 19908
+                        WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 5808
+                        WHEN b.name LIKE '%አዊ%' THEN 12275
+                        WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 4871
+                        WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 12178
+                        WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 14146
+                        WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 12979
+                        WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 19496
+                        WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 23182
+                        WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 3338
+                        WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 22078
+                        WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 2459
+                        ELSE 0
+                    END AS temp_plan,
+
+                    -- 3. የኢንተርፕራይዝ እቅድ (Enterprise Plan)
+                    CASE 
+                        WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 2973
+                        WHEN b.name LIKE '%ኮምቦልቻ%' THEN 847
+                        WHEN b.name LIKE '%ወልዲያ%' THEN 659
+                        WHEN b.name LIKE '%ደሴ%' THEN 2365
+                        WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 785
+                        WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 1084
+                        WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 845
+                        WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 2766
+                        WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 5630
+                        WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 2751
+                        WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 6633
+                        WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 2190
+                        WHEN b.name LIKE '%አዊ%' THEN 3194
+                        WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 2610
+                        WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 2517
+                        WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 4339
+                        WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 3026
+                        WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 6264
+                        WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 7386
+                        WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 1369
+                        WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 4561
+                        WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 916
+                        ELSE 0
+                    END AS ent_plan
+                FROM branches b
+            ),
+            -- የኢንተርፕራይዝ መረጃዎችን በTIN ቁጥር Distinct በማድረግ እና በቅርንጫፍ ሂራርኪ በማቀናጀት
+            UniqueEnterprises AS (
+                SELECT 
+                    fe.tine_number,
+                    fe.sector_name,
+                    sb.root_zone_id
+                FROM full_enterprise_and_job_seekerdata fe
+                JOIN SubBranches sb ON CAST(fe.job_seeker_branch_id AS CHAR) = sb.current_branch_id 
+                                   OR CAST(fe.job_seeker_branch_id AS CHAR) = sb.current_internal_id
+                WHERE fe.is_enterprise = '1' 
+                  AND fe.tine_number IS NOT NULL 
+                  AND fe.tine_number != ''
+                GROUP BY fe.tine_number, fe.sector_name, sb.root_zone_id
+            )
+            SELECT 
+                main_b.id,
+                main_b.name,
+                
+                -- 1. ቋሚ (Permanent) - እቅድ፣ አፈጻጸም እና ደረጃ
+                bp.perm_plan,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS perm_m,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS perm_f,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) AS perm_sum,
+                CASE WHEN bp.perm_plan > 0 THEN ROUND((SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) / bp.perm_plan) * 100, 2) ELSE 0 END AS perm_per,
+                DENSE_RANK() OVER (
+                    ORDER BY 
+                    (CASE WHEN bp.perm_plan > 0 THEN (SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) / bp.perm_plan) * 100 ELSE 0 END) DESC,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) DESC
+                ) AS perm_rank,
+
+                -- 2. ጊዜያዊ (Temporary) - እቅድ፣ አፈጻጸም እና ደረጃ
+                bp.temp_plan,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS temp_m,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS temp_f,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) AS temp_sum,
+                CASE WHEN bp.temp_plan > 0 THEN ROUND((SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) / bp.temp_plan) * 100, 2) ELSE 0 END AS temp_per,
+                DENSE_RANK() OVER (
+                    ORDER BY 
+                    (CASE WHEN bp.temp_plan > 0 THEN (SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) / bp.temp_plan) * 100 ELSE 0 END) DESC,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) DESC
+                ) AS temp_rank,
+
+                -- 3. ጠቅላላ የስራ እድል ድምር (Total Job Creation) - እቅድ፣ አፈጻጸም እና ደረጃ
+                (bp.perm_plan + bp.temp_plan) AS tot_job_plan,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS tot_job_m,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS tot_job_f,
+                SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) AS tot_job_sum,
+                CASE WHEN (bp.perm_plan + bp.temp_plan) > 0 THEN ROUND((SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) / (bp.perm_plan + bp.temp_plan)) * 100, 2) ELSE 0 END AS tot_job_per,
+                DENSE_RANK() OVER (
+                    ORDER BY 
+                    (CASE WHEN (bp.perm_plan + bp.temp_plan) > 0 THEN (SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) / (bp.perm_plan + bp.temp_plan)) * 100 ELSE 0 END) DESC,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) DESC
+                ) AS tot_job_rank,
+
+                -- 4. የኢንተርፕራይዝ ምሥረታ (Enterprise Creation በሴክተር እና Distinct TIN)
+                bp.ent_plan,
+                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%ግብርና%'  THEN ue.tine_number END) AS ent_agri,
+                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%ኢንዱስትሪ%'  THEN ue.tine_number END) AS ent_ind,
+                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%አገልግሎት%'  THEN ue.tine_number END) AS ent_serv,
+                COUNT(DISTINCT ue.tine_number) AS ent_sum,
+                CASE WHEN bp.ent_plan > 0 THEN ROUND((COUNT(DISTINCT ue.tine_number) / bp.ent_plan) * 100, 2) ELSE 0 END AS ent_per,
+                DENSE_RANK() OVER (
+                    ORDER BY 
+                    (CASE WHEN bp.ent_plan > 0 THEN (COUNT(DISTINCT ue.tine_number) / bp.ent_plan) * 100 ELSE 0 END) DESC,
+                    COUNT(DISTINCT ue.tine_number) DESC
+                ) AS ent_rank
+
+            FROM branches main_b
+            JOIN BranchPlans bp ON bp.id = main_b.id
+            JOIN SubBranches sb ON sb.root_zone_id = main_b.id
+            LEFT JOIN job_seekers js ON CAST(js.branch_id AS CHAR) = sb.current_branch_id OR CAST(js.branch_id AS CHAR) = sb.current_internal_id
+            LEFT JOIN UniqueEnterprises ue ON ue.root_zone_id = main_b.id
+            
+            GROUP BY main_b.id, main_b.name, bp.perm_plan, bp.temp_plan, bp.ent_plan
+            ORDER BY perm_per DESC, perm_sum DESC";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+
+
+public function getExpertLevelReport($currentUserId, $accountLevel = null, $userBranchId = null, $requestedBranchId = null)
+{
+    set_time_limit(300);
+    ini_set('memory_limit', '512M');
+
+    $params = [];
+    $activeBranchId = !empty($requestedBranchId) ? $requestedBranchId : $userBranchId;
+
+    $whereClause = "WHERE u.status = 'active' AND u.account_level IN ('kebele_officer', 'wereda_officer')";
+    $ctePrefix = "";
+
+    // የክልል መለያ (1) ካልሆነ እና ዞን/ወረዳ ከተመረጠ (ለምሳሌ activeBranchId = 10)
+    if (!empty($activeBranchId) && $activeBranchId != 1 && $activeBranchId != '1') {
+        
+        // internal_id እና parent_id በመጠቀም የቅርንጫፎችን ተዋረድ መፈለጊያ CTE
+        $ctePrefix = "WITH RECURSIVE SubBranches AS (
+                        SELECT CAST(internal_id AS CHAR) AS branch_key 
+                        FROM branches 
+                        WHERE CAST(internal_id AS CHAR) = :user_branch_id
+                           OR CAST(parent_id AS CHAR) = :user_branch_id
+                        
+                        UNION DISTINCT
+                        
+                        SELECT CAST(b.internal_id AS CHAR) AS branch_key 
+                        FROM branches b 
+                        INNER JOIN SubBranches sb ON CAST(b.parent_id AS CHAR) = sb.branch_key
+                    ),";
+        
+        $whereClause .= " AND CAST(u.branch_id AS CHAR) IN (SELECT branch_key FROM SubBranches)";
+        $params[':user_branch_id'] = (string)$activeBranchId;
+    } else {
+        $ctePrefix = "WITH ";
+    }
+
+    $sql = "{$ctePrefix} ExpertData AS (
+                SELECT 
+                    u.user_id,
+                    CONCAT_WS(' ', u.first_name, u.father_name, u.grand_father_name) AS expert_name,
+                    u.branch_id,
+                    COALESCE(b.name, 'ያልተገለጸ') AS branch_name,
+                    COALESCE(js_stat.reg_job_seekers, 0) AS reg_job_seekers,
+                    COALESCE(js_stat.awareness_created, 0) AS awareness_created,
+                    COALESCE(js_stat.jobs_created, 0) AS jobs_created,
+                    0 AS ent_created,
+                    (COALESCE(js_stat.reg_job_seekers, 0) + COALESCE(js_stat.awareness_created, 0) + COALESCE(js_stat.jobs_created, 0)) AS total_work_avg
+
+                FROM users u
+                LEFT JOIN branches b ON CAST(b.internal_id AS CHAR) = CAST(u.branch_id AS CHAR)
+                LEFT JOIN (
+                    SELECT 
+                        CAST(registered_by AS CHAR) AS reg_by,
+                        COUNT(id) AS reg_job_seekers,
+                        COUNT(CASE WHEN awareness = 1 OR awareness = '1' THEN 1 END) AS awareness_created,
+                        COUNT(CASE WHEN employment_status IN (1, 2, '1', '2') THEN 1 END) AS jobs_created
+                    FROM job_seekers
+                    WHERE registered_by IS NOT NULL AND registered_by != ''
+                    GROUP BY CAST(registered_by AS CHAR)
+                ) js_stat ON js_stat.reg_by = CAST(u.user_id AS CHAR)
+                {$whereClause}
+            )
+            SELECT 
+                expert_name,
+                branch_name,
+                reg_job_seekers,
+                awareness_created,
+                jobs_created,
+                ent_created,
+                total_work_avg,
+
+                -- Ranks (ደረጃዎች)
+                DENSE_RANK() OVER (ORDER BY total_work_avg DESC) AS region_rank,
+                DENSE_RANK() OVER (PARTITION BY branch_id ORDER BY total_work_avg DESC) AS zone_rank,
+                DENSE_RANK() OVER (PARTITION BY branch_id ORDER BY total_work_avg DESC) AS woreda_rank,
+                DENSE_RANK() OVER (PARTITION BY branch_id ORDER BY total_work_avg DESC) AS center_rank
+
+            FROM ExpertData
+            ORDER BY total_work_avg DESC";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+}
+

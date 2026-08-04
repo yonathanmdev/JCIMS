@@ -228,7 +228,7 @@ class MenuConfig
                     ],
                     [
                         'label' => 'ኢ-መደበኛ ኢ/ዝ ዝርዝር',
-                        'url'   => '/informal-entrerprise-list',
+                        'url'   => '/informal-trade-list',
                         'roles' => ['team_leader', 'officer']
                     ]
                 ]
@@ -263,7 +263,35 @@ class MenuConfig
             'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
             'roles' => ['team_leader', 'officer']
         ],
+
     ]
+    
+],
+
+
+ [
+    'label' => 'የአፈጻጸም ሁኔታ',
+    'icon'  => 'fas fa-users',
+    'roles' => ['team_leader'],
+    'children' => [
+        [
+            'label' => 'ምዝገባና ግንዛቤ',
+            'url'   => '/performance_view',
+            'roles' => ['team_leader']
+        ],
+
+        [
+            'label' => 'ስራ እድልና ኢንተርፕራይዝ',
+            'url'   => '/performance_job_creation_view',
+            'roles' => ['team_leader']
+        ],
+                [
+            'label' => 'የባለሙያዎች የስራ አፈጻጸም',
+            'url'   => '/expert_level_view',
+            'roles' => ['team_leader']
+        ],
+    ]
+    
 ],
           
             [
