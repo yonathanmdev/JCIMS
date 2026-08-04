@@ -74,12 +74,6 @@ $is_enterprise_list_page = true;
 </a>
                       <?php 
 if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $ent['branch_id'] === $_SESSION['user']['branch_id']): ?>
-    <button class="btn btn-outline-warning btn-sm edit-enterprise-btn"
-            data-id="<?= htmlspecialchars($ent['id']) ?>"
-            title="አስተካክል">
-        <i class="fas fa-edit"></i>
-    </button>
-
      <button class="btn btn-outline-danger btn-sm delete-enterprise-btn"
             data-id="<?= htmlspecialchars($ent['id']) ?>"
             data-name="<?= htmlspecialchars($ent['enterprisename']) ?>"
