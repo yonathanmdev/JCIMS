@@ -142,8 +142,8 @@ $(document).on('click', '.view-jobseeker-btn', function () {
                         <div class="row-data"><span>የተመዘገበበት ወረዳ/ማዕከል </span><span>${branchName}</span></div>
                         
                         <div class="footer">
-                            <p>የሰጠው ባለሙያ ስም: ....................</p>
-                            <p>ፊርማ: ....................</p>
+                            <p>የሰጠው ባለሙያ: ......................... ፊርማ: ....................</p>
+                           
                         </div>
                     </div>
                     <script>
