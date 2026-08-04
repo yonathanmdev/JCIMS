@@ -1,6 +1,6 @@
 <?php
 $profile = $_SESSION['fayda_profile'] ?? [];
-
+$verified = $_SESSION['fayda_verified_record'] ?? null;
 ?>
 <style>
 .fayda-card {
@@ -197,7 +197,7 @@ $profile = $_SESSION['fayda_profile'] ?? [];
 
             <div class="fayda-field">
                 <div class="fayda-field__label">Job Seeker ID<small>የስራ ፈላጊ መለያ ቁጥር</small></div>
-                <div class="fayda-field__value fayda-field__value--mono"><?= htmlspecialchars($_SESSION['id_number'] ?? 'TBA') ?></div>
+                <div class="fayda-field__value fayda-field__value--mono"><?= htmlspecialchars($verified['job_seeker_id'] ?? 'TBA') ?></div>
             </div>
 
             <div class="fayda-field">

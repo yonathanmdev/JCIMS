@@ -1,5 +1,7 @@
 <?php
 $is_jobseeker_reg_fayda_page = true; 
+use App\Helpers\AuthHelper;
+$fiscal_year = AuthHelper::checkFiscalYear();
 $profile = $_SESSION['fayda_profile'] ?? [];
 
 $nameAm = $profile['name#am'] ?? '';
@@ -30,10 +32,60 @@ $fiscal_year = (int)date('Y'); // adjust to your actual fiscal year source if di
 $sectors = $sectors ?? []; // expected to be passed in from the controller, same as the modal
 ?>
 <style>
+/* ===================== Page wrapper — flat, neutral backdrop so the card reads as a separate surface ===================== */
+.fayda-reg-wrap {
+    background: #f4f5f7;
+    padding: 24px 16px;
+    min-height: 100%;
+}
+
+/* ===================== Registration card — flat, professional, compact, with a card-outline-style accent border ===================== */
+.fayda-reg-card {
+    background: #ffffff;
+    border: 1px solid #e2e5e9;
+    border-top: 3px solid #2f6f4e;
+    border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.08);
+    max-width: 860px;
+    margin: 0 auto;
+}
+.fayda-reg-card .card-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e5e9;
+    border-radius: 0;
+    padding: 14px 20px;
+}
+.fayda-reg-card .card-header h6 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 15px;
+    letter-spacing: 0.2px;
+}
+.fayda-reg-card .card-header h6 i {
+    color: #2f6f4e;
+}
+.fayda-reg-card .card-body {
+    padding: 20px;
+}
+
+/* Verified-by-Fayda notice — small caption line inside the card header */
+.fayda-verified-note {
+    color: #5a6d63;
+    font-size: 11px;
+    line-height: 1.4;
+    margin: 0;
+}
+.fayda-verified-note strong {
+    color: #2f5540;
+    font-weight: 600;
+}
+.fayda-verified-note i { color: #2f6f4e; font-size: 10px; }
+
+/* ===================== Wizard progress — cleaner, more professional palette ===================== */
 .wizard-progress {
     display: flex;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     padding: 0 4px;
 }
 .wizard-progress__step {
@@ -47,23 +99,23 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: #e9ecef;
-    color: #6c757d;
+    background: #f1f2f4;
+    color: #8a8f98;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 13px;
     font-weight: 700;
-    border: 2px solid #e9ecef;
+    border: 2px solid #f1f2f4;
     transition: all 0.2s ease;
     z-index: 2;
 }
 .wizard-progress__label {
     font-size: 11px;
-    color: #6c757d;
+    color: #8a8f98;
     margin-top: 6px;
     text-align: center;
-    max-width: 100px;
+    max-width: 110px;
     line-height: 1.3;
 }
 .wizard-progress__step::after {
@@ -73,58 +125,126 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
     left: 50%;
     width: 100%;
     height: 2px;
-    background: #e9ecef;
+    background: #f1f2f4;
     z-index: 1;
 }
 .wizard-progress__step:last-child::after { display: none; }
 .wizard-progress__step.is-active .wizard-progress__circle {
-    background: #28a745;
-    border-color: #28a745;
+    background: #2f6f4e;
+    border-color: #2f6f4e;
     color: #fff;
 }
 .wizard-progress__step.is-active .wizard-progress__label {
-    color: #28a745;
+    color: #2f6f4e;
     font-weight: 700;
 }
 .wizard-progress__step.is-complete .wizard-progress__circle {
-    background: #d4edda;
-    border-color: #28a745;
-    color: #28a745;
+    background: #e7f1eb;
+    border-color: #2f6f4e;
+    color: #2f6f4e;
 }
-.wizard-progress__step.is-complete::after { background: #28a745; }
+.wizard-progress__step.is-complete::after { background: #2f6f4e; }
+
 .wizard-step { display: none; }
 .wizard-step.is-active { display: block; animation: wizardFadeIn 0.2s ease; }
 @keyframes wizardFadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
 .wizard-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 18px;
+    margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid #eef0f2;
 }
 .wizard-nav__spacer { flex: 1; }
+.wizard-nav .btn {
+    border-radius: 4px;
+    font-size: 13px;
+    padding: 6px 16px;
+}
+.wizard-nav .btn-primary {
+    background: #2f6f4e;
+    border-color: #2f6f4e;
+}
+.wizard-nav .btn-primary:hover {
+    background: #275c40;
+    border-color: #275c40;
+}
+.wizard-nav .btn-success {
+    background: #2f6f4e;
+    border-color: #2f6f4e;
+}
+.wizard-nav .btn-success:hover {
+    background: #275c40;
+    border-color: #275c40;
+}
+.wizard-nav .btn-outline-secondary {
+    color: #5a616b;
+    border-color: #d7dade;
+}
+
+/* ===================== Form fields — tighter, more professional spacing/typography ===================== */
+.fayda-reg-card .form-group { margin-bottom: 14px; }
+.fayda-reg-card label {
+    color: #4b5158;
+    margin-bottom: 4px;
+}
+.fayda-reg-card label small { font-size: 12px; }
+.fayda-reg-card .form-control {
+    border: 1px solid #d7dade;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #23272e;
+}
+.fayda-reg-card .form-control:focus {
+    border-color: #2f6f4e;
+    box-shadow: 0 0 0 3px rgba(47, 111, 78, 0.12);
+}
+.fayda-reg-card .form-control[readonly] {
+    background: #f7f8f9;
+    color: #6b7178;
+}
+.fayda-reg-card .form-control.is-invalid { border-color: #d9534f; }
+.fayda-reg-card .form-control.is-valid { border-color: #2f6f4e; }
+.fayda-reg-card .invalid-feedback { font-size: 11.5px; }
+
+/* ===================== Responsive tweaks ===================== */
+@media (max-width: 576px) {
+    .fayda-reg-wrap { padding: 12px 10px; }
+    .fayda-reg-card { border-radius: 8px; }
+    .fayda-reg-card .card-header { padding: 12px 14px; }
+    .fayda-reg-card .card-body { padding: 14px; }
+
+    .wizard-progress { margin-bottom: 20px; }
+    .wizard-progress__circle { width: 24px; height: 24px; font-size: 11px; }
+    .wizard-progress__step::after { top: 12px; }
+    .wizard-progress__label { font-size: 9.5px; max-width: 70px; }
+
+    .wizard-nav { flex-wrap: wrap; gap: 8px; }
+    .wizard-nav__spacer { flex-basis: 100%; height: 0; }
+    .wizard-nav .btn { flex: 1; padding: 8px 10px; }
+}
 </style>
 <section class="content">
-  <div class="container-fluid">
+  <div class="container-fluid fayda-reg-wrap">
 
-<div class="card card-outline card-success">
+<div class="fayda-reg-card">
     <div class="card-header">
-        <h6 class="font-weight-bold"><i class="fas fa-id-card mr-1"></i> በፋይዳ የተረጋገጠ የስራ ፈላጊ ምዝገባ</h6>
+        <h6 class="font-weight-bold mb-1"><i class="fas fa-id-card mr-1"></i> በፋይዳ የተረጋገጠ የስራ ፈላጊ ምዝገባ</h6>
+        <div class="fayda-verified-note">
+            <i class="fas fa-lock mr-1"></i>
+            <strong>ከፋይዳ የተረጋገጠ መረጃ</strong> — ሙሉ ስም፣ ጾታ፣ ስልክ፣ የልደት ቀን ሊስተካከሉ አይችሉም።
+        </div>
     </div>
     <div class="card-body">
 
         <?php if ($formError): ?>
             <div class="alert alert-danger"><?= htmlspecialchars($formError) ?></div>
         <?php endif; ?>
-
-       <div class="bg-light border-left border-success p-2 mb-3">
-    <i class="fas fa-lock text-success mr-1"></i>
-    <strong>ከፋይዳ የተረጋገጠ መረጃ</strong> — ሙሉ ስም፣ ጾታ፣ ስልክ፣ የልደት ቀን ሊስተካከሉ አይችሉም።
-</div>
 
         <div class="wizard-progress" id="wizardProgress">
             <div class="wizard-progress__step" data-step-index="1">
@@ -144,19 +264,6 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         <form id="faydaJobseekerForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/fayda-register" method="POST">
 
             <input type="hidden" name="mode" value="create">
-            <input type="hidden" name="fayda_sub" value="<?= htmlspecialchars($faydaSub) ?>">
-            <input type="hidden" name="fayda_id_number" value="<?= htmlspecialchars($faydaIdNumber) ?>">
-
-            <!-- Fayda-verified identity fields: locked, submitted as hidden inputs.
-                 register() re-derives these from $_SESSION server-side regardless
-                 of what's posted here — this display is for the person's confirmation only. -->
-            <input type="hidden" name="first_name"   value="<?= htmlspecialchars($faydaFirstName) ?>">
-            <input type="hidden" name="father_name"  value="<?= htmlspecialchars($faydaFatherName) ?>">
-            <input type="hidden" name="last_name"    value="<?= htmlspecialchars($faydaLastName) ?>">
-            <input type="hidden" id="gender" name="gender" value="<?= htmlspecialchars($faydaGender) ?>">
-            <input type="hidden" name="phone_number" value="<?= htmlspecialchars($faydaPhone) ?>">
-            <input type="hidden" name="age"          value="<?= htmlspecialchars($faydaAge) ?>">
-
             <!-- ===================== STEP 1 : መግቢያ ===================== -->
             <div class="wizard-step is-active" data-step="1">
 
@@ -325,9 +432,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                             </select>
                         </div>
                     </div>
-                </div>
-
-                <div class="row">
+              
                     <div class="col-12 col-sm-6 col-md-3 field-grade8">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="g8id"><small class="font-weight-bold">የ8ኛ ክፍል መለያ ቁጥር <span class="text-danger">*</span></small></label>
@@ -388,12 +493,10 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     <div class="col-12 col-sm-6 col-md-3 field-cgpa">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="CGPA"><small class="font-weight-bold">CGPA <span class="text-danger">*</span></small></label>
-                            <input type="text" class="form-control form-control-sm" id="CGPA" name="CGPA" data-validate="decimal" data-length="4">
+                            <input type="number" class="form-control form-control-sm" id="CGPA" name="CGPA" data-validate="decimal" data-length="4" step="any" min="1.00" max="4.00">
                         </div>
                     </div>
-                </div>
-
-                <div class="row">
+               
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="meteleya_huneta"><small class="font-weight-bold">የመኖሪያ ቤት ሁኔታ <span class="text-danger">*</span></small></label>
@@ -439,9 +542,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                             </select>
                         </div>
                     </div>
-                </div>
-
-                <div class="row">
+               
                     <div class="col-12 col-sm-6 col-md-3 field-experience">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="experience"><small class="font-weight-bold">የስራ ልምድ በወር</small></label>
@@ -481,9 +582,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                             <input type="text" class="form-control form-control-sm" id="nameofcountry" name="nameofcountry" data-validate="text-with-spaces">
                         </div>
                     </div>
-                </div>
-
-                <div class="row">
+                
                     <div class="col-12 col-sm-6 col-md-3 field-language">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="language"><small class="font-weight-bold">የሚችሉት ቋንቋ</small></label>
@@ -638,9 +737,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
 
         </form>
     </div>
-      <div class="card-footer bg-light">
-        <small class="text-muted">በፋይዳ የተረጋገጠ የስራ ፈላጊ ምዝገባ ስርዓት</small>
-    </div>  <!-- ← new footer goes here, as a sibling -->
+     
 </div>
  </div>
 </section>

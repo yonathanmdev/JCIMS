@@ -367,7 +367,7 @@ $sectors  = $sectorModel->getSectors();
             'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
             'attempted_fan'          => $data['FAN'],
             'attempted_full_name'    => $normalizedFullName,
-            'attempted_phone_number' => trim($_POST['phone_number'] ?? ''),
+            'attempted_phone_number' => $data['phone_number'] ?? '',
             'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
             'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
         ]);
@@ -379,7 +379,7 @@ $sectors  = $sectorModel->getSectors();
         if ($sourceTable === 'archive') {
             $_SESSION['error'] .= " ነባር ስራፈላጊ ላይ የተመዘገበ ስራ ፈላጊ ማድስ ብቻ ነው የሚቻለው። እንደ አዲስ መመዝገብ አይቻልም";
         }
-        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
         exit();
     }
 
@@ -392,7 +392,7 @@ $sectors  = $sectorModel->getSectors();
             'Labor_ID'             => $data['Labor_ID'] ?? '',
             'full_name_normalized' => $normalizedFullName,
             'phone_number'         => $data['phone_number'],
-            'mothername'           => $data['mothername'],
+            'mothername'           => trim($_POST['mothername'] ?? ''),
         ], $excludeId, $excludeTable);
 
         if (!empty($legacyCheck)) {
@@ -419,7 +419,7 @@ $sectors  = $sectorModel->getSectors();
                 'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
                 'attempted_fan'          => $data['FAN'],
                 'attempted_full_name'    => $normalizedFullName,
-                'attempted_phone_number' => trim($_POST['phone_number'] ?? ''),
+                'attempted_phone_number' => $data['phone_number'] ?? '',
                 'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
                 'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
             ]);
@@ -431,7 +431,7 @@ $sectors  = $sectorModel->getSectors();
             if ($sourceTable === 'archive') {
                 $_SESSION['error'] .= " ነባር ስራፈላጊ ላይ የተመዘገበ ስራ ፈላጊ ማድስ ብቻ ነው የሚቻለው። እንደ አዲስ መመዝገብ አይቻልም";
             }
-            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
+            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
             exit();
         }
     }
@@ -439,7 +439,7 @@ $sectors  = $sectorModel->getSectors();
     $result = $model->createJobseekerwithFayda($data);
 
     if ($result['status'] !== true) {
-        $_SESSION['form_error'] = $result['message'] ?? 'ምዝገባ አልተሳካም';
+        $_SESSION['error'] = $result['message'] ?? 'ምዝገባ አልተሳካም';
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
         exit;
     }
@@ -459,8 +459,8 @@ $sectors  = $sectorModel->getSectors();
         $_SESSION['fayda_verified_record'],
         $_SESSION['job_seeker_id']
     );
-
-    header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/dashboard?registered=1');
+    $_SESSION['success'] = 'ስራ ፈላጊ በትክክል ተመዝግቧል።';
+    header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-start');
     exit;
 }
 private function validate(array $post, string $gender): array

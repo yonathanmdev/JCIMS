@@ -1098,67 +1098,7 @@ public function findExistingForRenewal(int $jobSeekerId, int $myBranchId, int $f
     }
 }
 
-public function createNew(array $data): array
-{
-    try {
-        $this->db->beginTransaction();
-        $jobSeekerId = \Ramsey\Uuid\Uuid::uuid7()->toString();
 
-        $stmt = $this->db->prepare(
-            'INSERT INTO job_seekers
-                (id, fayda_sub, full_name, phone, gender, birthdate, education_level, sector_id)
-             VALUES
-                (:id, :fayda_sub, :full_name, :phone, :gender, :birthdate, :education_level, :sector_id)'
-        );
-        $stmt->execute([
-            ':id'              => $jobSeekerId,
-            ':fayda_sub'       => $data['fayda_sub'],
-            ':full_name'       => $data['full_name'],
-            ':phone'           => $data['phone'],
-            ':gender'          => $data['gender'],
-            ':birthdate'       => $data['birthdate'],
-            ':education_level' => $data['education_level'],
-            ':sector_id'       => $data['sector_id'],
-        ]);
-
-        $this->db->commit();
-        return ['status' => true, 'job_seeker_id' => $jobSeekerId];
-    } catch (\Throwable $e) {
-        $this->db->rollBack();
-        return ['status' => false, 'message' => $e->getMessage()];
-    }
-}
-
-public function updateExisting(int $jobSeekerId, array $data): array
-{
-    try {
-        $this->db->beginTransaction();
-
-        $stmt = $this->db->prepare(
-            'UPDATE job_seekers
-             SET fayda_sub = :fayda_sub, full_name = :full_name, phone = :phone,
-                 gender = :gender, birthdate = :birthdate,
-                 education_level = :education_level, sector_id = :sector_id
-             WHERE job_seeker_id = :job_seeker_id'
-        );
-        $stmt->execute([
-            ':fayda_sub'       => $data['fayda_sub'],
-            ':full_name'       => $data['full_name'],
-            ':phone'           => $data['phone'],
-            ':gender'          => $data['gender'],
-            ':birthdate'       => $data['birthdate'],
-            ':education_level' => $data['education_level'],
-            ':sector_id'       => $data['sector_id'],
-            ':job_seeker_id'   => $jobSeekerId,
-        ]);
-
-        $this->db->commit();
-        return ['status' => true, 'job_seeker_id' => $jobSeekerId];
-    } catch (\Throwable $e) {
-        $this->db->rollBack();
-        return ['status' => false, 'message' => $e->getMessage()];
-    }
-}
 public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId): ?array
 {
     $t0 = microtime(true);
@@ -1457,7 +1397,7 @@ public function createJobseekerwithFayda(array $data) {
             'number_of_dependents'        => $data['number_of_dependents'],
             'children_under_five'         => $data['children_under_five'],
             'full_name_normalized'        => $data['full_name_normalized'] ?? null,
-            'registered_by'               => $data['reg_by'] ?? null,
+            'registered_by'               => $data['registered_by'] ?? null,
             'verfied_with_fayda'          => 1, // Matches database spelling
         ];
         if (array_key_exists('job_seeker_id', $data)) {
