@@ -752,7 +752,49 @@ function populateFormFromData(form, js) {
                  console.time('populate');
                  populateFormFromData(form, data.jobseeker); // now synchronous — no await needed
                  // console.timeEnd('populate');
+// ── Lock Fayda-verified fields to read-only ──
+if (data.jobseeker.verfied_with_fayda == 1) {
+   // ── Fayda-verified lock + note (name, age, gender only) ──
+const faydaNote = document.getElementById('faydaVerifiedNote');
+const faydaLockedFieldIds = ['first_name', 'father_name', 'last_name', 'gender', 'age', 'phone_number', 'FAN'];
+const faydaLockReason = 'ይህ መረጃ ከፋይዳ የተረጋገጠ በመሆኑ ሊስተካከል አይችልም።';
 
+function setFaydaFieldLock(id, locked) {
+    const field = document.getElementById(id);
+    if (!field) return;
+
+    const wrapper = field.closest('.form-group') || field.parentElement;
+    let hint = wrapper.querySelector('.fayda-lock-hint[data-for="' + id + '"]');
+
+    if (locked) {
+        field.setAttribute('readonly', 'readonly');
+        field.setAttribute('title', faydaLockReason);
+        field.classList.add('bg-light');
+
+        if (!hint) {
+            hint = document.createElement('small');
+            hint.className = 'fayda-lock-hint text-muted d-block';
+            hint.setAttribute('data-for', id);
+            hint.style.fontSize = '10px';
+            hint.innerHTML = '<i class="fas fa-lock mr-1"></i>' + faydaLockReason;
+            wrapper.appendChild(hint);
+        }
+    } else {
+        field.removeAttribute('readonly');
+        field.removeAttribute('title');
+        field.classList.remove('bg-light');
+        hint?.remove();
+    }
+}
+
+if (data.jobseeker.verfied_with_fayda == 1) {
+    faydaLockedFieldIds.forEach(id => setFaydaFieldLock(id, true));
+    faydaNote?.classList.remove('d-none');
+} else {
+    faydaLockedFieldIds.forEach(id => setFaydaFieldLock(id, false));
+    faydaNote?.classList.add('d-none');
+}
+}
                     $('#jobseekerRegistrationModal').modal('show');
                     $('#jobseekerRegistrationModal').one('shown.bs.modal', function () {
                         applyAllConditionalLogic(); // ONLY AFTER populate and modal shown
