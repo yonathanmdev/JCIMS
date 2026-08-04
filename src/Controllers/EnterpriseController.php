@@ -499,7 +499,7 @@ public function listofEnterprises()
 
 public function details(array $params = []): void
 {
-    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    AuthHelper::checkRole(['team_leader', 'officer']);
     $branchId = $_SESSION['user']['branch_id'];
     $enterpriseId = $params['uuid'] ?? $_GET['id'] ?? '';
 
@@ -510,14 +510,16 @@ public function details(array $params = []): void
     }
 $sectorModel = new SectorModel($this->db);
     $sectorData  = $sectorModel->getAllSectorsAndSubsectors();
-    $enterpriseModel = new EnterpriseModel($this->db);
-    $enterprise = $enterpriseModel->getEnterpriseDetails($branchId, $enterpriseId);
+ $enterpriseModel = new EnterpriseModel($this->db);
+    $branchIds  = $enterpriseModel->getBranchIdsInHierarchy($branchId);
+    $enterprise = $enterpriseModel->getEnterpriseDetails($branchId, $enterpriseId, $branchIds);
 
     if (!$enterprise) {
-        // handle not found — redirect or render a "not found" view
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/enterprise-lists');
         return;
     }
+
+    $enterprise['branch_display_path'] = $enterpriseModel->getEnterpriseBranchPath($branchId, $enterprise['branch_id']);
 
     // render your existing enterprsie-details.php view with $enterprise
     $this->render('enterprise-details', [

@@ -646,10 +646,35 @@ public function getEnterprisesCountByHierarchy(int $myBranchId): int
  * resets employment_status for all linked job seekers, then deletes
  * the enterprise's live records.
  */
-
-public function getEnterpriseDetails(int $branchId, string $enterpriseId): ?array
+public function getBranchIdsInHierarchy(int $rootBranchId): array
 {
-    // Base + junction info (same resolution as purge())
+    $stmt = $this->db->prepare("
+        SELECT b.internal_id
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :rootBranchId
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    ");
+    $stmt->execute([':rootBranchId' => $rootBranchId]);
+    return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+}
+
+public function getEnterpriseDetails(int $branchId, string $enterpriseId, array $branchIds): ?array
+{
+    if (empty($branchIds)) {
+        return null;
+    }
+
+    // Named placeholders for the hierarchy IN(...) clause — avoids mixing
+    // named + positional params in the same execute() call
+    $inParams = [];
+    $inNames  = [];
+    foreach ($branchIds as $i => $id) {
+        $name = ':b' . $i;
+        $inNames[] = $name;
+        $inParams[$name] = $id;
+    }
+    $inClause = implode(',', $inNames);
+
     $stmt = $this->db->prepare("
         SELECT c.id, c.code003_id, c.branch_id, c.junction_table_id,
                c.enterprisename, c.tine_number, c.yeedget_dereja, c.initial_capital,
@@ -659,41 +684,44 @@ public function getEnterpriseDetails(int $branchId, string $enterpriseId): ?arra
                jt.team_id, jt.individual_enterprise_id
         FROM code003 c
         INNER JOIN junction_table_individual_and_team jt ON jt.table_id = c.junction_table_id
-        WHERE c.branch_id = :branchId AND c.id = :enterpriseId
+        WHERE c.branch_id IN ($inClause) AND c.id = :enterpriseId
         LIMIT 1
     ");
-    $stmt->execute([':branchId' => $branchId, ':enterpriseId' => $enterpriseId]);
+    $stmt->execute($inParams + [':enterpriseId' => $enterpriseId]);
     $enterprise = $stmt->fetch(\PDO::FETCH_ASSOC);
 
     if (!$enterprise) {
         return null;
     }
 
+    // From here on, ALWAYS use $enterprise['branch_id'] (the enterprise's own
+    // branch), never the original $branchId param — that's the viewer's branch,
+    // which may be a parent of where this enterprise actually lives.
+    $enterpriseBranchId = (int)$enterprise['branch_id'];
+
     $isAssociation = !empty($enterprise['team_id']);
     $enterprise['type'] = $isAssociation ? 'association' : 'individual';
 
     if ($isAssociation) {
-     $stmt = $this->db->prepare("
-    SELECT g.id , g.table_id, g.branch_id, g.yetederajubet_akababi, g.association_name,
-           g.sub_sector, g.yesra_mesk, g.project_type AS yeaderejajet_ayinet, g.user_level, g.teamleader_id,
-           g.manager_phone, g.vice_teamleader_id, g.treasurer, g.procurement,
-           g.org_type, g.overseastatus, g.registered_by,
-           s.sectorid as sector_id,
-           s.sector AS sector_name,
-           ss.subsector AS subsector_name,
-           ss.sub_sectorid
-    FROM group_table g
-    LEFT JOIN sub_sector ss ON ss.sub_sectorid = g.sub_sector
-    LEFT JOIN sector_table s ON s.sectorid = ss.sectorid
-    WHERE g.branch_id = :branchId AND g.table_id = :teamId
-");
-
-
-$stmt->execute([
-    ':branchId' => $branchId,
-    ':teamId'   => $enterprise['team_id'],
-]);
-$enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $stmt = $this->db->prepare("
+            SELECT g.id , g.table_id, g.branch_id, g.yetederajubet_akababi, g.association_name,
+                   g.sub_sector, g.yesra_mesk, g.project_type AS yeaderejajet_ayinet, g.user_level, g.teamleader_id,
+                   g.manager_phone, g.vice_teamleader_id, g.treasurer, g.procurement,
+                   g.org_type, g.overseastatus, g.registered_by,
+                   s.sectorid as sector_id,
+                   s.sector AS sector_name,
+                   ss.subsector AS subsector_name,
+                   ss.sub_sectorid
+            FROM group_table g
+            LEFT JOIN sub_sector ss ON ss.sub_sectorid = g.sub_sector
+            LEFT JOIN sector_table s ON s.sectorid = ss.sectorid
+            WHERE g.branch_id = :branchId AND g.table_id = :teamId
+        ");
+        $stmt->execute([
+            ':branchId' => $enterpriseBranchId,
+            ':teamId'   => $enterprise['team_id'],
+        ]);
+        $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
     } else {
         $stmt = $this->db->prepare("
             SELECT ie.id, ie.individual_ent_id, ie.job_seeker_id, ie.yeaderejajet_ayinet,
@@ -708,20 +736,46 @@ $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
         $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
-
-    // Members
+    // Members — scoped to the enterprise's own branch, not the viewer's
     $stmt = $this->db->prepare("
         SELECT sr.member, js.branch_id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.phone_number, js.gender
         FROM code003sraedl sr
         INNER JOIN job_seekers js ON js.job_seeker_id = sr.jobseeker_id
-        WHERE sr.branchid = :branchId AND sr.code003_id = :code003Id order by sr.member DESC
+        WHERE sr.branchid = :branchId AND sr.code003_id = :code003Id
+        ORDER BY sr.member DESC
     ");
-    $stmt->execute([':branchId' => $branchId, ':code003Id' => $enterprise['code003_id']]);
+    $stmt->execute([':branchId' => $enterpriseBranchId, ':code003Id' => $enterprise['code003_id']]);
     $enterprise['members'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
     return $enterprise;
 }
 
+public function getEnterpriseBranchPath(int $myBranchId, int $enterpriseBranchId): ?string
+{
+    $stmt = $this->db->prepare("
+        SELECT b.path AS branch_path, root.path AS root_path
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :myBranchId
+        WHERE b.internal_id = :enterpriseBranchId
+          AND b.path LIKE CONCAT(root.path, '%')
+        LIMIT 1
+    ");
+    $stmt->execute([
+        ':myBranchId'         => $myBranchId,
+        ':enterpriseBranchId' => $enterpriseBranchId,
+    ]);
+    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        return null;
+    }
+
+    return \App\Helpers\BranchPathHelper::buildDisplayPath(
+        $this->db,
+        $row['branch_path'],
+        $row['root_path']
+    );
+}
 
 public function purge(int $branchId, int $userId, string $enterpriseId, string $reason): array
 {

@@ -69,6 +69,12 @@ class MenuConfig
                 'roles' => ['team_leader', 'officer', 'system_admin'],
                 'children' => [
                     [
+                        'label' => 'እድሳት ና ምዝገባ በፋይዳ',
+                        'url'   => '/fayda-start',
+                        'roles' => ['team_leader','officer'],
+                        'levels' => [3, 4]
+                    ],
+                    [
                         'label' => 'ስራ ፈላጊ መመዝገብ',
                         'url'   => '/jobseeker-registration',
                         'roles' => ['team_leader', 'officer'],
@@ -85,12 +91,7 @@ class MenuConfig
                         'roles' => ['team_leader','officer'],
                         'levels' => [3, 4]
                     ],
-                    [
-                        'label' => 'እድሳት ና ምዝገባ በፋይዳ',
-                        'url'   => '/fayda-start',
-                        'roles' => ['team_leader','officer'],
-                        'levels' => [3, 4]
-                    ],
+                    
                 ]
             ],
                 [
