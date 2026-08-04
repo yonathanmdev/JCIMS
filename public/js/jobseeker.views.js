@@ -201,26 +201,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         
                         <div class="photo-box">ፎቶ</div>
                         
-                        <div class="section-title">
-                            <span>Personal Information</span>
-                            <span>መረጃ</span>
-                        </div>
-                        <div class="row-data">
-                            <span>ሙሉ ስም</span>
-                            <span><strong>${data.first_name || ''} ${data.father_name || ''}</strong></span>
-                        </div>
-                        <div class="row-data">
-                            <span>ጾታ</span>
-                            <span>${data.gender || '-'}</span>
-                        </div>
-                        <div class="row-data">
-                            <span>እድሜ</span>
-                            <span>${data.age || '-'}</span>
-                        </div>
-                        <div class="row-data">
-                            <span>የትምህርት ደረጃ</span>
-                            <span>${data.educational_level || '-'}</span>
-                        </div>
+                        <div class="section-title"><span>Personal Information</span><span>Description</span></div>
+                        <div class="row-data"><span>ሙሉ ስም</span><span>${data.first_name} ${data.father_name}</span></div>
+                        <div class="row-data"><span>ጾታ</span><span>${data.gender}</span></div>
+                        <div class="row-data"><span>እድሜ</span><span>${data.age}</span></div>
+                        <div class="row-data"><span>የትምህርት ደረጃ</span><span>${data.educational_level}</span></div>
                         
                         <div class="section-title">
                             <span>Address</span>
@@ -231,9 +216,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span>${branchName}</span>
                         </div>
                         
-                        <div class="footer">
-                            <p>የሰጠው ባለሙያ: ....................</p>
-                            <p>ፊርማ: ....................</p>
+                       <div class="footer">
+                            <p>የሰጠው ባለሙያ: ......................... ፊርማ: ....................</p>
+                           
                         </div>
                     </div>
 
