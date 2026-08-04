@@ -1,38 +1,72 @@
-function buildViewRow(label, value) {
+function buildViewRow(label, value, colClass = 'col-12 col-sm-6 col-md-3') {
     if (value === null || value === undefined || value === '') return '';
     return `
-        <div class="col-12 col-sm-6 col-md-4 mb-3">
+        <div class="${colClass} mb-3">
             <small class="text-muted d-block">${label}</small>
             <div class="font-weight-bold">${value}</div>
         </div>
     `;
 }
-
+function buildFaydaVerifiedBadge(verified) {
+    return verified == 1
+        ? '<span class="text-success"><i class="fas fa-check-circle"></i> Fayda Verfication</span>'
+        : '<span class="text-danger"><i class="fas fa-times-circle"></i> Fayda Verfication</span>';
+}
 function renderJobseekerView(js) {
     const genderLabel = js.gender;
     const physicalConditionLabel = js.physical_condition === '1' ? 'ያለበት' : 'የሌለበት';
+    const educationFinishYear = js.education_trmnet_finsh_year || '';
+    const housewifeLabel = js.housewife === '1' ? 'ነች' : 'አይደለችም';
     const haveExpLabel = js.haveexp === '1' ? 'አለ' : 'የለም';
+    const employmentStatusMap = {
+    '0': 'ስራ እድል ያልተፈጠረለት',
+    '1': 'ቋሚ ስራ እድል የተፈጠረለት',
+    '2': 'ጊዚያዊ ስራ እድል የተፈጠረለት',
+    '3': 'እንዳይደራጅ reject የተደረገ',
+    '4': 'በፕሮጀችት የተደራጀ'
+};
+ const awarenessStatusMap = {
+    '0': 'ግንዛቤ ያልተፈጠረለት/ላት',
+    '1': 'ግንዛቤ የተፈጠረለት/ላት',
+};
 
-    let html = '<div class="row">';
-    html += buildViewRow('ስም', js.first_name);
-    html += buildViewRow('የአባት ስም', js.father_name);
-    html += buildViewRow('የአያት ስም', js.last_name);
+
+const employmentStatusLabel = employmentStatusMap[js.employment_status] ?? '';
+    const awarenessStatusLabel = awarenessStatusMap[js.awareness] ?? '';
+ let html = '<div class="row">';
+
+html += `
+    <div class="col-12 mb-3">
+        ${js.branch_display_path ? `<small class="text-muted d-block">የተመዘገበብት አድራሻ</small>` : ''}
+        <div class="font-weight-bold d-flex justify-content-between align-items-center">
+            <span>${js.branch_display_path || ''}</span>
+            ${buildFaydaVerifiedBadge(js.verfied_with_fayda)}
+        </div>
+    </div>
+`;
+
+html += '</div><hr>';
+    html += '<div class="row">';
+    html += buildViewRow('መ/ቁ', js.job_seeker_id);
+    html += buildViewRow('ሙሉ ስም', `${js.first_name || ''} ${js.father_name || ''} ${js.last_name || ''}`.trim());
     html += buildViewRow('ጾታ', genderLabel);
+    if (js.gender==='ሴት') {
+        html += buildViewRow('የቤት እመቤት', housewifeLabel);
+    }
     html += buildViewRow('እድሜ', js.age);
     html += buildViewRow('የስራ ፈላጊ ሁኔታ', js.srafelagi_huneta);
     html += buildViewRow('Labor ID', js.Labor_ID);
     html += buildViewRow('የጋብቻ ሁኔታ', js.maritalstatus);
     html += buildViewRow('FAN', js.FAN);
+    html += buildViewRow('መንደር', js.kebele);
     html += buildViewRow('መንደር', js.mender);
     html += buildViewRow('የቀበሌ መታወቂያ ቁጥር', js.kebele_id_no);
     html += buildViewRow('የሚኖርበት አካባቢ', js.residence_status);
-    html += '</div><hr>';
 
-    html += '<div class="row">';
     html += buildViewRow('የትምህርት ደረጃ', js.educational_level);
     html += buildViewRow('የት/ቤቱ ዓይነት', js.school_type);
     html += buildViewRow('የተመረቀበት ዲፓርትመንት', js.educated_dpt);
-    html += buildViewRow('ትምህርት ያጠናቀቀበት ዓመት', js.education_trmnet_finsh_year);
+    html += buildViewRow('ትምህርት ያጠናቀቀበት ዓመት', educationFinishYear);
     html += buildViewRow('የ8ኛ ክፍል መለያ ቁጥር', js.g8id);
     html += buildViewRow('ያጠናቀቁበት ሙያ ምድብ', js.graguation_catagory);
     html += buildViewRow('CGPA', js.CGPA);
@@ -45,23 +79,26 @@ function renderJobseekerView(js) {
     html += buildViewRow('የሰሩበት ሀገር', js.workplace);
     html += buildViewRow('የሰሩበት የሙያ መደብ', js.profession);
     html += buildViewRow('የሀገሩ ስም', js.nameofcountry);
-    html += buildViewRow('የሚችሉት ቋንቋ', js.language);
+    html += buildViewRow('ተጨማሪ የሚችሉት ቋንቋ', js.language);
     html += buildViewRow('አሁን መስራት የሚፈልጉት', js.wageorself);
+    html += buildViewRow('ግንዛቤ', awarenessStatusLabel);
+    html += buildViewRow('የስራ እድል ሁኔታ', employmentStatusLabel);
     html += buildViewRow('የእናት ሙሉ ስም', js.mothername);
     html += '</div><hr>';
 
     html += '<div class="row">';
-    html += buildViewRow('የዘርፍ ምርጫ 1', js.choice_sector1_name);
-    html += buildViewRow('የሙያ ምርጫ 1', js.sub_choose1_name);
-    html += buildViewRow('የዘርፍ ምርጫ 2', js.choice_sector2_name);
-    html += buildViewRow('የሙያ ምርጫ 2', js.sub_choose2_name);
-    html += buildViewRow('የዘርፍ ምርጫ 3', js.choice_sector3_name);
-    html += buildViewRow('የሙያ ምርጫ 3', js.sub_choose3_name);
+    html += buildViewRow('ዘርፍ 1ኛ ምርጫ', js.choice_sector1_name);
+    html += buildViewRow('ንዑስ ዘርፍ 1ኛ ምርጫ', js.sub_choose1_name);
+    html += buildViewRow('ዘርፍ 2ኛ ምርጫ', js.choice_sector2_name);
+    html += buildViewRow('ንዑስ ዘርፍ 2ኛ ምርጫ', js.sub_choose2_name);
+    html += buildViewRow('ዘርፍ 3ኛ ምርጫ', js.choice_sector3_name);
+    html += buildViewRow('ንዑስ ዘርፍ 3ኛ ምርጫ', js.sub_choose3_name);
     html += buildViewRow('በግብርና ዘርፍ ልምድ', js.agri_business_experience_status === '1' ? 'አለ' : 'የለም');
     html += buildViewRow('የግብርና ልምድ (ዓመት)', js.agri_business_experience);
     html += buildViewRow('በስር የሚተዳደር ቤተሰብ', js.has_dependents === '1' ? 'አለ' : '');
     html += buildViewRow('የሚተዳደረው ቤተሰብ ብዛት', js.number_of_dependents);
     html += buildViewRow('ከ5 ዓመት በታች ህፃናት ብዛት', js.children_under_five);
+    html += buildViewRow('የተመዘገበበት ቀን', js.created_at);
     html += buildViewRow('የመዘገበው ባለሙያ መለያ', js.registered_by_name);
     html += '</div>';
 
