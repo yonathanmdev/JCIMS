@@ -157,3 +157,4 @@ $(document).on('click', '.view-jobseeker-btn', function () {
         });
     });
 });
+           
