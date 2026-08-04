@@ -73,13 +73,9 @@ $is_jobseeker_list_page = true;
                             <i class="fas fa-eye"></i>
                         </button>
                         <!-- Print ID Button -->
-   <button class="btn btn-outline-success btn-sm print-id-btn"
-        data-info="<?= htmlspecialchars(json_encode($js), ENT_QUOTES, 'UTF-8') ?>"
-        data-logo="<?= htmlspecialchars($_SESSION['user']['logo_url'], ENT_QUOTES, 'UTF-8') ?>"
-        data-branch="<?= htmlspecialchars($_SESSION['user']['full_branch_name'], ENT_QUOTES, 'UTF-8') ?>"
-        title="መታወቂያ አትም">
-    <i class="fas fa-print"></i>
-</button>
+<!-- HTML Button inside View File -->
+
+
                       <?php 
 // Assume $myBranchId is available here, e.g., from a session or user object
 // $myBranchId = AuthHelper::getUserBranchId(); // Example of how you might get it
@@ -90,6 +86,13 @@ if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $js['branch_id'] 
             title="አስተካክል">
         <i class="fas fa-edit"></i>
     </button>
+    <button class="btn btn-outline-success btn-sm print-id-btn"
+        data-info="<?= htmlspecialchars(json_encode($js), ENT_QUOTES, 'UTF-8') ?>"
+        data-logo="<?= htmlspecialchars($_SESSION['user']['logo_url'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+        data-branch="<?= htmlspecialchars($_SESSION['user']['full_branch_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+        title="መታወቂያ አትም">
+    <i class="fas fa-print"></i>
+</button>
 <?php endif; ?>
 
                     </td>
@@ -111,3 +114,7 @@ $basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseekers-list'; ?>
 </section>
 <?php include 'partials/jobseeker-modal.php'; ?>
 <?php include 'partials/jobseeker-views-modal.php'; ?>
+
+<script nonce="<?php echo htmlspecialchars($GLOBALS['nonce'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+ 
+</script>

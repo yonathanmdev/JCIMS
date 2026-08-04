@@ -1,0 +1,152 @@
+@page {
+    size: A4 portrait;
+    margin: 8mm;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, 'Nyala', sans-serif;
+}
+
+body {
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    padding: 10mm;
+}
+
+/* A4 Sheet Grid Layout (2x2 Matrix for 4 Cards) */
+.a4-page {
+    width: 210mm;
+    height: 297mm;
+    background: white;
+    display: grid;
+    grid-template-columns: repeat(2, 85.6mm);
+    grid-template-rows: repeat(2, 53.9mm);
+    gap: 15mm 10mm;
+    padding: 10mm;
+    justify-content: center;
+    align-content: start;
+}
+
+/* CR80 Standard ID Card Dimensions (85.6mm x 53.9mm) */
+.id-card {
+    width: 85.6mm;
+    height: 53.9mm;
+    border: 1px solid #1e7e34;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    page-break-inside: avoid;
+}
+
+.id-header {
+    background: #1e7e34;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 3px 5px;
+    height: 12mm;
+}
+
+.id-logo {
+    width: 10mm;
+    height: 10mm;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.header-text {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.header-text h3 {
+    font-size: 8.5pt;
+    font-weight: bold;
+    margin: 0;
+}
+
+.header-text p {
+    font-size: 6.5pt;
+    margin: 0;
+}
+
+.id-body {
+    display: flex;
+    padding: 4px;
+    flex-grow: 1;
+    gap: 5px;
+}
+
+.photo-box {
+    width: 22mm;
+    height: 27mm;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.photo-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.details-box {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.5px;
+}
+
+.detail-row {
+    font-size: 6.5pt;
+    display: flex;
+}
+
+.label {
+    font-weight: bold;
+    color: #333;
+    width: 15mm;
+    flex-shrink: 0;
+}
+
+.value {
+    color: #111;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 42mm;
+}
+
+.id-footer {
+    background: #28a745;
+    color: white;
+    text-align: center;
+    font-size: 5pt;
+    padding: 1px 0;
+    margin-top: auto;
+}
+
+@media print {
+    body {
+        background: none;
+        padding: 0;
+    }
+    .a4-page {
+        padding: 5mm;
+    }
+    .id-card {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

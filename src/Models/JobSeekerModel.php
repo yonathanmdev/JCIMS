@@ -709,7 +709,7 @@ public function countJobSeekersByHierarchy(string $myBranchId): int
 public function getJobSeekersByHierarchy(int $myBranchId, int $limit, int $offset): array
 {
     $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender,
-                   js.branch_id,
+                   js.branch_id, js.educational_level, js.age,js.created_at,
                    b.name AS branch_name, b.level AS branch_level,
                    anc.internal_id AS display_branch_id,
                    anc.name AS display_branch_name,
