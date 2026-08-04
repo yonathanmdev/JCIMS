@@ -92,162 +92,68 @@ $(document).on('click', '.view-jobseeker-btn', function () {
         });
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+ document.addEventListener('DOMContentLoaded', function () {
     const printButtons = document.querySelectorAll('.print-id-btn');
     const today = new Date().toISOString().split('T')[0];
-
     printButtons.forEach(button => {
         button.addEventListener('click', function () {
-            // መረጃዎችን ከ በተኑ attribute መውሰድ (ከነ safe fallbacks)
-            const rawData = this.getAttribute('data-info');
-            const data = rawData ? JSON.parse(rawData) : {};
-            const logoUrl = this.getAttribute('data-logo') || '';
-            const branchName = this.getAttribute('data-branch') || '-';
+            // መረጃዎችን ከ በተኑ attribute መውሰድ
+            const data = JSON.parse(this.getAttribute('data-info'));
+            const logoUrl = this.getAttribute('data-logo');
+            const branchName = this.getAttribute('data-branch');
             
-            const printWindow = window.open('', '_blank', 'width=500,height=600');
+            const printWindow = window.open('', '_blank', 'width=450,height=600');
             
             printWindow.document.write(`
-                <!DOCTYPE html>
                 <html>
                 <head>
                     <title>መታወቂያ ካርድ</title>
                     <style>
-                        /* Print Margin & Page Layout */
-                        @page {
-                            size: A4 portrait;
-                            margin: 8mm; /* የፕሪንተር ጠርዝ መቁረጥን ለመከላከል */
-                        }
-                        * {
-                            box-sizing: border-box; /* Padding ስፋቱን እንዳይጨምረው ያደርጋል */
-                            margin: 0;
-                            padding: 0;
-                        }
-                        body { 
-                            font-family: 'Nyala', 'Arial', sans-serif; 
-                            background: #fff;
-                            color: #000;
-                            padding: 5mm;
-                        }
-                        
-                        /* 1/4 A4 size (ለአንድ A4 4 መታወቂያ የሚሆን መጠን) */
-                        .id-card { 
-                            width: 88mm; /* የ標準 መታወቂያ ስፋት (A4 ግማሽ ስፋት ~105mm ስለሆነ በደንብ ይበቃል) */
-                            min-height: 125mm;
-                            padding: 8mm 6mm; 
-                            border: 1px dashed #444; /* ለመቁረጥ የሚረዳ መስመር */
-                            margin-bottom: 5mm;
-                            float: left; /* በወረቀቱ በስተግራ አቅጣጫ እንዲቀመጥ */
-                        }
-                        
-                        .header { text-align: center; margin-bottom: 8px; }
-                        .logo { max-width: 50px; max-height: 50px; object-fit: contain; }
-                        .header-title { font-size: 11px; font-weight: bold; margin-top: 2px; }
-                        .header-subtitle { font-size: 10px; }
-                        
-                        .meta-info { font-size: 10px; margin-bottom: 8px; text-align: right; line-height: 1.3; }
-                        
-                        .photo-box { 
-                            width: 70px; 
-                            height: 85px; 
-                            border: 1px solid #aaa; 
-                            margin: 0 auto 8px auto; 
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 9px;
-                            color: #777;
-                        }
-                        
-                        .section-title { 
-                            background: #eee; 
-                            font-weight: bold; 
-                            font-size: 10px;
-                            padding: 2px 4px; 
-                            margin-top: 6px; 
-                            display: flex; 
-                            justify-content: space-between; 
-                            border-radius: 2px;
-                        }
-                        
-                        .row-data { 
-                            display: flex; 
-                            justify-content: space-between; 
-                            padding: 3px 4px; 
-                            border-bottom: 1px solid #f0f0f0; 
-                            font-size: 10px;
-                        }
-                        
-                        .footer { margin-top: 12px; font-size: 10px; line-height: 1.5; }
-
-                        /* Print በሚደረግበት ጊዜ ብቻ የሚሰሩ ስታይሎች */
-                        @media print {
-                            body { padding: 0; }
-                            .id-card { border: 1px dashed #666; }
-                        }
+                        body { font-family: 'Nyala', 'Arial', sans-serif; display: flex; justify-content: center; padding: 20px; }
+                        .id-card { width: 380px; padding: 15px; border: 1px solid #000; }
+                        .header { text-align: center; margin-bottom: 10px; }
+                        .logo { width: 60px; }
+                        .meta-info { font-size: 12px; margin-bottom: 10px; text-align: right; }
+                        .section-title { background: #eee; font-weight: bold; padding: 2px 5px; margin-top: 10px; display: flex; justify-content: space-between; }
+                        .row-data { display: flex; justify-content: space-between; padding: 2px 5px; border-bottom: 1px solid #f0f0f0; }
+                        .footer { margin-top: 20px; font-size: 12px; }
                     </style>
                 </head>
                 <body>
                     <div class="id-card">
                         <div class="header">
-                            ${logoUrl ? `<img src="${logoUrl}" class="logo">` : ''}
-                            <div class="header-title">የአብክመ ስራና ክህሎት ቢሮ</div>
-                            <div class="header-subtitle">የስራ ፈላጊ መታወቂያ ካርድ</div>
+                            <img src="${logoUrl}" class="logo">
+                            <div>የአብክመ ስራና ክህሎት ቢሮ</div>
+                            <div>የስራ ፈላጊ መታወቂያ ካርድ</div>
                         </div>
-                        
                         <div class="meta-info">
-                            <div><strong>መታወቂያ ቁጥር:</strong> ${data.job_seeker_id || '-'}</div>
-                            <div><strong>የተመዘገበበት ቀን:</strong> ${data.created_at || today}</div>
+                            <div>መታወቂያ ቁጥር: ${data.job_seeker_id}</div>
+                            <div>የተመዘገበበት ቀን: ${data.created_at}</div>
                         </div>
+                        <div style="width: 80px; height: 100px; border: 1px solid #ccc; margin-bottom: 10px;"></div>
                         
-                        <div class="photo-box">ፎቶ</div>
+                        <div class="section-title"><span>Personal Information</span><span>Description</span></div>
+                        <div class="row-data"><span>ሙሉ ስም</span><span>${data.first_name} ${data.father_name}</span></div>
+                        <div class="row-data"><span>ጾታ</span><span>${data.gender}</span></div>
+                        <div class="row-data"><span>እድሜ</span><span>${data.age}</span></div>
+                        <div class="row-data"><span>የትምህርት ደረጃ</span><span>${data.educational_level}</span></div>
                         
-                        <div class="section-title">
-                            <span>Personal Information</span>
-                            <span>መረጃ</span>
-                        </div>
-                        <div class="row-data">
-                            <span>ሙሉ ስም</span>
-                            <span><strong>${data.first_name || ''} ${data.father_name || ''}</strong></span>
-                        </div>
-                        <div class="row-data">
-                            <span>ጾታ</span>
-                            <span>${data.gender || '-'}</span>
-                        </div>
-                        <div class="row-data">
-                            <span>እድሜ</span>
-                            <span>${data.age || '-'}</span>
-                        </div>
-                        <div class="row-data">
-                            <span>የትምህርት ደረጃ</span>
-                            <span>${data.educational_level || '-'}</span>
-                        </div>
+                        <div class="section-title"><span>Adress</span><span>Description</span></div>
+                        <div class="row-data"><span>የተመዘገበበት ወረዳ/ማዕከል </span><span>${branchName}</span></div>
                         
-                        <div class="section-title">
-                            <span>Address</span>
-                            <span>አድራሻ</span>
-                        </div>
-                        <div class="row-data">
-                            <span>ወረዳ/ማዕከል</span>
-                            <span>${branchName}</span>
-                        </div>
-                        
-                        <div class="footer">
+                       <div class="footer">
                             <p>የሰጠው ባለሙያ: ......................... ፊርማ: ....................</p>
                            
                         </div>
                     </div>
-
                     <script>
-                        // ምስሎች ሙሉ በሙሉ ሲጭኑ print እንዲል ማድረግ
-                        window.onload = function() {
-                            window.print();
-                            window.onafterprint = function() { window.close(); };
-                        };
-                    <\/script>
+                        window.print();
+                        window.onafterprint = function() { window.close(); };
+                    </script>
                 </body>
                 </html>
             `);
             printWindow.document.close();
         });
     });
-});    
+});
