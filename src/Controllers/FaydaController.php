@@ -367,7 +367,7 @@ $sectors  = $sectorModel->getSectors();
             'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
             'attempted_fan'          => $data['FAN'],
             'attempted_full_name'    => $normalizedFullName,
-            'attempted_phone_number' => trim($_POST['phone_number'] ?? ''),
+            'attempted_phone_number' => $data['phone_number'] ?? '',
             'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
             'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
         ]);
@@ -392,7 +392,7 @@ $sectors  = $sectorModel->getSectors();
             'Labor_ID'             => $data['Labor_ID'] ?? '',
             'full_name_normalized' => $normalizedFullName,
             'phone_number'         => $data['phone_number'],
-            'mothername'           => $data['mothername'],
+            'mothername'           => trim($_POST['mothername'] ?? ''),
         ], $excludeId, $excludeTable);
 
         if (!empty($legacyCheck)) {
@@ -419,7 +419,7 @@ $sectors  = $sectorModel->getSectors();
                 'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
                 'attempted_fan'          => $data['FAN'],
                 'attempted_full_name'    => $normalizedFullName,
-                'attempted_phone_number' => trim($_POST['phone_number'] ?? ''),
+                'attempted_phone_number' => $data['phone_number'] ?? '',
                 'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
                 'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
             ]);
