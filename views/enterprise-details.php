@@ -55,12 +55,23 @@ $supportedByLabels = [
         </div>
       </div>
 
-      <div class="card-body">
+     <div class="card-body">
+      <!-- Branch hierarchy path — full width, its own row -->
+       <?php if($enterprise['branch_display_path']): ?>
+  <div class="mb-4 p-3 bg-light border rounded d-flex align-items-center">
+    <i class="bi bi-geo-alt-fill text-primary me-2 fs-5"></i>
+    <div>
+      <div class="text-muted small fw-semibold text-uppercase">ኢንተርፕራይዙ የተመሰረተበት ቦታ</div>
+      <div class="fs-6 fw-medium"><?= htmlspecialchars($enterprise['branch_display_path'] ?? '—') ?></div>
+    </div>
+  </div>
+<?php endif; ?>
         <div class="row">
         <div class="col-md-4 mb-3">
             <strong>የኢንተርፕራይዝ ስም</strong>
             <div><?= htmlspecialchars($enterprise['enterprisename'] ?? '—') ?></div>
           </div>
+          
           <div class="col-md-4 mb-3">
             <strong>TIN</strong>
             <div><?= htmlspecialchars($enterprise['tine_number'] ?? '—') ?></div>

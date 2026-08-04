@@ -25,4 +25,14 @@ class BranchNameHelper
 
         return "{{$level2}፣{$level3}፣{$level4}";
     }
+     public static function labelForLevel(int $level, bool $isKetemaChain): string
+    {
+        return match ($level) {
+            1 => 'ቢሮ',
+            2 => $isKetemaChain ? 'ከ/አስተዳደር' : 'ዞን',
+            3 => $isKetemaChain ? 'ክ/ከተማ' : 'ወረዳ',
+            4 => 'ማዕከል',
+            default => '',
+        };
+    }
 }

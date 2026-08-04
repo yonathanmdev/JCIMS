@@ -643,7 +643,10 @@ public function findById(string $myBranchId, string $jobseekerId): ?array
 
                 CONCAT(u.first_name, ' ', u.father_name, ' ', u.grand_father_name) AS registered_by_name,
 
-                b.name AS branch_name
+                b.name       AS branch_name,
+                b.path       AS branch_path,
+                b.level      AS branch_level,
+                root.path    AS root_path
 
             FROM job_seekers js
 
@@ -681,6 +684,14 @@ public function findById(string $myBranchId, string $jobseekerId): ?array
             ($t1-$t0)*1000, ($t2-$t1)*1000, ($t3-$t2)*1000, ($t4-$t3)*1000, ($t4-$t0)*1000
         ));
 
+        if ($result) {
+    $result['branch_display_path'] = \App\Helpers\BranchPathHelper::buildDisplayPath(
+        $this->db,
+        $result['branch_path'],
+        $result['root_path']
+    );
+}
+
         return $result ?: null;
 
     } catch (\PDOException $e) {
@@ -688,6 +699,7 @@ public function findById(string $myBranchId, string $jobseekerId): ?array
         return null;
     }
 }
+
 
 public function countJobSeekersByHierarchy(string $myBranchId): int
 {
