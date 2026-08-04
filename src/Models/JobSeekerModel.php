@@ -34,13 +34,15 @@ public function getJobSeekerById(string $id): ?array
 {
     try {
         $stmt = $this->db->prepare("
-            SELECT job_seeker_id, created_at
+            SELECT job_seeker_id, first_name, father_name, last_name,
+                   gender, age, phone_number, FAN, created_at, verfied_with_fayda
             FROM job_seekers
             WHERE id = :id
 
             UNION ALL
 
-            SELECT job_seeker_id, created_at
+            SELECT job_seeker_id, first_name, father_name, last_name,
+                   gender, age, phone_number, FAN, created_at, verfied_with_fayda
             FROM job_seekers_archive
             WHERE id = :id2
 
@@ -1486,78 +1488,6 @@ public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
                                     LIMIT 10");
         $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-
-     public function findByFaydaSub(string $faydaSub): ?array
-    {
-        if ($faydaSub === '') {
-            return null;
-        }
-
-        $stmt = $this->db->prepare('SELECT * FROM job_seekers WHERE fayda_sub = :sub LIMIT 1');
-        $stmt->execute([':sub' => $faydaSub]);
-        $row = $stmt->fetch();
-
-        return $row === false ? null : $row;
-    }
-
-    public function createOrUpdateFromFayda(array $data): array
-    {
-        $existing = $this->findByFaydaSub($data['fayda_sub'] ?? '');
-
-        try {
-            $this->db->beginTransaction();
-
-            if ($existing !== null) {
-                $stmt = $this->db->prepare(
-                    'UPDATE job_seekers
-                     SET full_name = :full_name, phone = :phone, gender = :gender,
-                         birthdate = :birthdate, education_level = :education_level,
-                         sector_id = :sector_id, id_number = :id_number
-                     WHERE fayda_sub = :fayda_sub'
-                );
-                $stmt->execute([
-                    ':full_name'       => $data['full_name'],
-                    ':phone'           => $data['phone'],
-                    ':gender'          => $data['gender'],
-                    ':birthdate'       => $data['birthdate'],
-                    ':education_level' => $data['education_level'],
-                    ':sector_id'       => $data['sector_id'],
-                    ':id_number'       => $data['id_number'],
-                    ':fayda_sub'       => $data['fayda_sub'],
-                ]);
-
-                $jobSeekerId = $existing['id'];
-            } else {
-                $jobSeekerId = Uuid::uuid7()->toString();
-
-                $stmt = $this->db->prepare(
-                    'INSERT INTO job_seekers
-                        (id, fayda_sub, id_number, full_name, phone, gender, birthdate, education_level, sector_id)
-                     VALUES
-                        (:id, :fayda_sub, :id_number, :full_name, :phone, :gender, :birthdate, :education_level, :sector_id)'
-                );
-                $stmt->execute([
-                    ':id'              => $jobSeekerId,
-                    ':fayda_sub'       => $data['fayda_sub'],
-                    ':id_number'       => $data['id_number'],
-                    ':full_name'       => $data['full_name'],
-                    ':phone'           => $data['phone'],
-                    ':gender'          => $data['gender'],
-                    ':birthdate'       => $data['birthdate'],
-                    ':education_level' => $data['education_level'],
-                    ':sector_id'       => $data['sector_id'],
-                ]);
-            }
-
-            $this->db->commit();
-
-            return ['status' => true, 'job_seeker_id' => $jobSeekerId];
-        } catch (\Throwable $e) {
-            $this->db->rollBack();
-            return ['status' => false, 'message' => $e->getMessage()];
-        }
     }
     }
 

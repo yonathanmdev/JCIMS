@@ -13,7 +13,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class JobseekerController extends BaseController {
-   
+    private const ENABLE_LEGACY_DUPLICATE_CHECK = true;
     public function showRegisterForm() {
            AuthHelper::checkRole(
     ['team_leader','officer'],
@@ -97,7 +97,14 @@ public function handleRegistration() {
     $jobseekerId  = trim($_POST['jobseeker_id'] ?? ''); // record's UUID `id`
     $jobseekerIdInt = null; // job_seeker_id (int business ID), populated below for edit/renewal
     $createdAt    = null;
-
+    $verfiedWithFayda = null;
+    $fname = null;
+    $fathername = null;
+    $lname = null;
+    $gender = null;
+    $age = null;
+    $phone = null;
+    $FAN = null;
     if ($mode === 'edit' && $jobseekerId === '') {
         $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
@@ -114,8 +121,15 @@ public function handleRegistration() {
     if ($mode === 'renewal' || $mode === 'edit') {
         $jobseekerdata  = $jobSeekerModel->getJobSeekerById($jobseekerId);
         $jobseekerIdInt = $jobseekerdata['job_seeker_id'] ?? null;
+        $fname = $jobseekerdata['first_name'] ?? null;
+        $fathername = $jobseekerdata['father_name'] ?? null;
+        $lname = $jobseekerdata['last_name'] ?? null;
+        $gender = $jobseekerdata['gender'] ?? null;
+        $age = $jobseekerdata['age'] ?? null;
+        $phone = $jobseekerdata['phone_number'] ?? null;
         $createdAt      = $jobseekerdata['created_at'] ?? null;
-
+        $verfiedWithFayda = $jobseekerdata['verfied_with_fayda'] ?? 0;
+        $FAN = $jobseekerdata['FAN'] ?? '';
         if ($jobseekerIdInt === null || $createdAt === null) {
             $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
             header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
@@ -150,10 +164,111 @@ public function handleRegistration() {
     //          job_seeker_id already exists in active, that's a real
     //          duplicate (already renewed / already active) and must
     //          still be flagged.
+    
     $excludeId    = null;
     $excludeTable = null;
-
+if($verfiedWithFayda == 1){
     if ($mode === 'edit') {
+        $excludeId    = $jobseekerIdInt;
+        $excludeTable = 'active';
+    } elseif ($mode === 'renewal') {
+        $excludeId    = $jobseekerIdInt;
+        $excludeTable = 'archive';
+    }
+     // ── 1. Permanent check: fayda_sub / FAN uniqueness ─────────────────
+    $faydaSubCheck = $jobSeekerModel->checkDuplicateFAN(
+        $FAN ?? '',
+        $excludeId,
+        $excludeTable
+    );
+
+    if (!empty($faydaSubCheck)) {
+        $duplicate = $faydaSubCheck; // assuming it returns array row details
+        $triggerType = 'fan';
+        
+        $jobSeekerModel->logDuplicateAttempt([
+            'id'                     => Uuid::uuid7()->toString(),
+            'attempted_by'           => $user['id'] ?? null,
+            'branch_id'              => $branchId,
+            'trigger_type'           => $triggerType,
+            'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
+            'matched_source_table'   => $duplicate['source_table'] ?? 'active',
+            'attempted_kebele_id_no' => trim($_POST['kebele_id_no'] ?? ''),
+            'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
+            'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
+            'attempted_fan'          => $FAN,
+            'attempted_full_name'    => $normalizedFullName,
+            'attempted_phone_number' => $phone,
+            'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
+            'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
+        ]);
+
+        $branchHierarchy = $jobSeekerModel->getBranchHierarchy($duplicate['branch_id'] ?? null);
+        $sourceTable     = $duplicate['source_table'] ?? 'active';
+
+        $_SESSION['error'] = "ስራ ፈላጊው ከዚህ በፊት በዚህ ፋይዳ ቁጥር <strong>{$branchHierarchy}</strong> ተመዝግቧል።";
+        if ($sourceTable === 'archive') {
+            $_SESSION['error'] .= " ነባር ስራፈላጊ ላይ የተመዘገበ ስራ ፈላጊ ማድስ ብቻ ነው የሚቻለው። እንደ አዲስ መመዝገብ አይቻልም";
+        }
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseekers-list");
+        exit();
+    }
+
+    // ── 2. Legacy field-based check ────────────────────────────────────
+    if (self::ENABLE_LEGACY_DUPLICATE_CHECK) {
+        $legacyCheck = $jobSeekerModel->checkDuplicateFaydaLegacyFields([
+            'branch_id'            => $branchId,
+            'kebele_id_no'         => trim($_POST['kebele_id_no'] ?? ''),
+            'g8id'                 => trim($_POST['g8id'] ?? ''),
+            'Labor_ID'             => trim($_POST['Labor_ID'] ?? ''),
+            'full_name_normalized' => $normalizedFullName,
+            'phone_number'         => trim($_POST['phone_number'] ?? ''),
+            'mothername'           => trim($_POST['mothername'] ?? ''),
+        ], $excludeId, $excludeTable);
+
+        if (!empty($legacyCheck)) {
+            $duplicate   = $legacyCheck;
+            $rawMatchType = $duplicate['match_type'] ?? 'identity';
+            
+            $triggerTypeMap = [
+                'kebele'   => 'kebele_id',
+                'g8id'     => 'g8id',
+                'labor'    => 'labor_id',
+                'identity' => 'identity',
+            ];
+            $triggerType = $triggerTypeMap[$rawMatchType] ?? 'identity';
+
+            $jobSeekerModel->logDuplicateAttempt([
+                'id'                     => Uuid::uuid7()->toString(),
+                'attempted_by'           => $user['id'] ?? null,
+                'branch_id'              => $branchId,
+                'trigger_type'           => $triggerType,
+                'matched_jobseeker_id'   => $duplicate['job_seeker_id'] ?? null,
+                'matched_source_table'   => $duplicate['source_table'] ?? 'active',
+                'attempted_kebele_id_no' => trim($_POST['kebele_id_no'] ?? ''),
+                'attempted_g8id'         => trim($_POST['g8id'] ?? ''),
+                'attempted_labor_id'     => trim($_POST['Labor_ID'] ?? ''),
+                'attempted_fan'          => $FAN,
+                'attempted_full_name'    => $normalizedFullName,
+                'attempted_phone_number' => $data['phone_number'] ?? '',
+                'attempted_mothername'   => trim($_POST['mothername'] ?? ''),
+                'ip_address'             => $_SERVER['REMOTE_ADDR'] ?? null,
+            ]);
+
+            $branchHierarchy = $jobSeekerModel->getBranchHierarchy($duplicate['branch_id'] ?? null);
+            $sourceTable     = $duplicate['source_table'] ?? 'active';
+
+            $_SESSION['error'] = "ስራ ፈላጊው ከዚህ በፊት <strong>{$branchHierarchy}</strong> ተመዝግቧል።";
+            if ($sourceTable === 'archive') {
+                $_SESSION['error'] .= " ነባር ስራፈላጊ ላይ የተመዘገበ ስራ ፈላጊ ማድስ ብቻ ነው የሚቻለው። እንደ አዲስ መመዝገብ አይቻልም";
+            }
+            header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseekers-list");
+            exit();
+        }
+    }
+}
+    else{
+        if ($mode === 'edit') {
         $excludeId    = $jobseekerIdInt;
         $excludeTable = 'active';
     } elseif ($mode === 'renewal') {
@@ -215,7 +330,7 @@ public function handleRegistration() {
         header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/jobseeker-registration");
         exit();
     }
-
+    }
     try {
         // ── Resolve sector/subsector UUIDs to bigint FK values ────────────
         $sectorModel = new SectorModel($this->db);
@@ -311,10 +426,21 @@ public function handleRegistration() {
             'sub_choose3'    => $resolvedSectors[3]['subsector_id'],
             'housewife'      => (int) ($_POST['housewife'] ?? 0),
         ];
-
+// Server-side lock: Fayda-verified fields must always come from the DB record,
+// never from the POST body — readonly on the client is not a security boundary.
+if ($verfiedWithFayda == 1) {
+    $data['first_name']   = $fname;
+    $data['father_name']  = $fathername;
+    $data['last_name']    = $lname;
+    $data['gender']       = $gender;
+    $data['age']          = $age;
+    $data['phone_number'] = $phone;
+    $data['FAN']          = $FAN;
+}
         // FIX: chained as if/elseif/else — previously the renewal check was
         // a SEPARATE if/else from the edit check, so every edit submission
         // ran updateJobseeker() AND THEN createJobseeker() too.
+        
         if ($mode === 'edit') {
             $success     = $jobSeekerModel->updateJobseeker($data);
             $auditAction = 'jobseeker_updated';
