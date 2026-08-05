@@ -43,7 +43,7 @@ return [
     'informal-trade-registration-process' => ['InformalEnterpreseControrer', 'processRegistration', true],
     'informal-trade-list' => ['InformalEnterpreseControrer', 'showInformalTradeList', true],
     'informal-trade-delete-process' => ['InformalEnterpreseControrer', 'deleteInformalTrader', true],
-  
+    'get-enterprise-list' =>['JobCreationRegController', 'getEnterpriseList', true],
    
     
 ];
