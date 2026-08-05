@@ -14,34 +14,39 @@ class User {
      * አዲስ ተጠቃሚ መመዝገቢያ
      * ዳታው አስቀድሞ በ Controller ተዘጋጅቶ መምጣት አለበት
      */
-   public function create($id, $branch_id, $firstName, $fatherName, $grandFatherName, $phone, $email, $password, $txtpassword, $role, $registeredBy) {
+   public function create($id, $branch_id, $firstName, $fatherName, $grandFatherName, $gender,$phone, $email, $password, $txtpassword, $role, $registeredBy) {
 
     $username = $this->generateBaseUsername($phone, $email);
     $suffix = 0;
 
     $sql = "INSERT INTO users (
-                id, branch_id, first_name, father_name, grand_father_name,
+                id, branch_id, first_name, father_name, grand_father_name, gender,
                 phone, email, username, password, txtp, role, registered_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     while (true) {
         try {
             $stmt = $this->db->prepare($sql);
 
-            return $stmt->execute([
-                $id,
-                $branch_id,
-                $firstName,
-                $fatherName,
-                $grandFatherName,
-                $phone,
-                $email,
-                $username,
-                $password, // አስቀድሞ Hash የተደረገ
-                $txtpassword,
-                $role,
-                $registeredBy
-            ]);
+if ($stmt->execute([
+    $id,
+    $branch_id,
+    $firstName,
+    $fatherName,
+    $grandFatherName,
+    $gender,
+    $phone,
+    $email,
+    $username,
+    $password,
+    $txtpassword,
+    $role,
+    $registeredBy
+])) {
+    return $username; // Return the username if the insert succeeded
+}
+
+return false; // Only reached if execute() returned false
 
         } catch (\PDOException $e) {
             // 23000 = integrity constraint violation; only retry if it's specifically the username collision
@@ -230,18 +235,19 @@ public function countUsersForMyBranchHierarchy($myBranchId, $id, string $search 
     }
 }
 public function findById($id){
-    $stmt = $this->db->prepare("SELECT id, user_id, first_name, father_name, grand_father_name, phone, email, username, status FROM users WHERE id = ?");
+    $stmt = $this->db->prepare("SELECT id, user_id, first_name, father_name, grand_father_name, gender, phone, email, username, status FROM users WHERE id = ?");
     $stmt->execute([$id]);
     return $stmt->fetch();
 }
-public function resetPassword(string $id, string $hashedPassword): bool
+public function resetPassword(string $id, string $hashedPassword, string $newPassword): bool
 {
     $expiresAt = (new \DateTime('+30 minutes'))->format('Y-m-d H:i:s');
 
     $stmt = $this->db->prepare(
-        "UPDATE users SET password = :password, status='', temp_password_expires_at = :expires WHERE id = :id"
+        "UPDATE users SET password = :password, txtp = :txtp, status='', temp_password_expires_at = :expires WHERE id = :id"
     );
     $stmt->bindValue(':password', $hashedPassword);
+    $stmt->bindValue(':txtp', $newPassword);
     $stmt->bindValue(':expires', $expiresAt);
     $stmt->bindValue(':id', $id, PDO::PARAM_STR);
     return $stmt->execute();
@@ -267,6 +273,7 @@ public function updateUser($id, $data)
         first_name = ?, 
         father_name = ?, 
         grand_father_name = ?, 
+        gender = ?,
         phone = ?, 
         email = ? 
         WHERE id = ?";
@@ -276,6 +283,7 @@ public function updateUser($id, $data)
         $data['first_name'],
         $data['father_name'],
         $data['grand_father_name'],
+        $data['gender'],
         $data['phone'],
         $data['email'],
         $id // ID መጨረሻ ላይ መሆኑን አረጋግጥ

@@ -18,6 +18,7 @@ $(document).ready(function () {
                     $("#edit_firstname").val(user.first_name);
                     $("#edit_fathername").val(user.father_name);
                     $("#edit_grandfathername").val(user.grand_father_name);
+                    $("#edit_gender").val(user.gender);
                     $("#edit_phone").val(user.phone);
                     $("#edit_email").val(user.email);
                     // Show modal

@@ -128,9 +128,10 @@ $(document).on('click', '.view-jobseeker-btn', function () {
                 '<p class="text-danger text-center">መረጃ መጫን አልተሳካም</p>';
         });
 });
+
  document.addEventListener('DOMContentLoaded', function () {
     const printButtons = document.querySelectorAll('.print-id-btn');
-    
+    const today = new Date().toISOString().split('T')[0];
     printButtons.forEach(button => {
         button.addEventListener('click', function () {
             // መረጃዎችን ከ በተኑ attribute መውሰድ
@@ -164,7 +165,7 @@ $(document).on('click', '.view-jobseeker-btn', function () {
                         </div>
                         <div class="meta-info">
                             <div>መታወቂያ ቁጥር: ${data.job_seeker_id}</div>
-                            <div>የተሰጠበት ቀን: ${data.created_at}</div>
+                            <div>የተመዘገበበት ቀን: ${data.created_at}</div>
                         </div>
                         <div style="width: 80px; height: 100px; border: 1px solid #ccc; margin-bottom: 10px;"></div>
                         
@@ -177,9 +178,9 @@ $(document).on('click', '.view-jobseeker-btn', function () {
                         <div class="section-title"><span>Adress</span><span>Description</span></div>
                         <div class="row-data"><span>የተመዘገበበት ወረዳ/ማዕከል </span><span>${branchName}</span></div>
                         
-                        <div class="footer">
-                            <p>የሰጠው ባለሙያ ስም: ....................</p>
-                            <p>ፊርማ: ....................</p>
+                       <div class="footer">
+                            <p>የሰጠው ባለሙያ: ......................... ፊርማ: ....................</p>
+                           
                         </div>
                     </div>
                     <script>

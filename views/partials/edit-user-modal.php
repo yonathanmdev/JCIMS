@@ -34,16 +34,26 @@
         <input type="text" class="form-control form-control-sm" placeholder="የአያት ስም ያስገቡ" name="edit_grandfathername" id="edit_grandfathername" required>
    </div>
     </div>
-    <div class="col-md-6">
+       <div class="col-md-6">
+      <div class="form-group mb-2">
+        <label for="edit_gender" class="mb-1"><small class="font-weight-bold">ጾታ</small></label>
+        <select class="form-control" id="edit_gender" name="edit_gender" required>
+           <option value="" disabled selected>ይምረጡ</option>
+          <option value="ወንድ">ወንድ</option>
+          <option value="ሴት">ሴት</option>
+        </select>
+      </div>
+    </div>
+    
+    </div>
+    <div class="row">
+      <div class="col-md-6">
            <div class="form-group mb-2">
             <label for="edit_phone" class="mb-1"><small class="font-weight-bold">ስልክ ቁጥር</small></label>
         <input type="text" class="form-control form-control-sm" placeholder="ስልክ ቁጥር ያስገቡ" name="edit_phone" id="edit_phone"  required>
           </div>
     </div>
-    </div>
-    <div class="row">
     <div class="col-md-6">
-          
    <div class="form-group mb-2">
         <label for="edit_email" class="mb-1"><small class="font-weight-bold">ኢሜይል</small></label>
         <input type="email" class="form-control form-control-sm" placeholder="ኢሜይል ያስገቡ" name="edit_email"  id="edit_email">

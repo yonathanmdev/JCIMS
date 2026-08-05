@@ -1,4 +1,4 @@
-   <?php $is_register_user_page = true; ?>
+<?php $is_register_user_page = true; ?>
 <!-- Main content -->
 <section class="content">
   <div class="container-fluid">
@@ -75,6 +75,7 @@ $roleMap = [
     'system_admin' => 'System Admin',
     'org_admin' => 'Admin',
     'team_leader' => 'ቡድን መሪ',
+    'rular_officer' => 'የገጠር ስራ ዕድል ባለሙያ አንድ',
 ];
 
 echo htmlspecialchars($roleMap[$role] ?? 'ባለሙያ');
@@ -174,15 +175,26 @@ $statusInfo = $statusMap[$row['status'] ?? ''] ?? ['label' => htmlspecialchars($
         <input type="text" class="form-control form-control-sm" placeholder="የአያት ስም ያስገቡ" name="grandfathername" required>
       </div>
     </div>
-    <div class="col-md-6">
+        <div class="col-md-6">
+      <div class="form-group mb-2">
+        <label for="gender" class="mb-1"><small class="font-weight-bold">ጾታ</small></label>
+        <select class="form-control" id="gender" name="gender" required>
+           <option value="" disabled selected>ይምረጡ</option>
+          <option value="ወንድ">ወንድ</option>
+          <option value="ሴት">ሴት</option>
+        </select>
+      </div>
+    </div>
+    
+  </div>
+
+ <div class="row">
+  <div class="col-md-6">
       <div class="form-group mb-2">
         <label for="phone" class="mb-1"><small class="font-weight-bold">ስልክ ቁጥር</small></label>
         <input type="text" class="form-control form-control-sm" placeholder="ስልክ ቁጥር ያስገቡ" name="phone" required>
       </div>
     </div>
-  </div>
-
- <div class="row">
   <div class="col-md-6">
     <div class="form-group">
       <label for="roleSelector" class="mb-1"><small class="font-weight-bold">Role</small></label>
@@ -191,6 +203,9 @@ $statusInfo = $statusMap[$row['status'] ?? ''] ?? ['label' => htmlspecialchars($
         $isOrgAdmin       = isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'org_admin';
         $sessionBranchId  = $_SESSION['user']['branch_id'] ?? '';
         $branchNameString = htmlspecialchars($branchName['name'] ?? $branchName->name ?? '');
+        $level = $_SESSION['user']['level'] ?? '';
+        $isLevelThree     = (string)$level === '3';
+      
       ?>
 
       <select class="form-control" id="roleSelector"
@@ -204,6 +219,11 @@ $statusInfo = $statusMap[$row['status'] ?? ''] ?? ['label' => htmlspecialchars($
           <option value="org_admin">Admin</option>
           <option value="team_leader">ቡድን መሪ</option>
           <option value="officer">ባለሙያ</option>
+          <?php if ($isLevelThree): ?>
+            <option value="one_stop_center_team_leader">የማዕከል ቡድን መሪ</option>
+            <option value="rular_officer">የማዕከል ባለሙያ</option>
+            <option value="rular_officer">የገጠር ቀበሌ ስራ ዕድል ባለሙያ</option>
+          <?php endif; ?>
         <?php endif; ?>
       </select>
 
@@ -240,15 +260,17 @@ $statusInfo = $statusMap[$row['status'] ?? ''] ?? ['label' => htmlspecialchars($
 <?php endif; ?>
     </div>
   </div>
-</div>
 
-  <div class="row">
-    <div class="col-md-6">
+  <div class="col-md-6">
       <div class="form-group mb-2">
          <label for="email" class="mb-1"><small class="font-weight-bold">ኢሜይል</small></label>
         <input type="email" class="form-control form-control-sm" placeholder="ኢሜይል ያስገቡ" name="email">
       </div>
     </div>
+</div>
+
+  <div class="row">
+    
     <div class="col-md-6">
   <div class="form-group mb-2">
     <label for="password" class="mb-1"><small class="font-weight-bold">Password</small></label>
