@@ -722,12 +722,13 @@ public function countJobSeekersByHierarchy(string $myBranchId): int
 }
 public function getJobSeekersByHierarchy(int $myBranchId, int $limit, int $offset): array
 {
-    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender,
-                   js.branch_id, js.educational_level, js.age,js.created_at,
+    $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name, js.gender, js.phone_number, 
+                   js.branch_id, js.educational_level, js.age, js.created_at,
                    b.name AS branch_name, b.level AS branch_level,
                    anc.internal_id AS display_branch_id,
                    anc.name AS display_branch_name,
-                   anc.level AS display_branch_level
+                   anc.level AS display_branch_level,
+                   CONCAT_WS(' ', u.first_name, u.father_name, u.grand_father_name) AS registered_by_name
             FROM job_seekers js
             INNER JOIN branches b ON js.branch_id = b.internal_id
             INNER JOIN branches root ON root.internal_id = :my_branch
@@ -735,13 +736,14 @@ public function getJobSeekersByHierarchy(int $myBranchId, int $limit, int $offse
                    ON anc.level = root.level + 1
                   AND anc.path LIKE CONCAT(root.path, '%')
                   AND b.path LIKE CONCAT(anc.path, '%')
+            LEFT JOIN users u ON u.user_id = js.registered_by
             WHERE b.path LIKE CONCAT(root.path, '%')
             ORDER BY js.created_at DESC
             LIMIT :limit OFFSET :offset";
 
     try {
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':my_branch', $myBranchId);
+        $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();

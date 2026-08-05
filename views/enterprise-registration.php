@@ -49,22 +49,11 @@ $last24HoursCount = $recentCount ?? 0;
             <td><?= htmlspecialchars($ent['tine_number']) ?></td>
            <td><?= htmlspecialchars($ent['enterprise_type']) ?></td>
             <td class="text-center align-middle">
-  <div class="btn-group btn-group-sm shadow-sm" role="group">
-     <button class="btn btn-outline-primary btn-sm view-enterprise-btn"
-        data-id="<?= htmlspecialchars($ent['id']) ?>"
-        title="ዝርዝር">
+                       <a href="<?= rtrim($_ENV['BASE_URL'], '/') ?>/enterprises-details/<?= htmlspecialchars($ent['id']) ?>"
+   class="btn btn-outline-primary btn-sm"
+   title="ሙሉ መረጃ ይመልከቱ">
     <i class="fas fa-eye"></i>
-</button>
-             
-              <button class="btn btn-outline-warning btn-sm edit-enterprise-btn"
-        data-id="<?= htmlspecialchars($ent['id']) ?>"
-        title="አስተካክል">
-    <i class="fas fa-edit"></i>
-</button>
-             
-
-
-  </div>            
+</a>
 </td>
           </tr>
         <?php endforeach; ?>

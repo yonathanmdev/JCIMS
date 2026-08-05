@@ -33,13 +33,187 @@ $supportedByLabels = [
 ];
 
 ?>
+
+<style>
+  /* ---- Professional theme for enterprise details page ---- */
+  :root{
+    --ent-primary: #2456a6;
+    --ent-primary-dark: #1a3f80;
+    --ent-accent: #f2a900;
+    --ent-bg-soft: #f6f8fb;
+    --ent-border: #e3e8ef;
+    --ent-text-muted: #6b7684;
+    --ent-radius: 10px;
+  }
+
+  .ent-card{
+    border: 1px solid var(--ent-border);
+    border-radius: var(--ent-radius);
+    box-shadow: 0 2px 10px rgba(20, 40, 80, 0.06);
+    overflow: hidden;
+  }
+
+  .ent-card-header{
+    background: #fff;
+    padding: 1.1rem 1.5rem;
+    border-bottom: 1px solid var(--ent-border);
+  }
+
+  .ent-card-header .card-title{
+    color: #1f2933;
+    margin: 0;
+    letter-spacing: .02em;
+  }
+
+  .ent-card-header .card-title strong{
+    font-weight: 700;
+  }
+
+  .ent-card-header .btn-outline-primary,
+  .ent-card-header .btn-outline-secondary{
+    transition: all .15s ease-in-out;
+  }
+
+  .ent-location-banner{
+    background: var(--ent-bg-soft) !important;
+    border: 1px solid var(--ent-border) !important;
+    border-left: 4px solid var(--ent-primary) !important;
+    border-radius: 8px;
+  }
+
+  .ent-location-banner .bi-geo-alt-fill{
+    color: var(--ent-primary) !important;
+  }
+
+  .ent-section-title{
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ent-primary);
+    margin: 1.75rem 0 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 2px solid var(--ent-border);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .ent-section-title:first-of-type{
+    margin-top: .25rem;
+  }
+
+  .ent-field{
+    background: #fff;
+    border: 1px solid var(--ent-border);
+    border-radius: 8px;
+    padding: .85rem 1rem;
+    height: 100%;
+    transition: box-shadow .15s ease-in-out, border-color .15s ease-in-out;
+  }
+
+  .ent-field:hover{
+    border-color: var(--ent-primary);
+    box-shadow: 0 2px 8px rgba(36, 86, 166, 0.08);
+  }
+
+  .ent-field strong{
+    display: block;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--ent-text-muted);
+    margin-bottom: .3rem;
+  }
+
+  .ent-field > div:not(.ent-field-label){
+    font-size: .97rem;
+    font-weight: 500;
+    color: #1f2933;
+    word-break: break-word;
+  }
+
+  .ent-association-block{
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--ent-bg-soft);
+    border: 1px solid var(--ent-border);
+    border-radius: var(--ent-radius);
+  }
+
+  .ent-association-block .ent-section-title{
+    margin-top: 0;
+    border-bottom-color: #d7deea;
+  }
+
+  .ent-association-block .ent-field{
+    background: #fff;
+  }
+
+  .ent-members-card{
+    margin-top: 1.75rem;
+  }
+
+  .ent-members-count .badge{
+    background: var(--ent-primary);
+    font-weight: 600;
+    padding: .35em .65em;
+    vertical-align: middle;
+  }
+
+  .ent-table thead.thead-light th{
+    background: var(--ent-bg-soft);
+    color: var(--ent-text-muted);
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 700;
+    border-bottom: 2px solid var(--ent-border);
+    vertical-align: middle;
+  }
+
+  .ent-table td{
+    vertical-align: middle;
+  }
+
+  .ent-table tbody tr:hover{
+    background: var(--ent-bg-soft);
+  }
+
+  /* Edit modal */
+  #editEnterpriseModal .modal-content{
+    border: none;
+    border-radius: var(--ent-radius);
+    overflow: hidden;
+  }
+
+  #editEnterpriseModal .modal-header{
+    background: var(--ent-bg-soft);
+    border-bottom: 1px solid var(--ent-border);
+  }
+
+  #editEnterpriseModal .modal-title{
+    color: #1f2933;
+  }
+
+  #editEnterpriseModal label small{
+    color: var(--ent-text-muted);
+  }
+
+  #editEnterpriseModal .modal-footer{
+    background: #fff;
+    border-top: 1px solid var(--ent-border);
+  }
+</style>
+
 <section class="content">
   <div class="container-fluid">
 
-    <div class="card card-primary card-outline">
-      <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
-     <h3 class="card-title text-center"><strong><?= $isAssociation ? ' የማህበር' : ' የግል' ?> ኢንተርፕራይዝ መረጃ</strong></h3>
-<div class="ml-md-auto mt-2 mt-md-0">
+    <div class="card card-primary card-outline ent-card">
+      <div class="card-header ent-card-header d-flex flex-column flex-md-row align-items-md-center">
+        <h3 class="card-title text-center"><strong><?= $isAssociation ? ' የማህበር' : ' የግል' ?> ኢንተርፕራይዝ መረጃ</strong></h3>
+        <div class="ml-md-auto mt-2 mt-md-0">
           <?php if (AuthHelper::hasRole(['team_leader', 'officer'], [3, 4]) && $enterprise['branch_id'] === $_SESSION['user']['branch_id']): ?>
             <button type="button"
                     class="editEnterpriseBtn btn btn-outline-primary btn-sm"
@@ -55,162 +229,218 @@ $supportedByLabels = [
         </div>
       </div>
 
-     <div class="card-body">
-      <!-- Branch hierarchy path — full width, its own row -->
-       <?php if($enterprise['branch_display_path']): ?>
-  <div class="mb-4 p-3 bg-light border rounded d-flex align-items-center">
-    <i class="bi bi-geo-alt-fill text-primary me-2 fs-5"></i>
-    <div>
-      <div class="text-muted small fw-semibold text-uppercase">ኢንተርፕራይዙ የተመሰረተበት ቦታ</div>
-      <div class="fs-6 fw-medium"><?= htmlspecialchars($enterprise['branch_display_path'] ?? '—') ?></div>
-    </div>
-  </div>
-<?php endif; ?>
+      <div class="card-body">
+        <!-- Branch hierarchy path — full width, its own row -->
+        <?php if($enterprise['branch_display_path']): ?>
+          <div class="mb-4 p-3 ent-location-banner d-flex align-items-center">
+            <i class="bi bi-geo-alt-fill text-primary me-2 fs-5"></i>
+            <div>
+              <div class="text-muted small fw-semibold text-uppercase">ኢንተርፕራይዙ የተመሰረተበት ቦታ</div>
+              <div class="fs-6 fw-medium"><?= htmlspecialchars($enterprise['branch_display_path'] ?? '—') ?></div>
+            </div>
+          </div>
+        <?php endif; ?>
+
+        <div class="ent-section-title"><i class="fas fa-building"></i> መሰረታዊ መረጃ</div>
         <div class="row">
-        <div class="col-md-4 mb-3">
-            <strong>የኢንተርፕራይዝ ስም</strong>
-            <div><?= htmlspecialchars($enterprise['enterprisename'] ?? '—') ?></div>
-          </div>
-          
           <div class="col-md-4 mb-3">
-            <strong>TIN</strong>
-            <div><?= htmlspecialchars($enterprise['tine_number'] ?? '—') ?></div>
+            <div class="ent-field">
+              <strong>የኢንተርፕራይዝ ስም</strong>
+              <div><?= htmlspecialchars($enterprise['enterprisename'] ?? '—') ?></div>
+            </div>
           </div>
+
           <div class="col-md-4 mb-3">
-            <strong>የእድገት ደረጃ</strong>
-           <div><?= htmlspecialchars($yeedgetDerejaLabels[$enterprise['yeedget_dereja'] ?? null] ?? '—') ?></div>
-          </div>
-          <div class="col-md-4 mb-3">
-            <strong>የመነሻ ካፒታል</strong>
-            <div><?= htmlspecialchars($enterprise['initial_capital'] ?? '—') ?></div>
+            <div class="ent-field">
+              <strong>TIN</strong>
+              <div><?= htmlspecialchars($enterprise['tine_number'] ?? '—') ?></div>
+            </div>
           </div>
           <div class="col-md-4 mb-3">
-            <strong>በዓይነት የመነሻ ካፒታል</strong>
-            <div><?= htmlspecialchars($enterprise['starting_capital_in_kind'] ?? '—') ?></div>
+            <div class="ent-field">
+              <strong>የእድገት ደረጃ</strong>
+              <div><?= htmlspecialchars($yeedgetDerejaLabels[$enterprise['yeedget_dereja'] ?? null] ?? '—') ?></div>
+            </div>
           </div>
           <div class="col-md-4 mb-3">
-            <strong>የሃብት ምንጭ</strong>
-           <div><?= htmlspecialchars($yehabtuMnchLabels[$enterprise['yehabtu_mnch'] ?? null] ?? '—') ?></div>
+            <div class="ent-field">
+              <strong>የመነሻ ካፒታል</strong>
+              <div><?= htmlspecialchars($enterprise['initial_capital'] ?? '—') ?></div>
+            </div>
           </div>
           <div class="col-md-4 mb-3">
-            <strong>ወቅታዊ የሃብት መጠን</strong>
-            <div><?= htmlspecialchars($enterprise['wektawi_yehabt_meten'] ?? '—') ?></div>
+            <div class="ent-field">
+              <strong>በዓይነት የመነሻ ካፒታል</strong>
+              <div><?= htmlspecialchars($enterprise['starting_capital_in_kind'] ?? '—') ?></div>
+            </div>
           </div>
           <div class="col-md-4 mb-3">
-            <strong>የምርት አይነት</strong>
-            <div><?= htmlspecialchars($enterprise['yemrt_ayinet'] ?? '—') ?></div>
+            <div class="ent-field">
+              <strong>የሃብት ምንጭ</strong>
+              <div><?= htmlspecialchars($yehabtuMnchLabels[$enterprise['yehabtu_mnch'] ?? null] ?? '—') ?></div>
+            </div>
           </div>
           <div class="col-md-4 mb-3">
-            <strong>ምርቱ የሚቀርበው</strong>
-            <div><?= htmlspecialchars($enterprise['yemikerb_hager_weys_lewuch'] ?? '—') ?></div>
+            <div class="ent-field">
+              <strong>ወቅታዊ የሃብት መጠን</strong>
+              <div><?= htmlspecialchars($enterprise['wektawi_yehabt_meten'] ?? '—') ?></div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="ent-field">
+              <strong>የምርት አይነት</strong>
+              <div><?= htmlspecialchars($enterprise['yemrt_ayinet'] ?? '—') ?></div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="ent-field">
+              <strong>ምርቱ የሚቀርበው</strong>
+              <div><?= htmlspecialchars($enterprise['yemikerb_hager_weys_lewuch'] ?? '—') ?></div>
+            </div>
           </div>
 
           <?php if (!empty($enterprise['supported_by'])): ?>
             <div class="col-md-4 mb-3">
-              <strong>ድጋፍ ያደረገው አካል</strong>
-              <div> <?php $supportedByValue = $enterprise['supported_by'] ?? '';
-              $supportedByText  = $supportedByLabels[$supportedByValue] ?? '—';?></div>
+              <div class="ent-field">
+                <strong>ድጋፍ ያደረገው አካል</strong>
+                <div> <?php $supportedByValue = $enterprise['supported_by'] ?? '';
+                $supportedByText  = $supportedByLabels[$supportedByValue] ?? '—';?></div>
+              </div>
             </div>
             <?php if (!empty($enterprise['supporter_NGO'])): ?>
               <div class="col-md-4 mb-3">
-                <strong>ደጋፊ NGO</strong>
-                <div><?= htmlspecialchars($enterprise['supporter_NGO']) ?></div>
+                <div class="ent-field">
+                  <strong>ደጋፊ NGO</strong>
+                  <div><?= htmlspecialchars($enterprise['supporter_ngo_name'] ?? '—') ?></div>
+                </div>
               </div>
             <?php endif; ?>
             <?php if (!empty($enterprise['supporter_other'])): ?>
               <div class="col-md-4 mb-3">
-                <strong>ሌላ ደጋፊ</strong>
-                <div><?= htmlspecialchars($enterprise['supporter_other']) ?></div>
+                <div class="ent-field">
+                  <strong>ሌላ ደጋፊ</strong>
+                  <div><?= htmlspecialchars($enterprise['supporter_other'] ?? '—') ?></div>
+                </div>
               </div>
             <?php endif; ?>
             <?php if (!empty($enterprise['supported_items'])): ?>
               <div class="col-md-4 mb-3">
-                <strong>የተደገፉ ዕቃዎች</strong>
-                <div><?= htmlspecialchars($enterprise['supported_items']) ?></div>
+                <div class="ent-field">
+                  <strong>የተደገፉ ዕቃዎች</strong>
+                  <div><?= htmlspecialchars($enterprise['supported_items'] ?? '—') ?></div>
+                </div>
               </div>
             <?php endif; ?>
           <?php endif; ?>
 
           <div class="col-md-4 mb-3">
-            <strong>የተቋቋመበት ቀን</strong>
-            <div>
-              <?php if (!empty($enterprise['established_date'])):
-                  $parts = explode('-', $enterprise['established_date']);
-                  $eth = EthiopianDateHelper::toEthCalendar($parts[2], $parts[1], $parts[0]);
-              ?>
-                <?= EthiopianDateHelper::getMonthName($eth['month']) ?> <?= $eth['day'] ?> <?= $eth['year'] ?>
-              <?php else: ?>
-                —
-              <?php endif; ?>
+            <div class="ent-field">
+              <strong>የተቋቋመበት ቀን</strong>
+              <div>
+                <?php if (!empty($enterprise['established_date'])):
+                    $parts = explode('-', $enterprise['established_date']);
+                    $eth = EthiopianDateHelper::toEthCalendar($parts[2], $parts[1], $parts[0]);
+                ?>
+                  <?= EthiopianDateHelper::getMonthName($eth['month']) ?> <?= $eth['day'] ?> <?= $eth['year'] ?>
+                <?php else: ?>
+                  —
+                <?php endif; ?>
+              </div>
             </div>
           </div>
+
           <div class="col-md-4 mb-3">
+            <div class="ent-field">
               <strong>የተቋቋመበት አካባቢ</strong>
               <div><?= htmlspecialchars($linked['yetederajubet_akababi'] ?? '—') ?></div>
             </div>
-             <div class="col-md-4 mb-3">
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="ent-field">
               <strong>ዘርፍ</strong>
               <div><?= htmlspecialchars($linked['sector_name'] ?? '—') ?></div>
             </div>
-            <div class="col-md-4 mb-3">
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="ent-field">
               <strong>ንዑስ ዘርፍ</strong>
               <div><?= htmlspecialchars($linked['subsector_name'] ?? '—') ?></div>
             </div>
-              <div class="col-md-4 mb-3">
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="ent-field">
               <strong>የስራ መስክ</strong>
               <div><?= htmlspecialchars($linked['yesra_mesk'] ?? '—') ?></div>
             </div>
-            <div class="col-md-4 mb-3">
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="ent-field">
               <strong>ኢንተርፕሪዙ የተመሰረተበት ሁኔታ</strong>
               <div><?= htmlspecialchars($linked['yeaderejajet_ayinet'] ?? '—') ?></div>
             </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="ent-field">
+              <strong>የመዘገበው ባለሙያ</strong>
+              <div><?= htmlspecialchars($enterprise['registered_by_name'] ?? '—') ?></div>
+            </div>
+          </div>
         </div>
-      
 
     <?php if ($isAssociation): ?>
       <!-- Association / Group details -->
-          <div class="row">
-            <div class="col-md-4 mb-3">
-              <strong>የስራ አስኪያጅ ስልክ ቁጥር</strong>
-              <div><?= htmlspecialchars($linked['manager_phone'] ?? '—') ?></div>
-            </div>
-          </div>
-          <hr>
+        <div class="ent-association-block">
+          <div class="ent-section-title"><i class="fas fa-users"></i> የማህበር አመራር መረጃ</div>
           <div class="row">
             <div class="col-md-3 mb-3">
-              <strong>ሊቀመንበር</strong>
-              <div><?= htmlspecialchars($linked['teamleader_id'] ?? '—') ?></div>
+              <div class="ent-field">
+                <strong>ሊቀመንበር</strong>
+                <div><?= htmlspecialchars($linked['teamleader_name'] ?? '—') ?></div>
+              </div>
             </div>
             <div class="col-md-3 mb-3">
-              <strong>ም/ሊቀመንበር</strong>
-              <div><?= htmlspecialchars($linked['vice_teamleader_id'] ?? '—') ?></div>
+              <div class="ent-field">
+                <strong>ም/ሊቀመንበር</strong>
+                <div><?= htmlspecialchars($linked['vice_teamleader_name'] ?? '—') ?></div>
+              </div>
             </div>
             <div class="col-md-3 mb-3">
-              <strong>ገንዘብ ያዥ</strong>
-              <div><?= htmlspecialchars($linked['treasurer'] ?? '—') ?></div>
+              <div class="ent-field">
+                <strong>ገንዘብ ያዥ</strong>
+                <div><?= htmlspecialchars($linked['treasurer_name'] ?? '—') ?></div>
+              </div>
             </div>
             <div class="col-md-3 mb-3">
-              <strong>ግዥ</strong>
-              <div><?= htmlspecialchars($linked['procurement'] ?? '—') ?></div>
+              <div class="ent-field">
+                <strong>ግዥ</strong>
+                <div><?= htmlspecialchars($linked['procurement_name'] ?? '—') ?></div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-3">
+              <div class="ent-field">
+                <strong>የስራ አስኪያጅ ስልክ ቁጥር</strong>
+                <div><?= htmlspecialchars($linked['manager_phone'] ?? '—') ?></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
     <?php endif; ?>
 
     <!-- Members -->
-    <div class="card card-primary card-outline">
+    <div class="card card-primary card-outline ent-card ent-members-card">
  
-    <div class="card-header bg-white d-flex flex-column flex-md-row align-items-md-center">
+    <div class="card-header ent-card-header d-flex flex-column flex-md-row align-items-md-center">
         <h3 class="card-title"><?= $isAssociation ? ' አባላት' : '' ?></h3>
       </div>
 
       <div class="card-body">
-        <small class="text-muted">
+        <small class="text-muted ent-members-count">
           <?= $isAssociation ? ' ጠቅላላ አባላት ብዛት፦' : ' ' ?>
           <span class="badge badge-primary">   <?= $isAssociation ? count($members) : ' ' ?></span>
         </small>
-        <table class="table table-bordered table-hover small mt-3">
+        <table class="table table-bordered table-hover small mt-3 ent-table">
           <thead class="thead-light">
             <tr>
               <th>#</th>
@@ -333,7 +563,7 @@ $supportedByLabels = [
             <div class="col-12 col-sm-6 col-md-3">
               <div class="form-group mb-2">
                 <label class="mb-1" for="edit_wektawi_yehabt_meten"><small class="font-weight-bold">ወቅታዊ የሃብት መጠን <span class="text-danger">*</span></small></label>
-                <input type="text" class="form-control form-control-sm" id="edit_wektawi_yehabt_meten" name="wektawi_yehabt_meten"
+                 <input type="number" step="any" class="form-control form-control-sm" id="edit_wektawi_yehabt_meten" name="wektawi_yehabt_meten"
                        value="<?= htmlspecialchars($enterprise['wektawi_yehabt_meten'] ?? '') ?>" required>
               </div>
             </div>
@@ -371,7 +601,7 @@ $supportedByLabels = [
                   <input type="text" class="form-control form-control-sm" value="<?= htmlspecialchars($linked['subsector_name'] ?? '—') ?>" disabled>
                 </div>
               </div>
-              <small class="text-muted col-12 mb-2">ዘርፍና ንዑስ ዘርፍ ለማህበር ዓይነት ኢንተርፕራይዞች እዚህ ላይ ማስተካከል አይቻልም</small>
+             
           <?php else: ?>
   <div class="col-12 col-sm-6 col-md-3">
     <div class="form-group mb-2">
@@ -409,9 +639,46 @@ $supportedByLabels = [
                        value="<?= htmlspecialchars($linked['yesra_mesk'] ?? '') ?>" required>
               </div>
             </div>
+            
+<div class="col-12 col-sm-6 col-md-3">
+    <div class="form-group mb-2">
+        <label class="mb-1" for="eth_start_date">
+            <small class="font-weight-bold">የተቋቋመበት ቀን</small>
+        </label>
 
+        <?php
+        $ethDate = '';
+        if (!empty($enterprise['established_date'])) {
+            $parts = explode('-', $enterprise['established_date']); // YYYY-MM-DD
+            $eth = EthiopianDateHelper::toEthCalendar($parts[2], $parts[1], $parts[0]);
+
+            $ethDate = EthiopianDateHelper::getMonthName($eth['month'])
+                     . ' ' . $eth['day']
+                     . ' ' . $eth['year'];
+        }
+        ?>
+
+        <input type="text"
+               class="ethiopian-date form-control"
+               name="eth_start_date"
+               id="eth_start_date"
+               value="<?= htmlspecialchars($ethDate) ?>"
+               data-rule="past"
+               data-gregorian="#established_date"
+               placeholder="ቀን/ወር/ዓ.ም"
+               readonly
+               style="background-color:#fff; cursor:pointer;">
+
+        <input type="date"
+               class="d-none"
+               id="established_date"
+               name="established_date"
+               value="<?= htmlspecialchars($enterprise['established_date'] ?? '') ?>">
+    </div>
+</div>
+      
           </div>
-
+<small class="text-muted mb-0">ዘርፍና ንዑስ ዘርፍ ለማህበር ኢንተርፕራይዞች እዚህ ላይ ማስተካከል አይቻልም:: አደርጃጀት ላይ ያስተካክሉ</small>
           <p class="text-muted mb-0">ከማስቀመጥዎ በፊት የቀየሩትን መረጃ ትክክለኛነት ያረጋግጡ።</p>
         </div>
 
