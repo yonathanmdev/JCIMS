@@ -10,7 +10,7 @@ class JobseekerTransferController extends BaseController {
          AuthHelper::checkRole(['team_leader', 'officer']);
  $myBranchId  = $_SESSION['user']['branch_id'];
  $jobSeekerModel = new JobSeekerModel($this->db);
- $limit = 50;
+ $limit = 1000;
     $currentPage = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($currentPage - 1) * $limit;
 

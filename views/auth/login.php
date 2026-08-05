@@ -507,7 +507,8 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
 
             </form>
-
+            
+<a href="https://bols.gov.et/jcims1" target="_blank" class="forgot-link" style="color: #fd0956; display:block; text-align:center; margin-top:1.5rem;"><h4>2018 Data</h4></a>
             <p class="login-note">Protected by secure session management. &copy; <?php echo date('Y'); ?> Warka Hub JCIMS.</p>
 
         </div>

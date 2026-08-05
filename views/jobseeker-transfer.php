@@ -48,6 +48,9 @@
           </table>
 
         </div>
+        <?php
+$basePath = rtrim($_ENV['BASE_URL'], '/') . '/jobseeker-transfer'; ?>
+        <?php include 'partials/pagination.php'; ?>
       </div>
     </div>
   </div>

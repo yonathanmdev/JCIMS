@@ -222,8 +222,10 @@ document.getElementById('transferActionForm').addEventListener('submit', functio
     
     var formData = new FormData(this);
     
-    // ማሳሰቢያ፦ የ route ዩአርኤልን እንደ ሲስተምህ አወቃቀር (ለምሳሌ /jobseeker-transfer/decision) ቀይረው
-fetch('/jobseeker-transfer-decision', { 
+const basePath = "<?= htmlspecialchars(rtrim($_ENV['BASE_URL'] ?? '', '/'), ENT_QUOTES, 'UTF-8') ?>";
+
+    // 2. Fetch ጥሪውን ማድረግ
+    fetch(`${basePath}/jobseeker-transfer-decision`, {
     method: 'POST',
     body: formData
 })
