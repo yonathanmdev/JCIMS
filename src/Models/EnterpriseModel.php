@@ -675,21 +675,24 @@ public function getEnterpriseDetails(int $branchId, string $enterpriseId, array 
     }
     $inClause = implode(',', $inNames);
 
-    $stmt = $this->db->prepare("
-        SELECT c.id, c.code003_id, c.branch_id, c.junction_table_id,
-               c.enterprisename, c.tine_number, c.yeedget_dereja, c.initial_capital,
-               c.starting_capital_in_kind, c.yehabtu_mnch, c.wektawi_yehabt_meten,
-               c.yemrt_ayinet, c.yemikerb_hager_weys_lewuch, c.supported_by,
-               c.supporter_NGO, c.supporter_other, c.supported_items, c.established_date,
-               jt.team_id, jt.individual_enterprise_id
-        FROM code003 c
-        INNER JOIN junction_table_individual_and_team jt ON jt.table_id = c.junction_table_id
-        WHERE c.branch_id IN ($inClause) AND c.id = :enterpriseId
-        LIMIT 1
-    ");
-    $stmt->execute($inParams + [':enterpriseId' => $enterpriseId]);
-    $enterprise = $stmt->fetch(\PDO::FETCH_ASSOC);
-
+ $stmt = $this->db->prepare("
+    SELECT c.id, c.code003_id, c.branch_id, c.junction_table_id,
+           c.enterprisename, c.tine_number, c.yeedget_dereja, c.initial_capital,
+           c.starting_capital_in_kind, c.yehabtu_mnch, c.wektawi_yehabt_meten,
+           c.yemrt_ayinet, c.yemikerb_hager_weys_lewuch, c.supported_by,
+           c.supporter_NGO, c.supporter_other, c.supported_items, c.established_date,
+           jt.team_id, jt.individual_enterprise_id,
+           pn.pname AS supporter_ngo_name,
+           CONCAT_WS(' ', u.first_name, u.father_name, u.grand_father_name) AS registered_by_name
+    FROM code003 c
+    INNER JOIN junction_table_individual_and_team jt ON jt.table_id = c.junction_table_id
+    LEFT JOIN projectngos pn ON pn.pid = c.supporter_NGO
+    LEFT JOIN users u ON u.user_id = c.cregby
+    WHERE c.branch_id IN ($inClause) AND c.id = :enterpriseId
+    LIMIT 1
+");
+$stmt->execute($inParams + [':enterpriseId' => $enterpriseId]);
+$enterprise = $stmt->fetch(\PDO::FETCH_ASSOC);
     if (!$enterprise) {
         return null;
     }
@@ -702,27 +705,67 @@ public function getEnterpriseDetails(int $branchId, string $enterpriseId, array 
     $isAssociation = !empty($enterprise['team_id']);
     $enterprise['type'] = $isAssociation ? 'association' : 'individual';
 
-    if ($isAssociation) {
-        $stmt = $this->db->prepare("
-            SELECT g.id , g.table_id, g.branch_id, g.yetederajubet_akababi, g.association_name,
-                   g.sub_sector, g.yesra_mesk, g.project_type AS yeaderejajet_ayinet, g.user_level, g.teamleader_id,
-                   g.manager_phone, g.vice_teamleader_id, g.treasurer, g.procurement,
-                   g.org_type, g.overseastatus, g.registered_by,
-                   s.sectorid as sector_id,
-                   s.sector AS sector_name,
-                   ss.subsector AS subsector_name,
-                   ss.sub_sectorid
-            FROM group_table g
-            LEFT JOIN sub_sector ss ON ss.sub_sectorid = g.sub_sector
-            LEFT JOIN sector_table s ON s.sectorid = ss.sectorid
-            WHERE g.branch_id = :branchId AND g.table_id = :teamId
-        ");
-        $stmt->execute([
-            ':branchId' => $enterpriseBranchId,
-            ':teamId'   => $enterprise['team_id'],
-        ]);
-        $enterprise['linked_entity'] = $stmt->fetch(\PDO::FETCH_ASSOC);
-    } else {
+if ($isAssociation) {
+    $stmt = $this->db->prepare("
+        SELECT g.id, g.table_id, g.branch_id, g.yetederajubet_akababi, g.association_name,
+               g.sub_sector, g.yesra_mesk, g.project_type AS yeaderejajet_ayinet, g.user_level, g.teamleader_id,
+               g.manager_phone, g.vice_teamleader_id, g.treasurer, g.procurement,
+               g.org_type, g.overseastatus, g.registered_by,
+               s.sectorid AS sector_id,
+               s.sector AS sector_name,
+               ss.subsector AS subsector_name,
+               ss.sub_sectorid
+        FROM group_table g
+        LEFT JOIN sub_sector ss ON ss.sub_sectorid = g.sub_sector
+        LEFT JOIN sector_table s ON s.sectorid = ss.sectorid
+        WHERE g.branch_id = :branchId AND g.table_id = :teamId
+    ");
+    $stmt->execute([
+        ':branchId' => $enterpriseBranchId,
+        ':teamId'   => $enterprise['team_id'],
+    ]);
+    $linkedEntity = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    if ($linkedEntity) {
+        // Collect the position-holder IDs, dropping nulls/empties and duplicates
+        // (e.g. same person could theoretically hold two roles)
+        $positionIds = array_unique(array_filter([
+            $linkedEntity['teamleader_id'] ?? null,
+            $linkedEntity['vice_teamleader_id'] ?? null,
+            $linkedEntity['treasurer'] ?? null,
+            $linkedEntity['procurement'] ?? null,
+        ]));
+
+        $peopleById = [];
+
+        if ($positionIds) {
+            $placeholders = implode(',', array_fill(0, count($positionIds), '?'));
+            $peopleStmt = $this->db->prepare("
+                SELECT job_seeker_id, first_name, father_name, last_name
+                FROM job_seekers
+                WHERE job_seeker_id IN ($placeholders)
+            ");
+            $peopleStmt->execute(array_values($positionIds));
+
+            foreach ($peopleStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $peopleById[$row['job_seeker_id']] = trim(
+                    ($row['first_name'] ?? '') . ' ' .
+                    ($row['father_name'] ?? '') . ' ' .
+                    ($row['last_name'] ?? '')
+                );
+            }
+        }
+
+        // Attach resolved display names directly onto the linked entity,
+        // so the view can just echo $linkedEntity['teamleader_name'] etc.
+        $linkedEntity['teamleader_name']      = $peopleById[$linkedEntity['teamleader_id']] ?? null;
+        $linkedEntity['vice_teamleader_name'] = $peopleById[$linkedEntity['vice_teamleader_id']] ?? null;
+        $linkedEntity['treasurer_name']       = $peopleById[$linkedEntity['treasurer']] ?? null;
+        $linkedEntity['procurement_name']     = $peopleById[$linkedEntity['procurement']] ?? null;
+    }
+
+    $enterprise['linked_entity'] = $linkedEntity;
+} else {
         $stmt = $this->db->prepare("
             SELECT ie.id, ie.individual_ent_id, ie.job_seeker_id, ie.yeaderejajet_ayinet,
                    ie.yeminorubet_acababi AS yetederajubet_akababi, ie.sector AS sector_id, ie.sub_sector AS sub_sectorid,

@@ -88,7 +88,7 @@
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="wektawi_yehabt_meten"><small class="font-weight-bold">ወቅታዊ የሃብት መጠን <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="wektawi_yehabt_meten" name="wektawi_yehabt_meten" required>
+                   <input type="number" step="any" class="form-control form-control-sm" id="wektawi_yehabt_meten" name="wektawi_yehabt_meten" required>
                 </div>
               </div>
             
