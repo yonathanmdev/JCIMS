@@ -66,6 +66,7 @@ class UserController extends BaseController {
         $firstName       = isset($_POST['firstname'])       ? trim($_POST['firstname'])       : '';
         $fatherName      = isset($_POST['fathername'])      ? trim($_POST['fathername'])      : '';
         $gFatherName     = isset($_POST['grandfathername']) ? trim($_POST['grandfathername']) : '';
+        $gender          = isset($_POST['gender'])          ? trim($_POST['gender'])          : '';
         $email           = isset($_POST['email'])           ? trim($_POST['email'])           : '';
         $password        = $_POST['password'] ?? '';
         $txtpassword        = $_POST['password'] ?? '';
@@ -74,6 +75,7 @@ class UserController extends BaseController {
 
         $branchModel     = new Branch($this->db);
         $sessionRole     = $_SESSION['user']['role'];
+        $full_name       = $firstName . ' ' . $fatherName . ' ' . $gFatherName;
 
         if ($sessionRole === 'system_admin') {
             $role = 'org_admin';
@@ -108,17 +110,12 @@ class UserController extends BaseController {
             exit();
         }
             $role            = $_POST['role'] ?? '';
+
             $organization_id = $branchLevel['organization_id'];
 
-            $allowedRoles = ['org_admin', 'team_leader', 'officer'];
-            if (!in_array($role, $allowedRoles)) {
-                $_SESSION['error'] = "የተፈቀደ Role አልተመረጠም!";
-                header("Location: " . $_ENV['BASE_URL'] . "/register-user");
-                exit();
-            }
 
-            if ($role === 'org_admin') {
-                // branch comes from POST (selected sub-branch)
+            if ($role === 'org_admin' || $role === 'rular_officer' || $role === 'one_stop_center_team_leader') {
+                // branch comes from POST (selected sub-branch)', 
                 if (empty($postedBranchId)) {
                     $_SESSION['error'] = "እባክዎ ቅርንጫፍ ይምረጡ!";
                     header("Location: " . $_ENV['BASE_URL'] . "/register-user");
@@ -135,18 +132,33 @@ class UserController extends BaseController {
                     exit();
                 }
                 $mainBranchId = $subBranch['internal_id'];
+                if($role=='rular_officer'){
+                      $role = 'officer';
+                }
+                elseif ($role=='one_stop_center_team_leader'){
+                     $role = 'team_leader'; // የማዕከል ቡድን መሪ እንደ team_leader ይመዘገባሉ
+                 
+                }
+               
 
             } else {
                 // team_leader / officer: branch is always session branch — ignore POST
                 $mainBranchId = $_SESSION['user']['branch_id'];
             }
+                $allowedRoles = ['org_admin', 'team_leader', 'officer'];
+            if (!in_array($role, $allowedRoles)) {
+                $_SESSION['error'] = "የተፈቀደ Role አልተመረጠም!";
+                header("Location: " . $_ENV['BASE_URL'] . "/register-user");
+                exit();
+            }
+
         }
 
         $registeredBy = $_SESSION['user']['id'] ?? null;
 
         // 2. Basic validation
         if (empty($firstName) || empty($password) || empty($role)
-            || empty($fatherName) || empty($gFatherName) || empty($phone)) {
+            || empty($fatherName) || empty($gFatherName) || empty($phone) || empty($gender)) {
             $_SESSION['error'] = "እባክዎ ሁሉንም አስፈላጊ መረጃዎች በትክክል ያስገቡ!";
             header("Location: " . $_ENV['BASE_URL'] . "/register-user");
             exit();
@@ -157,6 +169,12 @@ class UserController extends BaseController {
         header("Location: " . $_ENV['BASE_URL'] . "/register-user");
         exit();
     }
+}
+$allwedGender = ['ወንድ', 'ሴት'];
+if (!in_array($gender, $allwedGender)) {
+    $_SESSION['error'] = "እባክዎ ጽታ በትክክል ያስገቡ!";
+    header("Location: " . $_ENV['BASE_URL'] . "/register-user");
+    exit();
 }
         // 3. UUID and password hash
         $uuid           = Uuid::uuid7()->toString();
@@ -171,6 +189,7 @@ class UserController extends BaseController {
                 $firstName,
                 $fatherName,
                 $gFatherName,
+                $gender,
                 $phone,
                 $email,
                 $hashedPassword,
@@ -179,7 +198,15 @@ class UserController extends BaseController {
                 $registeredBy
             );
 
-            if ($result) {
+          if ($result !== false) {
+                $userName = $result;
+
+    $phoneNumber = '251' . ltrim(trim($phone), '0');
+    $message = "Dear {$full_name}, Your username is {$userName},"
+             . "and your temporary password is:- {$txtpassword}. "
+             . "Please log in and change your password.";
+
+    \App\Helpers\SmsHelper::send($phoneNumber, $message);
                 \App\Helpers\AuditHelper::log('user_created', 'user', $uuid, null, [
                     'branch_id'       => $mainBranchId,
                     'first_name'      => $firstName,
@@ -187,6 +214,7 @@ class UserController extends BaseController {
                     'grand_father_name' => $gFatherName,
                     'phone'           => $phone,
                     'email'           => $email,
+                    'gender'          => $gender,
                     'role'            => $role,
                     'registered_by'   => $registeredBy
                 ]);
@@ -261,7 +289,8 @@ public function handleUpdateUser()
             'father_name'       => trim($_POST['edit_fathername']),
             'grand_father_name' => trim($_POST['edit_grandfathername']),
             'phone'             => trim($_POST['edit_phone']),
-            'email'             => trim($_POST['edit_email'])
+            'email'             => trim($_POST['edit_email']),
+            'gender'            => trim($_POST['edit_gender'])
         ];
 
         // 2. Validation (መሰረታዊ ማረጋገጫ)
@@ -338,7 +367,7 @@ public function resetPassword(): void
     $newPassword = (string) random_int(100000, 999999);
     $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
-    $success = $userModel->resetPassword($userId, $hashedPassword);
+    $success = $userModel->resetPassword($userId, $hashedPassword, $newPassword);
 
     if (!$success) {
         $_SESSION['error'] = 'Error updating record.';

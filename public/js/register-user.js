@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-
     const roleSelector      = document.getElementById("roleSelector");
     const orgSelector       = document.getElementById("orgSelector");
     const orgSelectorHidden = document.getElementById("orgSelectorHidden");
@@ -11,6 +10,17 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("synced hidden to:", orgSelectorHidden.value); // debug
     }
 
+    function populateBranchList() {
+        orgSelector.disabled = false;
+
+        let options = `<option value="">-- ቅርንጫፍ ይምረጡ --</option>`;
+        SUB_BRANCHES.forEach(function (branch) {
+            options += `<option value="${branch.id}">${branch.name}</option>`;
+        });
+        orgSelector.innerHTML = options;
+        orgSelectorHidden.value = ""; // reset until user picks
+    }
+
     function handleRoleChange() {
         const role = roleSelector.value;
 
@@ -20,15 +30,9 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        if (role === 'org_admin') {
-            orgSelector.disabled = false;
-
-            let options = `<option value="">-- ቅርንጫፍ ይምረጡ --</option>`;
-            SUB_BRANCHES.forEach(function (branch) {
-                options += `<option value="${branch.id}">${branch.name}</option>`;
-            });
-            orgSelector.innerHTML = options;
-            orgSelectorHidden.value = ""; // reset until user picks
+        if (role === 'org_admin' || role === 'rular_officer' || role === 'one_stop_center_team_leader') {
+            // both roles pick from the same branch list
+            populateBranchList();
 
         } else if (role === 'team_leader' || role === 'officer') {
             orgSelector.innerHTML =
