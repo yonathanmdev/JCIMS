@@ -238,14 +238,19 @@ $sectors  = $sectorModel->getSectors();
         'birthdate'       => $birthdate,
         'age'             => $faydaAge,
     ];
-
+     
     $errors = $this->validate($_POST, $faydaData['gender']);
     if (!empty($errors)) {
         $_SESSION['form_error'] = implode(' | ', $errors);
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
         exit;
     }
-
+   $fan = $faydaData['FAN'] ?? '';
+    if ($fan !== '') {
+        if (!preg_match('/^\d{16}$/', $fan)) {
+            $_SESSION['error'] = "FAN በትክክል 16 ቁጥር ማካተት አለበት።";
+        }
+    }
     $sectorModel = new SectorModel($this->db);
 
     $sectorChoicePairs = [

@@ -27,8 +27,6 @@ if ($faydaBirthdate !== '') {
 
 $formError = $_SESSION['form_error'] ?? null;
 unset($_SESSION['form_error']);
-
-$fiscal_year = (int)date('Y'); // adjust to your actual fiscal year source if different
 $sectors = $sectors ?? []; // expected to be passed in from the controller, same as the modal
 ?>
 <style>
@@ -441,7 +439,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     </div>
                     <div class="col-12 col-sm-6 col-md-3 field-dept">
                         <div class="form-group mb-2">
-                            <label class="mb-1" for="graguation_catagory"><small class="font-weight-bold">ያጠናቀቁበት ሙያ የስራ ምድብ <span class="text-danger">*</span></small></label>
+                            <label clasis_jobseeker_reg_fayda_pages="mb-1" for="graguation_catagory"><small class="font-weight-bold">ያጠናቀቁበት ሙያ የስራ ምድብ <span class="text-danger">*</span></small></label>
                             <select class="form-control form-control-sm" name="graguation_catagory" id="graguation_catagory">
                                 <option value="" selected="selected">&larr; ይምረጡ &rarr;</option>
                                 <option>Accounting and Finance Jobs</option>
