@@ -289,7 +289,7 @@ window.addEventListener('load', function() {
             debugMessage += "ይህንን መረጃ ወደ ጀርባ (PHP) ለመላክ 'OK' ን ይጫኑ።";
 
             // 💡 3. መረጃውን በፖፕ-አፕ ማሳየት
-            alert(debugMessage);
+           // alert(debugMessage);
 
             // 💡 4. አሁን ወደ እውነተኛው የ AJAX ጥሪ ይቀጥላል
             // አሬይ የተደረገውን ዳታ ወደ መደበኛ የ serialize ቴክስት ቀይሮ ለመላክ $.param እንጠቀማለን
