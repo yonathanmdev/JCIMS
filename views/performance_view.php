@@ -109,7 +109,7 @@
         </thead>
         <tbody>
             <?php
-            // የጠቅላላ ድምር መያዣዎች
+            // የጠቅላላ ድምር መያYaዣ ዎች
             $tot_p_plan = $tot_p_m = $tot_p_f = $tot_p_sum = 0;
             $tot_a_plan = $tot_a_m = $tot_a_f = $tot_a_sum = 0;
 
