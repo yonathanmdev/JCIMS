@@ -145,7 +145,7 @@ public function processRegistration() {
 
         // 4. መልእክቱን ማዘጋጀት
         $message = "{$firstName}፣ {$jobTypeStr} ስራ እድል እንደተፈጠረሎት በ {$branch_name} {$levelname} ሪፖርት ተደርጎልናል። "
-                 . "የውሸት/ሀሰት ከሆነ {$branch_name} {$levelname} ያናግሩ ወይም በ 0918394716 ያሳውቁ። "
+                 . "የውሸት/ሀሰት ከሆነ {$branch_name} {$levelname} ያናግሩ ወይም በ 0904354716 ያሳውቁ። "
                  . "ስራና ክህሎት ቢሮ።";
 
         // 5. ኤስኤምኤስ መላክ (የደህንነት Try-Catch)
