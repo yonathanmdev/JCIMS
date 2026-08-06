@@ -1925,7 +1925,7 @@ if ($isKetemaAstedader) {
                     WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 16689
                     WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 110391
                     WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 12293
-                    ELSE 50000
+                    ELSE 0
                 END AS p_plan,
 
                 COALESCE(jsc.p_m, 0) AS p_m,
@@ -1956,7 +1956,7 @@ if ($isKetemaAstedader) {
                     WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 16689
                     WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 110391
                     WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 12293
-                    ELSE 50000
+                    ELSE 0
                 END AS a_plan,
 
                 COALESCE(jsc.a_m, 0) AS a_m,
