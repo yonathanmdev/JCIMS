@@ -1,4 +1,5 @@
 (function (TF) {
+    
     const searchInput = document.getElementById('jobseeker-add-search');
     const resultsBox = document.getElementById('jobseeker-search-results');
     const selectedTable = document.getElementById('selected-jobseekers-table');
@@ -45,10 +46,11 @@
                     በመፈለግ ላይ...
                 </div>`;
             resultsBox.style.display = 'block';
+ const teamType = document.getElementById('organization_type').value;
 
-            fetch(`${window.BASE_URL}/jobseekers-search-for-organizing?term=${encodeURIComponent(term)}`, {
-                signal: searchAbort.signal
-            })
+        fetch(`${window.BASE_URL}/jobseekers-search-for-organizing?term=${encodeURIComponent(term)}&org_type=${encodeURIComponent(teamType)}`, {
+            signal: searchAbort.signal
+        })
                 .then(res => res.json())
                 .then(data => {
                     if (!data.success) {

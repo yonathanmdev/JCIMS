@@ -116,7 +116,19 @@
                <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="kebele"><small class="font-weight-bold">ቀበሌ <span class="text-danger">*</span></small></label>
-                  <input type="text" class="form-control form-control-sm" id="kebele" name="kebele" data-validate="general-safe" required>
+                <?php $isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on'; ?>
+
+<?php if ($isKetemaAstedader): ?>
+    <input type="text" class="form-control form-control-sm" id="kebele" name="kebele"
+           data-validate="general-safe" required placeholder="ቀበሌ ያስገቡ">
+<?php else: ?>
+    <select class="form-control form-control-sm" id="kebele" name="kebele" data-validate="general-safe" required>
+        <option value="" selected="selected" disabled>&larr; ይምረጡ &rarr;</option>
+        <?php foreach ($listofKebeles as $kebele): ?>
+            <option value="<?= htmlspecialchars($kebele['kebele']) ?>"><?= htmlspecialchars($kebele['kebele']) ?></option>
+        <?php endforeach; ?>
+    </select>
+<?php endif; ?>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">

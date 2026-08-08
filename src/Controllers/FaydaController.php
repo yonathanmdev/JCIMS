@@ -44,54 +44,122 @@ class FaydaController extends BaseController
      * action=fayda-redirect
      * GET params: registration_type=new|renewal, job_seeker_id (renewal only)
      */
-    public function redirect(): void
-    {
-        $type = $_GET['registration_type'] ?? '';
-        if ($type === 'new') {
-            $this->proceedToFayda('new', null);
-            return;
-        }
+   public function redirect(): void
+{
+    AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+    $fiscalYear = AuthHelper::checkFiscalYear();
+    $baseUrl = rtrim($_ENV['BASE_URL'], '/');
+    $model = new JobSeekerModel($this->db);
 
-        if ($type === 'renewal') {
-            
-            $jobSeekerIdRaw = $_GET['job_seeker_id'] ?? '';
-            if (!ctype_digit((string) $jobSeekerIdRaw)) {
-                header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=job_seeker_not_found');
-                exit;
-            }
+    $type = $_GET['registration_type'] ?? '';
 
-            AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
-            $fiscalYear = AuthHelper::checkFiscalYear();
-            $branchId = $_SESSION['user']['branch_id'] ?? null;
-
-            if (!$branchId) {
-                http_response_code(403);
-                die('Unauthorized');
-            }
-
-            $model = new JobSeekerModel($this->db);
-            $verified = $model->findExistingForRenewal((int) $jobSeekerIdRaw, (int) $branchId, (int) $fiscalYear);
-
-            if ($verified === null) {
-                AuditHelper::log(
-                    action: 'fayda_renewal_verification_failed',
-                    entityType: 'job_seeker',
-                    entityId: (string) $jobSeekerIdRaw,
-                    oldValues: null,
-                    newValues: null,
-                    metadata: []
-                );
-                header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=job_seeker_not_found');
-                exit;
-            }
-
-            $this->proceedToFayda('renewal', $verified);
-            return;
-        }
-
-        header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-start');
-        exit;
+    if ($type === 'new') {
+        $this->proceedToFayda('new', null);
+        return;
     }
+
+    if ($type === 'region-renewal') {
+
+        $jobSeekerIdRaw = $_GET['job_seeker_id'] ?? '';
+        if (!ctype_digit((string) $jobSeekerIdRaw)) {
+            $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
+        exit();
+        }
+        
+
+        $record = $model->findExistingId((int) $jobSeekerIdRaw, (int) $fiscalYear);
+
+        if ($record === null) {
+            AuditHelper::log(
+                action: 'fayda_region_renewal_verification_failed',
+                entityType: 'job_seeker',
+                entityId: (string) $jobSeekerIdRaw,
+                oldValues: null,
+                newValues: null,
+                metadata: []
+            );
+            $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
+        exit();
+        }
+
+       if ((int) ($record['employment_status'] ?? 0) === 1) {
+    $branchHierarchy = $model->getBranchHierarchy($record['branch_id'] ?? null);
+
+    AuditHelper::log(
+        action: 'fayda_region_renewal_blocked_employed',
+        entityType: 'job_seeker',
+        entityId: (string) $jobSeekerIdRaw,
+        oldValues: null,
+        newValues: null,
+        metadata: ['branch_id' => $record['branch_id'] ?? null, 'branch_hierarchy' => $branchHierarchy]
+    );
+
+        $_SESSION['error'] =
+           'ቋሚ ስራ እድል የተፈጠረለት ስራ ፈላጊ ማደስ አይቻልም (ቋሚ ስራ እድል የተፈጠረለት: በ' . $branchHierarchy . ')';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
+        exit();
+        }
+
+        $this->proceedToFayda('renewal', $record);
+        return;
+    }
+
+    if ($type === 'renewal') {
+
+        $jobSeekerIdRaw = $_GET['job_seeker_id'] ?? '';
+        if (!ctype_digit((string) $jobSeekerIdRaw)) {
+            $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
+        exit();
+        }
+
+        $branchId = $_SESSION['user']['branch_id'] ?? null;
+        if (!$branchId) {
+            http_response_code(403);
+            die('Unauthorized');
+        }
+
+        $verified = $model->findExistingForRenewal((int) $jobSeekerIdRaw, (int) $branchId, (int) $fiscalYear);
+
+        if ($verified === null) {
+            AuditHelper::log(
+                action: 'fayda_renewal_verification_failed',
+                entityType: 'job_seeker',
+                entityId: (string) $jobSeekerIdRaw,
+                oldValues: null,
+                newValues: null,
+                metadata: []
+            );
+            $_SESSION['error'] = 'ስህተት፦ የስራ ፈላጊ መለያ አልተገኘም።';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
+        exit();
+        }
+
+        if ((int) ($verified['employment_status'] ?? 0) === 1) {
+             $branchHierarchy = $model->getBranchHierarchy($verified['branch_id'] ?? null);
+
+            AuditHelper::log(
+                action: 'fayda_renewal_blocked_employed',
+                entityType: 'job_seeker',
+                entityId: (string) $jobSeekerIdRaw,
+                oldValues: null,
+                newValues: null,
+                metadata: ['branch_id' => $verified['branch_id'] ?? null, 'branch_hierarchy' => $branchHierarchy]
+            );
+            $_SESSION['error'] = 'ቋሚ ስራ እድል የተፈጠረለት ስራ ፈላጊ ማደስ አይቻልም (ቋሚ ስራ እድል የተፈጠረለት: በ' . $branchHierarchy . ')';
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/fayda-start");
+        exit();
+        }
+
+        $this->proceedToFayda('renewal', $verified);
+        return;
+    }
+
+    header('Location: ' . $baseUrl . '/fayda-start');
+    exit;
+}
 
     private function proceedToFayda(string $type, ?array $verifiedRecord): void
     {
@@ -154,8 +222,9 @@ public function verify(array $params = []): void
 
         if ($branchId) {
             $model = new JobSeekerModel($this->db);
-            $verified = $model->findExistingForRenewal((int) $carriedJobSeekerId, (int) $branchId, (int) $fiscalYear);
-        }
+            $verified = $model->findExistingId((int) $carriedJobSeekerId, (int) $fiscalYear);
+        
+            }
     }
 
     $_SESSION['fayda_registration_type'] = $verified !== null ? 'renewal' : 'new';
@@ -180,17 +249,21 @@ public function verify(array $params = []): void
     /** action=fayda-confirm */
     public function confirm(): void
     {
+        AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
+        $branchId = $_SESSION['user']['branch_id'] ?? null;
+         $model = new JobSeekerModel($this->db);
         if (!isset($_SESSION['fayda_profile'])) {
             header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-error?reason=no_profile_in_session');
             exit;
         }
 $sectorModel = new \App\Models\SectorModel($this->db);
 $sectors  = $sectorModel->getSectors();
+ $listofKebeles = $model->listKebelesOfBranchWithKey($branchId);
         
         $data = [
             'title' => 'JCIMS - የፋይዳ መረጃ አስመዝግብ',
-            'sectors' => $sectors
-
+            'sectors' => $sectors,
+            'listofKebeles' => $listofKebeles
         ];
         $this->render('fayda-form', $data);
     }
@@ -245,12 +318,12 @@ $sectors  = $sectorModel->getSectors();
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
         exit;
     }
-   $fan = $faydaData['FAN'] ?? '';
-    if ($fan !== '') {
-        if (!preg_match('/^\d{16}$/', $fan)) {
-            $_SESSION['error'] = "FAN በትክክል 16 ቁጥር ማካተት አለበት።";
-        }
-    }
+  $fan = $faydaData['FAN'] ?? '';
+if (!preg_match('/^\d{16}$/', $fan)) {
+    $_SESSION['error'] = "FAN በትክክል 16 ቁጥር ማካተት አለበት።";
+    header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
+    exit;
+}
     $sectorModel = new SectorModel($this->db);
 
     $sectorChoicePairs = [

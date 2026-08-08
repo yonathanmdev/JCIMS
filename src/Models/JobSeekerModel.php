@@ -523,7 +523,7 @@ public function getJobSeekersForGovernmentProject(int $branchId, int $limit, arr
         return [];
     }
 }
-public function searchJobSeekersForOrganizing(int $branchId, string $term): array
+public function searchJobSeekersForOrganizing(int $branchId, string $term, string $orgType): array
 {
     $normalized = AmharicNormalizer::normalize($term);
     $words = preg_split('/\s+/', trim($normalized), -1, PREG_SPLIT_NO_EMPTY);
@@ -544,6 +544,16 @@ public function searchJobSeekersForOrganizing(int $branchId, string $term): arra
         $params[':term_bool'] = $booleanTerm;
     }
 
+    // NGO org type only allows ngo_setup_status = 0; all other org types also allow 4.
+    $orgSetupStatuses = ($orgType === 'ngo') ? [0] : [0, 1];
+    $placeholders = [];
+    foreach ($orgSetupStatuses as $i => $status) {
+        $key = ":ngo_setup_status{$i}";
+        $placeholders[] = $key;
+        $params[$key] = $status;
+    }
+    $orgSetupInClause = implode(', ', $placeholders);
+
     $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name
             FROM job_seekers js
             WHERE js.branch_id = :branch_id
@@ -551,11 +561,12 @@ public function searchJobSeekersForOrganizing(int $branchId, string $term): arra
                    OR js.full_name_normalized LIKE :term_like)
               AND (js.employment_status IS NULL OR js.employment_status IN (0, 2))
               AND js.orgstatus = 1
+              AND js.ngo_setup_status IN ({$orgSetupInClause})
             LIMIT 10";
 
     $stmt = $this->db->prepare($sql);
     foreach ($params as $key => $val) {
-        $type = ($key === ':branch_id') ? PDO::PARAM_INT : PDO::PARAM_STR;
+        $type = ($key === ':branch_id' || str_starts_with($key, ':ngo_setup_status')) ? PDO::PARAM_INT : PDO::PARAM_STR;
         $stmt->bindValue($key, $val, $type);
     }
     $stmt->execute();
@@ -602,7 +613,7 @@ public function recordSingleRemoval(
         $removalId = $this->db->lastInsertId();
 
         $updateSql = "UPDATE job_seekers
-                      SET employment_status = 3
+                      SET ngo_setup_status = 3
                       WHERE job_seeker_id = :job_seeker_id";
 
         $updateStmt = $this->db->prepare($updateSql);
@@ -1010,7 +1021,32 @@ private function searchById(int $jobSeekerId, int $myBranchId, int $limit): arra
     }
 }
 
-   
+   public function searchArchiveSystemWide(string $query, int $fiscal_year, int $limit = 20): array
+{
+    $isNumeric = ctype_digit($query);
+
+    $sql = "SELECT jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name, jsa.employment_status,
+                   b.name
+            FROM job_seekers_archive jsa
+            LEFT JOIN branches b ON b.internal_id = jsa.branch_id
+            WHERE (
+                jsa.job_seeker_id = :exactId
+                OR jsa.full_name_normalized LIKE :namePrefix
+                OR jsa.FAN LIKE :fanPrefix
+            )
+            AND jsa.renewal_year != :fiscal_year
+            LIMIT :limit";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->bindValue(':exactId', $isNumeric ? $query : '0', PDO::PARAM_STR);
+    $stmt->bindValue(':namePrefix', AmharicNormalizer::normalize($query) . '%', PDO::PARAM_STR);
+    $stmt->bindValue(':fanPrefix', $query . '%', PDO::PARAM_STR);
+    $stmt->bindValue(':fiscal_year', $fiscal_year, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 public function searchArchive(string $query, int $myBranchId, int $fiscal_year, int $limit = 20): array
 {
     $query = trim($query);
@@ -1091,7 +1127,7 @@ private function searchArchiveByName(string $query, int $myBranchId, int $fiscal
 public function findExistingForRenewal(int $jobSeekerId, int $myBranchId, int $fiscal_year): ?array
 {
     $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name,
-                   jsa.gender, jsa.phone_number, b.name AS branch_name
+                   jsa.gender, jsa.phone_number, jsa.employment_status, b.name AS branch_name
             FROM job_seekers_archive jsa
             INNER JOIN branches b ON jsa.branch_id = b.internal_id
             WHERE jsa.branch_id = :my_branch
@@ -1113,7 +1149,30 @@ public function findExistingForRenewal(int $jobSeekerId, int $myBranchId, int $f
         return null;
     }
 }
+public function findExistingId(int $jobSeekerId, int $fiscal_year): ?array
+{
+    $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name,
+                   jsa.gender, jsa.phone_number, jsa.employment_status, jsa.branch_id,
+                   b.name
+            FROM job_seekers_archive jsa
+            LEFT JOIN branches b ON b.internal_id = jsa.branch_id
+            WHERE jsa.job_seeker_id = :job_seeker_id
+              AND (jsa.renewal_year IS NULL OR jsa.renewal_year != :fiscal_year)
+            LIMIT 1";
 
+    try {
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':job_seeker_id', $jobSeekerId, PDO::PARAM_INT);
+        $stmt->bindValue(':fiscal_year', $fiscal_year, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    } catch (\PDOException $e) {
+        error_log("Renewal verification error: " . $e->getMessage());
+        return null;
+    }
+}
 
 public function findArchiveByJobSeekerId(string $myBranchId, string $jobseekerId): ?array
 {
@@ -1503,5 +1562,12 @@ public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
         $stmt->execute([ 'bid' => $branchId, 'term' => $term . '%', 'fiscal_year' =>$fiscal_year ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    }
 
+
+   public function listKebelesOfBranchWithKey(int $branchId): array
+{
+    $stmt = $this->db->prepare("SELECT DISTINCT kebele FROM allKebeles WHERE branch_id = :bid ORDER BY kebele ASC");
+    $stmt->execute(['bid' => $branchId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC); // returns [['kebele' => '...'], ...]
+}
+}
