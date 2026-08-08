@@ -819,7 +819,24 @@ public function getEnterpriseBranchPath(int $myBranchId, int $enterpriseBranchId
         $row['root_path']
     );
 }
+/**
+ * Fetch the enterprise_type for a given code003 record, keyed by its own PK,
+ * so the controller never trusts the client-supplied hidden field.
+ */
+public function getEnterpriseTypeById(string $id): ?array
+{
+    $sql = "SELECT `code003_id`, `enterprise_type`
+            FROM `code003`
+            WHERE `id` = :id
+            LIMIT 1";
 
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['id' => $id]);
+
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $row ?: null;
+}
 public function purge(int $branchId, int $userId, string $enterpriseId, string $reason): array
 {
     // ---- Resolve the enterprise and its type via the junction row ----

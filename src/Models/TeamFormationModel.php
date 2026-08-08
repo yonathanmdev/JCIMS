@@ -49,7 +49,7 @@ class TeamFormationModel
             // Prepare Update statement if condition is met
             $stmtUpdate = null;
             if ($payload['org_type'] === 'NGO') {
-                $sqlUpdateStatus = "UPDATE job_seekers SET employment_status = 4 WHERE job_seeker_id = ?";
+                $sqlUpdateStatus = "UPDATE job_seekers SET ngo_setup_status = 1 WHERE job_seeker_id = ?";
                 $stmtUpdate = $this->db->prepare($sqlUpdateStatus);
             }
 
@@ -247,7 +247,7 @@ public function addMember(int $branchId, int $userId, string $teamUUID, string $
         // Mirror the same NGO status update createTeamFormation() applies
         // to members added at creation time.
         if ($isNgo) {
-       $sqlStatus = "UPDATE job_seekers SET employment_status = 4 WHERE branch_id = :branch_id AND job_seeker_id = :job_seeker_id";
+$sqlStatus = "UPDATE job_seekers SET ngo_setup_status = 1 WHERE branch_id = :branch_id AND job_seeker_id = :job_seeker_id";
 $stmtStatus = $this->db->prepare($sqlStatus);
 $stmtStatus->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
 $stmtStatus->bindValue(':job_seeker_id', $jobSeeker['job_seeker_id'], PDO::PARAM_INT);
@@ -594,7 +594,7 @@ public function purge(int $branchId, string $userId, string $teamId, string $rea
             $stmt = $this->db->prepare("
                 UPDATE job_seekers js
                 JOIN organized_jobseekers oj ON oj.jctbl_id = js.job_seeker_id
-                SET js.employment_status = 0
+                SET js.employment_status = 0, js.ngo_setup_status = 0
                 WHERE oj.team_id = :groupTableId
             ");
             $stmt->execute([':groupTableId' => $groupTableId]);
@@ -709,7 +709,7 @@ public function purgeMember(int $branchId, string $userId, string $jobseekerId, 
         // 4. Update employment_status on the linked job seeker (NGO teams only)
             $stmt = $this->db->prepare("
                 UPDATE job_seekers js
-                SET js.employment_status = 0
+                SET js.employment_status = 0, js.ngo_setup_status = 0
                 WHERE js.branch_id = :branchId AND js.job_seeker_id = :jobSeekerId AND js.employment_status = 4
             ");
             $stmt->execute([':branchId' => $branchId, ':jobSeekerId' => $jobSeekerId]);
@@ -777,7 +777,7 @@ $stmt->execute();
             // Wrong-member correction also resets employment status
             $stmt = $this->db->prepare("
                 UPDATE job_seekers
-                SET employment_status = 0
+                SET employment_status = 0, ngo_setup_status = 0
                 WHERE branch_id = :branchId AND job_seeker_id = :jobSeekerId
             ");
             $stmt->bindValue(':branchId', $branchId, PDO::PARAM_INT);

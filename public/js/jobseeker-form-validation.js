@@ -642,7 +642,14 @@ function populateFormFromData(form, js) {
             field.value = js[key] ?? '';
         }
     });
-
+   // Kebele: strictly limited to the branch's list. If the saved value
+    // isn't one of the available options, force it back to the placeholder.
+    const kebeleSelect = form.elements['kebele'];
+    if (kebeleSelect) {
+        const exists = Array.from(kebeleSelect.options)
+            .some(opt => opt.value === (js.kebele ?? ''));
+        kebeleSelect.value = exists ? js.kebele : '';
+    }
     populateSubSectorsForEdit(js); // handles sub_choose1/2/3 correctly, no events involved
 
     applyAllConditionalLogic?.();

@@ -149,7 +149,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 4. የፎርሙን መሄጃ አድራሻ (action) በዲናሚክ መቀየር
         reportForm.action = `${baseUrl}/report-${reportNumber}`;
-        
+        setTimeout(function() {
+        $(reportForm).data('submitting', false);
+        $(reportForm).find('button[type="submit"], input[type="submit"]').prop('disabled', false);
+    }, 100);
         // 🔥 ዋናው ማስተካከያ፡ location.reload(); እዚህ ጋር መኖር የለበትም። 
         // ፎርሙ በአዲስ ታብ በሰላም እንዲከፈት ይተዋታል።
     });

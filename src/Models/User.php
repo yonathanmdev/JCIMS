@@ -331,35 +331,9 @@ public function softDelete(string $id, string $userId, string $reason, $source):
         $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM branches WHERE registered_by = ?");
         $stmt->execute([$id]);
         $branchCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM directors WHERE registered_by = ?");
-        $stmt->execute([$id]);
-        $directorCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM job_property WHERE registered_by = ?");
-        $stmt->execute([$id]);
-        $jobPropertyCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM employees_table WHERE reg_by = ? OR reg_approve_by = ?");
-        $stmt->execute([$id, $id]);
-        $employeeCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM employee_scholarships WHERE registered_by = ?");
-        $stmt->execute([$id]);
-        $scholarshipCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM debt_suspension WHERE registered_by = ?");
-        $stmt->execute([$id]);
-        $debtSuspensionCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
         $counts = [
             'userCount'          => $userCount,
             'branchCount'        => $branchCount,
-            'directorCount'      => $directorCount,
-            'jobPropertyCount'   => $jobPropertyCount,
-            'employeeCount'      => $employeeCount,
-            'scholarshipCount'   => $scholarshipCount,
-            'debtSuspensionCount'=> $debtSuspensionCount,
         ];
 
         

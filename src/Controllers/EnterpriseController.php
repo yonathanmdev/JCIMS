@@ -528,6 +528,8 @@ $sectorModel = new SectorModel($this->db);
     ]);
 }
 
+
+
 public function purge(): void
 {
     AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
