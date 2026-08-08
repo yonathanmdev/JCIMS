@@ -2,7 +2,8 @@
 // src/Routes/YibeRoutes.php
 
 return [
-
+//የሶስቱንም አፈጻጸም የሚያወጣው 
+'efficiency_statusy' => ['ReportgenerationController', 'efficiencyStatusReport', true],
 // የባለሙያን አፈጻጸም ሁኔታ ማሳያ
     'expert_level_view' => ['ReportgenerationController', 'expertLevelReport', true],
 

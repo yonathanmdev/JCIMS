@@ -78,7 +78,7 @@ class MenuConfig
                         'label' => 'ስራ ፈላጊ መመዝገብ',
                         'url'   => '/jobseeker-registration',
                         'roles' => ['team_leader', 'officer'],
-                        'levels' => [3, 4]
+                        'levels' => [33, 44]
                     ],
                     [
                         'label' => 'ዝርዝር',
@@ -89,7 +89,7 @@ class MenuConfig
                         'label' => 'እድሳት',
                         'url'   => '/jobseekers-renewal',
                         'roles' => ['team_leader','officer'],
-                        'levels' => [3, 4]
+                        'levels' => [33, 44]
                     ],
                     
                 ]
@@ -219,7 +219,7 @@ class MenuConfig
                 'label' => 'ኢ-መደበኛ ኢ/ዝ',
                 'icon'  => 'fas fa-users',
                 'roles' => ['officer'],
-                'levels' => [3, 4],
+                'levels' => [33, 44],
                 'children' => [
                     [
                         'label' => 'ኢ-መደበኛ ኢ/ዝ መመዝገብ',
@@ -276,19 +276,8 @@ class MenuConfig
     'roles' => ['team_leader'],
     'children' => [
         [
-            'label' => 'ምዝገባና ግንዛቤ',
-            'url'   => '/performance_view',
-            'roles' => ['team_leader']
-        ],
-
-        [
-            'label' => 'ስራ እድልና ኢንተርፕራይዝ',
-            'url'   => '/performance_job_creation_view',
-            'roles' => ['team_leader']
-        ],
-                [
-            'label' => 'የባለሙያዎች የስራ አፈጻጸም',
-            'url'   => '/expert_level_view',
+            'label' => 'ማየት',
+            'url'   => '/efficiency_statusy',
             'roles' => ['team_leader']
         ],
     ]
