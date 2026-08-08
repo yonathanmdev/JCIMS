@@ -219,7 +219,7 @@
 </div>
 <script nonce="<?php echo $GLOBALS['nonce'] ?? ''; ?>">
     document.addEventListener("DOMContentLoaded", function() {
-        // የጎን ሜኑ ላይ ያሉትን የperformance_view ሊንኮች በ ሙሉ ይፈልጋል (በዋናው ዊንዶውስ/ፔሬንት ውስጥ ያሉትን)
+        // የጎን ሜኑ ላይ ያሉትን የperformance_view ሊንኮ ች በ ሙሉ ይፈልጋል (በዋናው ዊንዶውስ/ፔሬንት ውስጥ ያሉትን)
         const parentLinks = window.parent.document.querySelectorAll('a[href*="performance_view"]');
         
         parentLinks.forEach(link => {
