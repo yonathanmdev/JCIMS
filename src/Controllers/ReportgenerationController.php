@@ -16,6 +16,21 @@ class ReportgenerationController extends BaseController
         $this->reportModel = new ReportgenerationModel($this->db);
     }
 
+public function efficiencyStatusReport()
+    {
+        AuthHelper::checkRole(['team_leader', 'officer']);
+
+        $myBranchId = $_SESSION['user']['branch_id'] ?? '';
+        $myBranchName = $_SESSION['user']['branch_name'] ?? ($_SESSION['user']['name'] ?? '');
+
+        // ፎርሙን ብቻ የያዘውን efficiency_statusy.php ቪው ገጽ ይከፍታል
+        $this->render('efficiency_statusy', [
+            'defaultBranchId'   => $myBranchId,
+            'defaultBranchName' => $myBranchName
+        ]);
+    }
+
+
 
 public function expertLevelReport()
 {

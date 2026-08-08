@@ -276,19 +276,8 @@ class MenuConfig
     'roles' => ['team_leader'],
     'children' => [
         [
-            'label' => 'ምዝገባና ግንዛቤ',
-            'url'   => '/performance_view',
-            'roles' => ['team_leader']
-        ],
-
-        [
-            'label' => 'ስራ እድልና ኢንተርፕራይዝ',
-            'url'   => '/performance_job_creation_view',
-            'roles' => ['team_leader']
-        ],
-                [
-            'label' => 'የባለሙያዎች የስራ አፈጻጸም',
-            'url'   => '/expert_level_view',
+            'label' => 'ማየት',
+            'url'   => '/efficiency_statusy',
             'roles' => ['team_leader']
         ],
     ]

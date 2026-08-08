@@ -217,6 +217,15 @@
     </table>
 </div>
 </div>
-
+<script nonce="<?php echo $GLOBALS['nonce'] ?? ''; ?>">
+    document.addEventListener("DOMContentLoaded", function() {
+        // የጎን ሜኑ ላይ ያሉትን የperformance_view ሊንኮች በሙሉ ይፈልጋል (በዋናው ዊንዶውስ/ፔሬንት ውስጥ ያሉትን)
+        const parentLinks = window.parent.document.querySelectorAll('a[href*="performance_view"]');
+        
+        parentLinks.forEach(link => {
+            link.setAttribute('target', '_blank');
+        });
+    });
+</script>
 </body>
 </html>

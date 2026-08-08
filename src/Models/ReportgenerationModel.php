@@ -2000,7 +2000,6 @@ if ($isKetemaAstedader) {
 
 public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
 {
-    // የ Hierarchy WHERE condition (ለዞን እና ለከተማ አስተዳደር)
     if ($isKetemaAstedader) {
         $whereCondition = "(
             CAST(b.parent_id AS CHAR) = :m_id1 
@@ -2032,8 +2031,7 @@ public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
     $sql = "WITH RECURSIVE SubBranches AS (
                 SELECT 
                     CAST(b.id AS CHAR) AS root_zone_id,
-                    CAST(b.id AS CHAR) AS current_branch_id,
-                    CAST(b.internal_id AS CHAR) AS current_internal_id
+                    CAST(b.internal_id AS CHAR) AS internal_id
                 FROM branches b
                 WHERE {$whereCondition}
                   AND (b.is_deleted = 0 OR b.is_deleted IS NULL)
@@ -2042,174 +2040,181 @@ public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
 
                 SELECT 
                     sb.root_zone_id,
-                    CAST(child.id AS CHAR) AS current_branch_id,
-                    CAST(child.internal_id AS CHAR) AS current_internal_id
+                    CAST(child.internal_id AS CHAR) AS internal_id
                 FROM branches child
-                INNER JOIN SubBranches sb 
-                    ON CAST(child.parent_id AS CHAR) = sb.current_branch_id 
-                    OR CAST(child.parent_id AS CHAR) = sb.current_internal_id
+                INNER JOIN SubBranches sb ON CAST(child.parent_id AS CHAR) = sb.internal_id OR CAST(child.parent_id AS CHAR) = sb.root_zone_id
                 WHERE (child.is_deleted = 0 OR child.is_deleted IS NULL)
             ),
             BranchPlans AS (
                 SELECT 
                     b.id,
                     b.name,
-                    -- 1. ቋሚ እቅድ (Permanent Plan)
                     CASE 
-                        WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 36279
-                        WHEN b.name LIKE '%ኮምቦልቻ%' THEN 13238
-                        WHEN b.name LIKE '%ወልዲያ%' THEN 7414
-                        WHEN b.name LIKE '%ደሴ%' THEN 21574
-                        WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 14810
-                        WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 15417
-                        WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 8864
-                        WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 35269
-                        WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 83190
-                        WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 29937
-                        WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 79634
-                        WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 23232
-                        WHEN b.name LIKE '%አዊ%' THEN 49100
-                        WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 19485
-                        WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 48711
-                        WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 56582
-                        WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 51916
-                        WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 77982
-                        WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 92726
-                        WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 13351
-                        WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 88313
-                        WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 9834
+                        WHEN b.name = 'ባህር ዳር'  THEN 36279
+                        WHEN b.name = 'ኮምቦልቻ' THEN 13238
+                        WHEN b.name = 'ወልዲያ' THEN 7414
+                        WHEN b.name = 'ደሴ' THEN 21574
+                        WHEN b.name = 'ደብረ ማርቆስ' THEN 14810
+                        WHEN b.name = 'ደብረ ብርሃን'  THEN 15417
+                        WHEN b.name = 'ደብረታቦር'  THEN 8864
+                        WHEN b.name = 'ጎንደር' THEN 35269
+                        WHEN b.name = 'ደቡብ ጎንደር' THEN 83190
+                        WHEN b.name = 'ሰሜን ጎንደር' THEN 29937
+                        WHEN b.name = 'ማዕከላዊ ጎንደር' THEN 79634
+                        WHEN b.name = 'ኦሮሞ ብሔረሰብ'  THEN 23232
+                        WHEN b.name = 'አዊ' THEN 49100
+                        WHEN b.name = 'ምዕራብ ጎንደር' THEN 19485
+                        WHEN b.name = 'ሰሜን ጎጃም' THEN 48711
+                        WHEN b.name = 'ሰሜን ወሎ' THEN 56582
+                        WHEN b.name = 'ምዕራብ ጎጃም' THEN 51916
+                        WHEN b.name = 'ሰሜን ሸዋ' THEN 77982
+                        WHEN b.name = 'ደቡብ ወሎ' THEN 92726
+                        WHEN b.name = 'ዋግኽምራ' THEN 13351
+                        WHEN b.name = 'ምስራቅ ጎጃም' THEN 88313
+                        WHEN b.name = 'ወ/ጠ/ሰ/ሁ/'  THEN 9834
                         ELSE 0
                     END AS perm_plan,
-
-                    -- 2. ጊዜያዊ እቅድ (Temporary Plan)
                     CASE 
-                        WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 9070
-                        WHEN b.name LIKE '%ኮምቦልቻ%' THEN 3310
-                        WHEN b.name LIKE '%ወልዲያ%' THEN 1854
-                        WHEN b.name LIKE '%ደሴ%' THEN 5393
-                        WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 3703
-                        WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 3854
-                        WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 2216
-                        WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 8817
-                        WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 20797
-                        WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 7484
-                        WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 19908
-                        WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 5808
-                        WHEN b.name LIKE '%አዊ%' THEN 12275
-                        WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 4871
-                        WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 12178
-                        WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 14146
-                        WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 12979
-                        WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 19496
-                        WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 23182
-                        WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 3338
-                        WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 22078
-                        WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 2459
+                        WHEN b.name = 'ባህር ዳር'  THEN 9070
+                        WHEN b.name = 'ኮምቦልቻ' THEN 3310
+                        WHEN b.name = 'ወልዲያ' THEN 1854
+                        WHEN b.name = 'ደሴ' THEN 5393
+                        WHEN b.name = 'ደብረ ማርቆስ' THEN 3703
+                        WHEN b.name = 'ደብረ ብርሃን'  THEN 3854
+                        WHEN b.name = 'ደብረታቦር'  THEN 2216
+                        WHEN b.name = 'ጎንደር'  THEN 8817
+                        WHEN b.name = 'ደቡብ ጎንደር' THEN 20797
+                        WHEN b.name = 'ሰሜን ጎንደር' THEN 7484
+                        WHEN b.name = 'ማዕከላዊ ጎንደር' THEN 19908
+                        WHEN b.name = 'ኦሮሞ ብሔረሰብ' THEN 5808
+                        WHEN b.name = 'አዊ' THEN 12275
+                        WHEN b.name = 'ምዕራብ ጎንደር' THEN 4871
+                        WHEN b.name = 'ሰሜን ጎጃም' THEN 12178
+                        WHEN b.name = 'ሰሜን ወሎ' THEN 14146
+                        WHEN b.name = 'ምዕራብ ጎጃም' THEN 12979
+                        WHEN b.name = 'ሰሜን ሸዋ' THEN 19496
+                        WHEN b.name = 'ደቡብ ወሎ' THEN 23182
+                        WHEN b.name = 'ዋግኽምራ'  THEN 3338
+                        WHEN b.name = 'ምስራቅ ጎጃም' THEN 22078
+                        WHEN b.name = 'ወ/ጠ/ሰ/ሁ/'  THEN 2459
                         ELSE 0
                     END AS temp_plan,
-
-                    -- 3. የኢንተርፕራይዝ እቅድ (Enterprise Plan)
                     CASE 
-                        WHEN b.name LIKE '%ባሕር ዳር%' OR b.name LIKE '%ባህር ዳር%' THEN 2973
-                        WHEN b.name LIKE '%ኮምቦልቻ%' THEN 847
-                        WHEN b.name LIKE '%ወልዲያ%' THEN 659
-                        WHEN b.name LIKE '%ደሴ%' THEN 2365
-                        WHEN b.name LIKE '%ደብረ ማርቆስ%' THEN 785
-                        WHEN b.name LIKE '%ደብረ ብርሃን%' OR b.name LIKE '%ደብረብርሃን%' THEN 1084
-                        WHEN b.name LIKE '%ደብረ ታቦር%' OR b.name LIKE '%ደብረታቦር%' THEN 845
-                        WHEN b.name LIKE '%ጎንደር%' AND b.name NOT LIKE '%ደቡብ%' AND b.name NOT LIKE '%ሰሜን%' AND b.name NOT LIKE '%ማዕከላዊ%' AND b.name NOT LIKE '%ምዕራብ%' THEN 2766
-                        WHEN b.name LIKE '%ደቡብ ጎንደር%' THEN 5630
-                        WHEN b.name LIKE '%ሰሜን ጎንደር%' THEN 2751
-                        WHEN b.name LIKE '%ማዕከላዊ ጎንደር%' THEN 6633
-                        WHEN b.name LIKE '%ኦሮሞ ብሔረሰብ%' OR b.name LIKE '%ኦሮሞ%' THEN 2190
-                        WHEN b.name LIKE '%አዊ%' THEN 3194
-                        WHEN b.name LIKE '%ምዕራብ ጎንደር%' THEN 2610
-                        WHEN b.name LIKE '%ሰሜን ጎጃም%' THEN 2517
-                        WHEN b.name LIKE '%ሰሜን ወሎ%' THEN 4339
-                        WHEN b.name LIKE '%ምዕራብ ጎጃም%' THEN 3026
-                        WHEN b.name LIKE '%ሰሜን ሸዋ%' THEN 6264
-                        WHEN b.name LIKE '%ደቡብ ወሎ%' THEN 7386
-                        WHEN b.name LIKE '%ዋግኽምራ%' OR b.name LIKE '%ዋግ ኸምራ%' THEN 1369
-                        WHEN b.name LIKE '%ምስራቅ ጎጃም%' THEN 4561
-                        WHEN b.name LIKE '%ወ/ጠ/ሰ/ሁ/%' OR b.name LIKE '%ወልቃይት%' THEN 916
+                        WHEN b.name = 'ባህር ዳር'  THEN 2973
+                        WHEN b.name = 'ኮምቦልቻ' THEN 847
+                        WHEN b.name = 'ወልዲያ' THEN 659
+                        WHEN b.name = 'ደሴ' THEN 2365
+                        WHEN b.name = 'ደብረ ማርቆስ' THEN 785
+                        WHEN b.name = 'ደብረ ብርሃን'  THEN 1084
+                        WHEN b.name = 'ደብረታቦር'  THEN 845
+                        WHEN b.name = 'ጎንደር'  THEN 2766
+                        WHEN b.name = 'ደቡብ ጎንደር' THEN 5630
+                        WHEN b.name = 'ሰሜን ጎንደር' THEN 2751
+                        WHEN b.name = 'ማዕከላዊ ጎንደር' THEN 6633
+                        WHEN b.name = 'ኦሮሞ ብሔረሰብ' THEN 2190
+                        WHEN b.name = 'አዊ' THEN 3194
+                        WHEN b.name = 'ምዕራብ ጎንደር' THEN 2610
+                        WHEN b.name = 'ሰሜን ጎጃም' THEN 2517
+                        WHEN b.name = 'ሰሜን ወሎ' THEN 4339
+                        WHEN b.name = 'ምዕራብ ጎጃም' THEN 3026
+                        WHEN b.name = 'ሰሜን ሸዋ' THEN 6264
+                        WHEN b.name = 'ደቡብ ወሎ' THEN 7386
+                        WHEN b.name = 'ዋግኽምራ'  THEN 1369
+                        WHEN b.name = 'ምስራቅ ጎጃም' THEN 4561
+                        WHEN b.name = 'ወ/ጠ/ሰ/ሁ/' THEN 916
                         ELSE 0
                     END AS ent_plan
                 FROM branches b
             ),
-            -- የኢንተርፕራይዝ መረጃዎችን በTIN ቁጥር Distinct በማድረግ እና በቅርንጫፍ ሂራርኪ በማቀናጀት
-            UniqueEnterprises AS (
+            AggregatedJobSeekers AS (
                 SELECT 
-                    fe.tine_number,
-                    fe.sector_name,
-                    sb.root_zone_id
-                FROM full_enterprise_and_job_seekerdata fe
-                JOIN SubBranches sb ON CAST(fe.job_seeker_branch_id AS CHAR) = sb.current_branch_id 
-                                   OR CAST(fe.job_seeker_branch_id AS CHAR) = sb.current_internal_id
-                WHERE fe.is_enterprise = '1' 
-                  AND fe.tine_number IS NOT NULL 
-                  AND fe.tine_number != ''
-                GROUP BY fe.tine_number, fe.sector_name, sb.root_zone_id
+                    sb.root_zone_id,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS perm_m,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS perm_f,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) AS perm_sum,
+                    
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS temp_m,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS temp_f,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) AS temp_sum,
+
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS tot_job_m,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS tot_job_f,
+                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) AS tot_job_sum
+                FROM SubBranches sb
+                LEFT JOIN job_seekers js ON CAST(js.branch_id AS CHAR) = sb.internal_id
+                GROUP BY sb.root_zone_id
+            ),
+            -- **አሁን ከዳሽቦርዱ ሎጂክ ጋር በቀጥታ የተመሳሰለው የኢንተርፕራይዝ ክፍል**
+            AggregatedEnterprises AS (
+                SELECT 
+                    sb.root_zone_id,
+                    COUNT(DISTINCT CASE WHEN fe.sector_name LIKE '%ግብርና%' THEN fe.tine_number END) AS ent_agri,
+                    COUNT(DISTINCT CASE WHEN fe.sector_name LIKE '%ኢንዱስትሪ%' THEN fe.tine_number END) AS ent_ind,
+                    COUNT(DISTINCT CASE WHEN fe.sector_name LIKE '%አገልግሎት%' THEN fe.tine_number END) AS ent_serv,
+                    COUNT(DISTINCT CASE WHEN fe.tine_number IS NOT NULL AND fe.tine_number != '' THEN fe.tine_number END) AS ent_sum
+                FROM SubBranches sb
+                INNER JOIN full_enterprise_and_job_seekerdata fe ON CAST(fe.code003_branch_id AS CHAR) = sb.internal_id
+                WHERE fe.tine_number IS NOT NULL 
+                GROUP BY sb.root_zone_id
             )
             SELECT 
                 main_b.id,
                 main_b.name,
                 
-                -- 1. ቋሚ (Permanent) - እቅድ፣ አፈጻጸም እና ደረጃ
+                -- 1. ቋሚ (Permanent) - ሳይነካ እንዳለ አለ
                 bp.perm_plan,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS perm_m,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS perm_f,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) AS perm_sum,
-                CASE WHEN bp.perm_plan > 0 THEN ROUND((SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) / bp.perm_plan) * 100, 2) ELSE 0 END AS perm_per,
+                COALESCE(ajs.perm_m, 0) AS perm_m,
+                COALESCE(ajs.perm_f, 0) AS perm_f,
+                COALESCE(ajs.perm_sum, 0) AS perm_sum,
+                CASE WHEN bp.perm_plan > 0 THEN ROUND((COALESCE(ajs.perm_sum, 0) / bp.perm_plan) * 100, 2) ELSE 0 END AS perm_per,
                 DENSE_RANK() OVER (
                     ORDER BY 
-                    (CASE WHEN bp.perm_plan > 0 THEN (SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) / bp.perm_plan) * 100 ELSE 0 END) DESC,
-                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '1' THEN 1 ELSE 0 END) DESC
+                    (CASE WHEN bp.perm_plan > 0 THEN (COALESCE(ajs.perm_sum, 0) / bp.perm_plan) * 100 ELSE 0 END) DESC,
+                    COALESCE(ajs.perm_sum, 0) DESC
                 ) AS perm_rank,
 
-                -- 2. ጊዜያዊ (Temporary) - እቅድ፣ አፈጻጸም እና ደረጃ
+                -- 2. ጊዜያዊ (Temporary) - ሳይነካ እንዳለ አለ
                 bp.temp_plan,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS temp_m,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS temp_f,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) AS temp_sum,
-                CASE WHEN bp.temp_plan > 0 THEN ROUND((SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) / bp.temp_plan) * 100, 2) ELSE 0 END AS temp_per,
+                COALESCE(ajs.temp_m, 0) AS temp_m,
+                COALESCE(ajs.temp_f, 0) AS temp_f,
+                COALESCE(ajs.temp_sum, 0) AS temp_sum,
+                CASE WHEN bp.temp_plan > 0 THEN ROUND((COALESCE(ajs.temp_sum, 0) / bp.temp_plan) * 100, 2) ELSE 0 END AS temp_per,
                 DENSE_RANK() OVER (
                     ORDER BY 
-                    (CASE WHEN bp.temp_plan > 0 THEN (SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) / bp.temp_plan) * 100 ELSE 0 END) DESC,
-                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) = '2' THEN 1 ELSE 0 END) DESC
+                    (CASE WHEN bp.temp_plan > 0 THEN (COALESCE(ajs.temp_sum, 0) / bp.temp_plan) * 100 ELSE 0 END) DESC,
+                    COALESCE(ajs.temp_sum, 0) DESC
                 ) AS temp_rank,
 
-                -- 3. ጠቅላላ የስራ እድል ድምር (Total Job Creation) - እቅድ፣ አፈጻጸም እና ደረጃ
+                -- 3. ጠቅላላ የስራ እድል ድምር (Total Job Creation) - ሳይነካ እንዳለ አለ
                 (bp.perm_plan + bp.temp_plan) AS tot_job_plan,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') AND js.gender = 'ወንድ' THEN 1 ELSE 0 END) AS tot_job_m,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') AND js.gender = 'ሴት' THEN 1 ELSE 0 END) AS tot_job_f,
-                SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) AS tot_job_sum,
-                CASE WHEN (bp.perm_plan + bp.temp_plan) > 0 THEN ROUND((SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) / (bp.perm_plan + bp.temp_plan)) * 100, 2) ELSE 0 END AS tot_job_per,
+                COALESCE(ajs.tot_job_m, 0) AS tot_job_m,
+                COALESCE(ajs.tot_job_f, 0) AS tot_job_f,
+                COALESCE(ajs.tot_job_sum, 0) AS tot_job_sum,
+                CASE WHEN (bp.perm_plan + bp.temp_plan) > 0 THEN ROUND((COALESCE(ajs.tot_job_sum, 0) / (bp.perm_plan + bp.temp_plan)) * 100, 2) ELSE 0 END AS tot_job_per,
                 DENSE_RANK() OVER (
                     ORDER BY 
-                    (CASE WHEN (bp.perm_plan + bp.temp_plan) > 0 THEN (SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) / (bp.perm_plan + bp.temp_plan)) * 100 ELSE 0 END) DESC,
-                    SUM(CASE WHEN CAST(js.employment_status AS CHAR) IN ('1', '2') THEN 1 ELSE 0 END) DESC
+                    (CASE WHEN (bp.perm_plan + bp.temp_plan) > 0 THEN (COALESCE(ajs.tot_job_sum, 0) / (bp.perm_plan + bp.temp_plan)) * 100 ELSE 0 END) DESC,
+                    COALESCE(ajs.tot_job_sum, 0) DESC
                 ) AS tot_job_rank,
 
-                -- 4. የኢንተርፕራይዝ ምሥረታ (Enterprise Creation በሴክተር እና Distinct TIN)
+                -- 4. የኢንተርፕራይዝ ምሥረታ (በእርግጠኝነት በትክክል ከዳሽቦርዱ ጋር የተመሳሰለ)
                 bp.ent_plan,
-                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%ግብርና%'  THEN ue.tine_number END) AS ent_agri,
-                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%ኢንዱስትሪ%'  THEN ue.tine_number END) AS ent_ind,
-                COUNT(DISTINCT CASE WHEN ue.sector_name LIKE '%አገልግሎት%'  THEN ue.tine_number END) AS ent_serv,
-                COUNT(DISTINCT ue.tine_number) AS ent_sum,
-                CASE WHEN bp.ent_plan > 0 THEN ROUND((COUNT(DISTINCT ue.tine_number) / bp.ent_plan) * 100, 2) ELSE 0 END AS ent_per,
+                COALESCE(ae.ent_agri, 0) AS ent_agri,
+                COALESCE(ae.ent_ind, 0) AS ent_ind,
+                COALESCE(ae.ent_serv, 0) AS ent_serv,
+                COALESCE(ae.ent_sum, 0) AS ent_sum,
+                CASE WHEN bp.ent_plan > 0 THEN ROUND((COALESCE(ae.ent_sum, 0) / bp.ent_plan) * 100, 2) ELSE 0 END AS ent_per,
                 DENSE_RANK() OVER (
                     ORDER BY 
-                    (CASE WHEN bp.ent_plan > 0 THEN (COUNT(DISTINCT ue.tine_number) / bp.ent_plan) * 100 ELSE 0 END) DESC,
-                    COUNT(DISTINCT ue.tine_number) DESC
+                    (CASE WHEN bp.ent_plan > 0 THEN (COALESCE(ae.ent_sum, 0) / bp.ent_plan) * 100 ELSE 0 END) DESC,
+                    COALESCE(ae.ent_sum, 0) DESC
                 ) AS ent_rank
 
             FROM branches main_b
             JOIN BranchPlans bp ON bp.id = main_b.id
-            JOIN SubBranches sb ON sb.root_zone_id = main_b.id
-            LEFT JOIN job_seekers js ON CAST(js.branch_id AS CHAR) = sb.current_branch_id OR CAST(js.branch_id AS CHAR) = sb.current_internal_id
-            LEFT JOIN UniqueEnterprises ue ON ue.root_zone_id = main_b.id
-            
-            GROUP BY main_b.id, main_b.name, bp.perm_plan, bp.temp_plan, bp.ent_plan
+            LEFT JOIN AggregatedJobSeekers ajs ON ajs.root_zone_id = main_b.id
+            LEFT JOIN AggregatedEnterprises ae ON ae.root_zone_id = main_b.id
+            WHERE main_b.id IN (SELECT DISTINCT root_zone_id FROM SubBranches)
             ORDER BY perm_per DESC, perm_sum DESC";
 
     $stmt = $this->db->prepare($sql);
