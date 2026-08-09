@@ -152,6 +152,27 @@ if (editForm) {
             return;
         }
     });
+  document.addEventListener('click', function (e) {
 
+  // ── Delete branch
+        const deleteButton = e.target.closest('.delete-kebele');
+        if (deleteButton) {
+            confirmDelete({
+                endpoint:    'delete-kebele-process',
+                id:          deleteButton.dataset.id,
+                name:        deleteButton.dataset.name,
+                type:        'kebele',
+                task:        'delete',
+                title:       `"${deleteButton.dataset.name}" ቀበሌ ይሰረዝ?`,
+                warning:     `<strong>"${deleteButton.dataset.name}ን"</strong>  ከቀበሌ ዝርዝር ለማስወገድ ነው።`,
+                confirmText: '<i class="fas fa-user-times"></i> አዎ፣ ሰርዝ!',
+                successText: 'ቀበሌዉ ተሰርዟል።',
+                requireReason:   true,
+                requirePassword: true,
+                onSuccess: () => document.getElementById(`row-${deleteButton.dataset.id}`)?.remove()
+            });
+            return;
+        }
+    });
 
 });

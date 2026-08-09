@@ -10,7 +10,28 @@
 
         <div class="card-tools">
            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#branchModal">
-            <i class="fas fa-plus mr-1"></i>መስሪያ ቤት መዝግብ
+            <i class="fas fa-plus mr-1"></i>
+            <?php 
+ // ከሴሽን የሚመጣውን መረጃ በጥንቃቄ እንቀበላለን
+$level = $_SESSION['user']['level'] ?? null; 
+
+// እንደ level ደረጃው አመላካቹን መወሰን
+switch ($level) {
+    case 1:
+        $branchnameindicator = "ዞን መመዝገብ";
+        break;
+    case 2:
+        $branchnameindicator = "ወረዳ(ክ/ከተማ) መመዝገብ";
+        break;
+    case 3:
+        $branchnameindicator = "ማዕከል መመዝገብ";
+        break;
+    default:
+        $branchnameindicator = "ቅርንጫፍ መመዝገብ"; // ለጥንቃቄ የተቀመጠ default ስም
+        break;
+}
+echo $branchnameindicator; // እንደ ደረጃው የተመረጠ ስም እንዲታይ
+            ?>
           </button>
           
         </div>
@@ -76,7 +97,28 @@
 
         <div class="modal-header">
         <h6 class="modal-title font-weight-bold">
-          <i class="fas fa-plus mr-1"></i> አዲስ ቅርንጫፍ መዝግብ
+          <i class="fas fa-plus mr-1"></i> 
+                    <?php 
+ // ከሴሽን የሚመጣውን መረጃ በጥንቃቄ እንቀበላለን
+$level = $_SESSION['user']['level'] ?? null; 
+
+// እንደ level ደረጃው አመላካቹን መወሰን
+switch ($level) {
+    case 1:
+        $branchnameindicator = "ዞን መመዝገብ";
+        break;
+    case 2:
+        $branchnameindicator = "ወረዳ(ክ/ከተማ) መመዝገብ";
+        break;
+    case 3:
+        $branchnameindicator = "ማዕከል መመዝገብ";
+        break;
+    default:
+        $branchnameindicator = "ቅርንጫፍ መመዝገብ"; // ለጥንቃቄ የተቀመጠ default ስም
+        break;
+}
+echo $branchnameindicator; // እንደ ደረጃው የተመረጠ ስም እንዲታይ
+            ?>
         </h6>
         <button type="button" class="close" data-dismiss="modal">
           <span>&times;</span>
@@ -86,7 +128,30 @@
         <!-- Body -->
         <div class="modal-body">
           <div class="form-group mb-2">
-            <label for="org_name" class="mb-1"><small class="font-weight-bold">የቅርንጫፍ ስም</small></label>
+            <label for="org_name" class="mb-1"><small class="font-weight-bold">
+          <?php 
+ // ከሴሽን የሚመጣውን መረጃ በጥንቃቄ እንቀበላለን
+$level = $_SESSION['user']['level'] ?? null; 
+
+// እንደ level ደረጃው አመላካቹን መወሰን
+switch ($level) {
+    case 1:
+        $branchnameindicator = "ዞን ስም";
+        break;
+    case 2:
+        $branchnameindicator = "ወረዳ(ክ/ከተማ) ስም";
+        break;
+    case 3:
+        $branchnameindicator = "ማዕከል ስም ";
+        break;
+    default:
+        $branchnameindicator = "ቅርንጫፍ  "; // ለጥንቃቄ የተቀመጠ default ስም
+        break;
+}
+echo $branchnameindicator; // እንደ ደረጃው የተመረጠ ስም እንዲታይ
+            ?>
+
+            </small></label>
             <input 
               type="text" 
               id="branch_name" 
