@@ -642,7 +642,19 @@ function populateFormFromData(form, js) {
             field.value = js[key] ?? '';
         }
     });
-
+  const kebeleSelect = form.elements['kebele'];
+if (kebeleSelect) {
+    if (kebeleSelect.tagName === 'SELECT') {
+        // Kebele: strictly limited to the branch's list. If the saved value
+        // isn't one of the available options, force it back to the placeholder.
+        const exists = Array.from(kebeleSelect.options)
+            .some(opt => opt.value === (js.kebele ?? ''));
+        kebeleSelect.value = exists ? js.kebele : '';
+    } else {
+        // Text input variant (ketema_astedader or level 4): no option list to validate against.
+        kebeleSelect.value = js.kebele ?? '';
+    }
+}
     populateSubSectorsForEdit(js); // handles sub_choose1/2/3 correctly, no events involved
 
     applyAllConditionalLogic?.();

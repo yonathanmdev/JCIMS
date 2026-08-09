@@ -468,11 +468,6 @@ if($user['role'] === 'org_admin') {
     $metadata = [
         $metaKey          =>$result['branchCount'] ?? 0,
         'affected_users'  => $result['userCount'] ?? 0,
-        'afected_directors' => $result['directorCount'] ?? 0,
-        'affected_job_properties' => $result['jobPropertyCount'] ?? 0,
-        'affected_employees' => $result['employeeCount'] ?? 0,
-        'affected_scholarships' => $result['scholarshipCount'] ?? 0,
-        'affected_debt_suspensions' => $result['debtSuspensionCount'] ?? 0,
         'deletion_source' => $source
     ];
 

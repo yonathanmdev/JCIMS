@@ -27,8 +27,6 @@ if ($faydaBirthdate !== '') {
 
 $formError = $_SESSION['form_error'] ?? null;
 unset($_SESSION['form_error']);
-
-$fiscal_year = (int)date('Y'); // adjust to your actual fiscal year source if different
 $sectors = $sectors ?? []; // expected to be passed in from the controller, same as the modal
 ?>
 <style>
@@ -289,7 +287,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
                             <label class="mb-1"><small class="font-weight-bold">ጾታ</small></label>
-                            <input type="text" class="form-control form-control-sm" value="<?= htmlspecialchars($faydaGender) ?>" readonly>
+                            <input type="text" id="gender" class="form-control form-control-sm" value="<?= htmlspecialchars($faydaGender) ?>" readonly>
                         </div>
                     </div>
    
@@ -340,7 +338,23 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     <div class="col-12 col-sm-6 col-md-3">
                         <div class="form-group mb-2">
                             <label class="mb-1" for="kebele"><small class="font-weight-bold">ቀበሌ <span class="text-danger">*</span></small></label>
-                            <input type="text" class="form-control form-control-sm" id="kebele" name="kebele" data-validate="general-safe" required>
+                       <?php
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4 = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput = $isKetemaAstedader || $isLevel4;
+?>
+
+<?php if ($useTextInput): ?>
+    <input type="text" class="form-control form-control-sm" id="kebele" name="kebele"
+           data-validate="general-safe" required placeholder="ቀበሌ ያስገቡ">
+<?php else: ?>
+    <select class="form-control form-control-sm" id="kebele" name="kebele" data-validate="general-safe" required>
+        <option value="" selected="selected" disabled>&larr; ይምረጡ &rarr;</option>
+        <?php foreach ($listofKebeles as $kebele): ?>
+            <option value="<?= htmlspecialchars($kebele['kebele']) ?>"><?= htmlspecialchars($kebele['kebele']) ?></option>
+        <?php endforeach; ?>
+    </select>
+<?php endif; ?>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-md-3 field-housewife d-none">
@@ -441,7 +455,7 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
                     </div>
                     <div class="col-12 col-sm-6 col-md-3 field-dept">
                         <div class="form-group mb-2">
-                            <label class="mb-1" for="graguation_catagory"><small class="font-weight-bold">ያጠናቀቁበት ሙያ የስራ ምድብ <span class="text-danger">*</span></small></label>
+                            <label clasis_jobseeker_reg_fayda_pages="mb-1" for="graguation_catagory"><small class="font-weight-bold">ያጠናቀቁበት ሙያ የስራ ምድብ <span class="text-danger">*</span></small></label>
                             <select class="form-control form-control-sm" name="graguation_catagory" id="graguation_catagory">
                                 <option value="" selected="selected">&larr; ይምረጡ &rarr;</option>
                                 <option>Accounting and Finance Jobs</option>
@@ -1173,15 +1187,14 @@ $sectors = $sectors ?? []; // expected to be passed in from the controller, same
         });
     });
 
-    // Final safety net on submit
-    form.addEventListener('submit', function (e) {
-        if (!validateChildrenUnderFive()) {
-            e.preventDefault();
-            wizardGoTo(3);
-            document.getElementById('children_under_five').focus();
-        }
-    });
-
+   form.addEventListener('submit', function (e) {
+    if (!validateChildrenUnderFive()) {
+        e.preventDefault();
+        e.stopPropagation(); // stop it before it reaches document's jQuery handler
+        wizardGoTo(3);
+        document.getElementById('children_under_five').focus();
+    }
+});
     applyAllConditionalLogic();
     renderStep();
 })();

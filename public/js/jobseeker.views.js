@@ -128,7 +128,7 @@ $(document).on('click', '.view-jobseeker-btn', function () {
                 '<p class="text-danger text-center">መረጃ መጫን አልተሳካም</p>';
         });
 });
-
+ 
  document.addEventListener('DOMContentLoaded', function () {
     const printButtons = document.querySelectorAll('.print-id-btn');
     const today = new Date().toISOString().split('T')[0];

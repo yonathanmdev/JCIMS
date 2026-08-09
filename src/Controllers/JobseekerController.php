@@ -27,10 +27,12 @@ $sectors  = $sectorModel->getSectors();
         
         $jobSeekerModel = new JobSeekerModel($this->db);
 $jobSeekers  = $jobSeekerModel->getLast24HoursCount($branchId, $userId);
+$listofKebeles = $jobSeekerModel->listKebelesOfBranchWithKey($branchId);
         $data = [
             'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
             'sectors' => $sectors,
-            'jobSeekers' => $jobSeekers
+            'jobSeekers' => $jobSeekers,
+            'listofKebeles' => $listofKebeles,
         ];
 
         $this->render('jobseeker-registration', $data);
@@ -835,6 +837,8 @@ if ($Labor_ID !== '') {
     $offset = ($currentPage - 1) * $limit;
 
     $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchy($myBranchId, $limit, $offset);
+   $listofKebeles = $jobSeekerModel->listKebelesOfBranchWithKey($myBranchId);
+ 
     $totalCount = $jobSeekerModel->countJobSeekersByHierarchy($myBranchId);
     $totalPages = (int)ceil($totalCount / $limit);
 
@@ -845,7 +849,8 @@ if ($Labor_ID !== '') {
         'offset'      => $offset,        // ADD THIS
         'currentPage' => $currentPage,   // ADD THIS
         'totalPages'  => $totalPages,    // ADD THIS
-        'totalCount' => $totalCount
+        'totalCount' => $totalCount,
+        'listofKebeles' => $listofKebeles
     ];
 
     $this->render('jobseekers-list', $data);
@@ -873,6 +878,8 @@ if ($Labor_ID !== '') {
     $offset = ($currentPage - 1) * $limit;
 
     $jobSeekers = $jobSeekerModel->getJobSeekersByHierarchyRenewal($myBranchId, 10, $offset,$fiscal_year);
+    $listofKebeles = $jobSeekerModel->listKebelesOfBranchWithKey($myBranchId);
+ 
     $totalCount = $jobSeekerModel->countJobSeekersByHierarchyRenewal($myBranchId, $fiscal_year);
     $totalPages = (int)ceil($totalCount / $limit);
 
@@ -883,7 +890,8 @@ if ($Labor_ID !== '') {
         'offset'      => $offset,        // ADD THIS
         'currentPage' => $currentPage,   // ADD THIS
         'totalPages'  => $totalPages,    // ADD THIS
-        'totalCount' => $totalCount
+        'totalCount' => $totalCount,
+        'listofKebeles' => $listofKebeles
     ];
 
     $this->render('jobseekers-renewal', $data);
@@ -939,7 +947,7 @@ public function liveSearch(): void
 public function renewalSearch()
 {
     AuthHelper::checkRole(['team_leader', 'officer'], [3, 4]);
- $fiscal_year =AuthHelper::checkFiscalYear();
+    $fiscal_year = AuthHelper::checkFiscalYear();
     $myBranchId = $_SESSION['user']['branch_id'] ?? null;
     if (!$myBranchId) {
         http_response_code(403);
@@ -947,18 +955,39 @@ public function renewalSearch()
         exit;
     }
 
-    $query = $_GET['q'] ?? '';
-    $query = trim($query);
-
     header('Content-Type: application/json; charset=utf-8');
+
+    $scope = $_GET['scope'] ?? 'branch';
+    $searchModel = new JobSeekerModel($this->db);
+
+    if ($scope === 'region') {
+        // name (full_name_normalized) OR job_seeker_id, system-wide — no branch restriction
+        $query = trim($_GET['q'] ?? $_GET['id'] ?? '');
+
+        if (mb_strlen($query) < 2) {
+            echo json_encode(['results' => []]);
+            exit;
+        }
+
+        $results = $searchModel->searchArchiveSystemWide($query, $fiscal_year, 20);
+
+        echo json_encode([
+            'results' => $results,
+            'query' => $query,
+            'count' => count($results),
+        ]);
+        exit;
+    }
+
+    // existing behavior: name/id search scoped to the user's own branch
+    $query = trim($_GET['q'] ?? '');
 
     if (mb_strlen($query) < 2) {
         echo json_encode(['results' => []]);
         exit;
     }
 
-    $searchModel = new JobSeekerModel($this->db);
-    $results = $searchModel->searchArchive($query, $myBranchId, $fiscal_year,20);
+    $results = $searchModel->searchArchive($query, $myBranchId, $fiscal_year, 20);
 
     echo json_encode([
         'results' => $results,
@@ -1226,6 +1255,7 @@ public function searchJobSeekersForOrganizing(): void
     session_write_close();
 
     $term = trim(filter_input(INPUT_GET, 'term', FILTER_DEFAULT) ?? '');
+    $orgType = trim(filter_input(INPUT_GET, 'org_type', FILTER_DEFAULT) ?? '');
     if (mb_strlen($term) < 2) {
         header('Content-Type: application/json');
         echo json_encode(['success' => true, 'results' => []]);
@@ -1235,7 +1265,7 @@ public function searchJobSeekersForOrganizing(): void
     $branchId = $_SESSION['user']['branch_id'];
 
     $jobSeekerModel = new JobSeekerModel($this->db);
-    $results = $jobSeekerModel->searchJobSeekersForOrganizing($branchId, $term);
+    $results = $jobSeekerModel->searchJobSeekersForOrganizing($branchId, $term, $orgType);
 
     header('Content-Type: application/json');
     echo json_encode(['success' => true, 'results' => $results]);

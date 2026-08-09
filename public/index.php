@@ -28,7 +28,7 @@ session_set_cookie_params([
     'domain'   => '',
     'secure'   => $isSecure,
     'httponly' => true,
-    'samesite' => 'Strict'
+    'samesite' => 'lax'
 ]);
 session_start();
 $GLOBALS['nonce'] = base64_encode(random_bytes(16));

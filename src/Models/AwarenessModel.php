@@ -280,7 +280,7 @@ public function getUniqueNamesByBranch($branch_id, $searchName) {
     }
 }public function getAllJobSeekersByBranch($branch_id, $page = 1, $awareness = '1') {
     try {
-        $limit = 20;
+        $limit = 500;
         $page = (int)$page > 0 ? (int)$page : 1;
         $offset = ($page - 1) * $limit;
 
