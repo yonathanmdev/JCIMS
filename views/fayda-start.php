@@ -162,6 +162,10 @@ $baseUrl = rtrim($_ENV['BASE_URL'], '/');
                     <span class="fayda-preview-value" id="region-preview-id"></span>
                   </div>
                   <div class="fayda-preview-item">
+                    <span class="fayda-preview-label">መታወቂያ ቁጥር</span>
+                    <span class="fayda-preview-value" id="region-preview-phone"></span>
+                  </div>
+                  <div class="fayda-preview-item">
                     <span class="fayda-preview-label">ከዚህ ቀደም የተመዘገበበት</span>
                     <span class="fayda-preview-value" id="region-preview-branch"></span>
                   </div>
@@ -388,6 +392,7 @@ $baseUrl = rtrim($_ENV['BASE_URL'], '/');
         const previewName   = document.getElementById('preview-name');
         const previewId     = document.getElementById('preview-id');
         const previewBranch = document.getElementById('preview-branch');
+        const previewPhone  = document.getElementById('region-preview-phone');
 
         let debounceTimer = null;
         let activeRequest  = null;
@@ -424,6 +429,7 @@ $baseUrl = rtrim($_ENV['BASE_URL'], '/');
                     if (jobSeekerId) jobSeekerId.value = item.job_seeker_id;
                     if (previewName) previewName.textContent   = fullName;
                     if (previewId) previewId.textContent     = item.job_seeker_id;
+                    if (previewPhone) previewPhone.textContent = item.phone_number || '—';
                     if (previewBranch) previewBranch.textContent = item.branch_name || '—';
                     if (preview) preview.style.display = '';
                     if (continueBtn) continueBtn.disabled = false;
@@ -485,6 +491,7 @@ $baseUrl = rtrim($_ENV['BASE_URL'], '/');
         const preview       = document.getElementById('region-selected-preview');
         const previewName   = document.getElementById('region-preview-name');
         const previewId     = document.getElementById('region-preview-id');
+        const previewPhone  = document.getElementById('region-preview-phone');
         const previewBranch = document.getElementById('region-preview-branch');
 
         let activeRequest = null;
@@ -521,6 +528,7 @@ $baseUrl = rtrim($_ENV['BASE_URL'], '/');
                     if (jobSeekerId) jobSeekerId.value = item.job_seeker_id;
                     if (previewName) previewName.textContent   = fullName;
                     if (previewId) previewId.textContent     = item.job_seeker_id;
+                    if (previewPhone) previewPhone.textContent = item.phone_number || '—';
                     if (previewBranch) previewBranch.textContent = item.name || '—';
                     if (preview) preview.style.display = '';
                     if (continueBtn) continueBtn.disabled = false;

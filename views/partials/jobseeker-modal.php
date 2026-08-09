@@ -116,9 +116,13 @@
                <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-group mb-2">
                   <label class="mb-1" for="kebele"><small class="font-weight-bold">ቀበሌ <span class="text-danger">*</span></small></label>
-                <?php $isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on'; ?>
+              <?php
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4 = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput = $isKetemaAstedader || $isLevel4;
+?>
 
-<?php if ($isKetemaAstedader): ?>
+<?php if ($useTextInput): ?>
     <input type="text" class="form-control form-control-sm" id="kebele" name="kebele"
            data-validate="general-safe" required placeholder="ቀበሌ ያስገቡ">
 <?php else: ?>
