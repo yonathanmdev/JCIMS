@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 use App\Helpers\AmharicNormalizer;
+
 use PDO;
 class EnterpriseModel {
     private $db;
@@ -31,7 +32,7 @@ public function searchJobSeekersForIndividualEnterprise(int $branchId, string $t
         $params[':term_bool'] = $booleanTerm;
     }
 
-    $sql = "SELECT js.id, js.job_seeker_id,
+    $sql = "SELECT js.id, js.job_seeker_id, js.kebele,
                    CONCAT(js.first_name, ' ', js.father_name, ' ', js.last_name) AS label
             FROM job_seekers js
             WHERE js.branch_id = :branch_id
@@ -53,7 +54,7 @@ public function searchGroupsForAssociationEnterprise(int $branchId, string $term
 {
     $normalized = AmharicNormalizer::normalize($term);
 
-    $sql = "SELECT gt.id, gt.table_id, gt.project_type, gt.association_name AS label
+    $sql = "SELECT gt.id, gt.table_id, gt.project_type, gt.kebele, gt.association_name AS label
             FROM group_table gt
             WHERE gt.branch_id = :branch_id AND gt.is_enterprise = 0
               AND (
@@ -78,10 +79,10 @@ public function searchGroupsForAssociationEnterprise(int $branchId, string $term
  * Confirms the job seeker (looked up by UUID) belongs to the caller's branch,
  * isn't already permanently employed, and returns the resolved bigint job_seeker_id.
  */
-private function validateJobSeekerForEnterprise(int $branchId, string $jobSeekerId): array
+private function validateJobSeekerForEnterprise(int $branchId, string $jobSeekerId, $useTextInput): array
 {
     $stmt = $this->db->prepare("
-        SELECT job_seeker_id, concat(first_name, ' ', father_name, ' ', last_name) AS full_name, phone_number, employment_status
+        SELECT job_seeker_id, concat(first_name, ' ', father_name, ' ', last_name) AS full_name, phone_number, employment_status, kebele
         FROM job_seekers
         WHERE branch_id = :branchId AND id = :jobSeekerId
         LIMIT 1
@@ -102,7 +103,17 @@ private function validateJobSeekerForEnterprise(int $branchId, string $jobSeeker
             'message' => "ኢንተርፕራይዙ አልተመዘገበም ምክንያቱም {$jobSeeker['full_name']} የተባሉት ስራፈላጊ ከዚህ በፊት ቋሚ የስራ እድል ተፈጥሮላቸዋል።",
         ];
     }
+ if (!$useTextInput) {
+    $kebeleModel = new \App\Models\JobSeekerModel($this->db);
 
+    if ($jobSeeker['kebele'] === null || $jobSeeker['kebele'] === '') {
+        return ['status' => 'error', 'message' => 'የተመረጠው ስራ ፈላጊ ቀበሌ ትክክል አይደለም። እባክዎ የስራ ፈላጊውን ቀበሌ ያስተካክሉ።'];
+    }
+
+    if (!$kebeleModel->kebeleExistsInBranch((int) $branchId, $jobSeeker['kebele'])) {
+        return ['status' => 'error', 'message' => 'የተመረጠው ስራ ፈላጊ ቀበሌ ትክክል አይደለም። እባክዎ የስራ ፈላጊውን ቀበሌ ያስተካክሉ።'];
+    }
+}
     return [
         'status'        => 'success',
         'job_seeker_id' => $jobSeeker['job_seeker_id'],
@@ -113,7 +124,7 @@ private function validateJobSeekerForEnterprise(int $branchId, string $jobSeeker
 
 public function createIndividualEnterprise(array $data) {
     // ---- Confirm linked_entity_id actually belongs to this branch ----
-    $validation = $this->validateJobSeekerForEnterprise($data['branch_id'], $data['linked_entity_id']);
+    $validation = $this->validateJobSeekerForEnterprise($data['branch_id'], $data['linked_entity_id'], $data['useTextInput']);
 
     if ($validation['status'] === 'error') {
         return $validation;
@@ -301,10 +312,10 @@ if (!$sectorId || !$subSectorId) {
  * Confirms the team belongs to the caller's branch, and that no member of the
  * team already has employment_status = 1 (a permanent job created for them).
  */
-private function validateTeamForEnterprise(int $branchId, string $teamId): array
+private function validateTeamForEnterprise(int $branchId, string $teamId, bool $useTextInput): array
 {
     $stmt = $this->db->prepare("
-        SELECT table_id, association_name, project_type, sub_sector, yesra_mesk, project_ID
+        SELECT table_id, association_name, project_type, sub_sector, yesra_mesk, project_ID, kebele
         FROM group_table
         WHERE branch_id = :branchId AND id = :teamId
         LIMIT 1
@@ -318,7 +329,17 @@ private function validateTeamForEnterprise(int $branchId, string $teamId): array
     if (!$team) {
         return ['status' => 'error', 'message' => 'የተመረጠው ቡድን ከቅርንጫፍዎ ጋር አይዛመድም።'];
     }
+if (!$useTextInput) {
+    $kebeleModel = new \App\Models\JobSeekerModel($this->db);
 
+    if ($team['kebele'] === null || $team['kebele'] === '') {
+        return ['status' => 'error', 'message' => 'የተመረጠው ቡድን ቀበሌ የለውም። እባክዎ የስራ ፈላጊውን ቀበሌ ያስተካክሉ።'];
+    }
+
+    if (!$kebeleModel->kebeleExistsInBranch((int) $team['branch_id'], $team['kebele'])) {
+        return ['status' => 'error', 'message' => 'የተመረጠው ቡድን ቀበሌ ትክክል አይደለም። እባክዎ አደረጃጀት ላይ ቀበሌውን ያስተካክሉ።'];
+    }
+}
     // Check every member of the team; collect anyone who already has a permanent job.
     $stmt = $this->db->prepare("
         SELECT js.job_seeker_id, CONCAT(js.first_name, ' ', js.father_name, ' ', js.last_name) AS full_name, js.employment_status, 
@@ -353,7 +374,7 @@ return [
 }
 public function createAssocationEnterprise(array $data) {
     // ---- Confirm linked_entity_id actually belongs to this branch ----
-    $validation = $this->validateTeamForEnterprise($data['branch_id'], $data['linked_entity_id']);
+    $validation = $this->validateTeamForEnterprise($data['branch_id'], $data['linked_entity_id'], $data['useTextInput']);
 
     if ($validation['status'] === 'error') {
         return $validation;

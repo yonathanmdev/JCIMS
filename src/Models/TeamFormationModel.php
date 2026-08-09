@@ -18,8 +18,8 @@ class TeamFormationModel
         // 2. Insert into group_table
         $sqlGroup = "INSERT INTO group_table (id, branch_id, yetederajubet_akababi, association_name, 
         sub_sector, yesra_mesk, project_type, user_level, teamleader_id, manager_phone,
-        vice_teamleader_id, treasurer, procurement, registered_by, project_ID
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        vice_teamleader_id, treasurer, procurement, registered_by, project_ID, kebele
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmtGroup = $this->db->prepare($sqlGroup);
         $stmtGroup->execute([
@@ -38,6 +38,7 @@ class TeamFormationModel
             $payload['procurement_id'],
             $payload['registered_by'],  
             $payload['ngo_id'],      
+            $payload['kebele']
         ]);
 
         $lastId = $this->db->lastInsertId();
@@ -99,7 +100,7 @@ public function getGroupsByBranch(int $branchId, int $page = 1, int $perPage = 1
     $totalCount = (int)$stmtCount->fetchColumn();
 
     // 3. Fetch the data for this specific branch
-    $sqlData = "SELECT id, table_id, branch_id, association_name, sub_sector,project_type,  yesra_mesk, is_enterprise FROM group_table 
+    $sqlData = "SELECT id, table_id, branch_id, association_name, sub_sector,project_type,  yesra_mesk, is_enterprise, kebele FROM group_table 
                 WHERE branch_id = :branch_id 
                 ORDER BY created_at DESC 
                 LIMIT :limit OFFSET :offset";
@@ -131,6 +132,7 @@ public function getTeamWithMembers(string $teamId): ?array
                        g.sub_sector, g.yesra_mesk, g.project_type, g.yesra_mesk,
                        g.teamleader_id, g.manager_phone, g.vice_teamleader_id,
                        g.treasurer, g.procurement, g.registered_by, g.project_ID,
+                       g.kebele,
                        g.is_enterprise,
                        g.created_at,
                        ss.subsector,
@@ -391,10 +393,13 @@ public function getTeamForEdit(string $teamUuid): ?array
                 g.vice_teamleader_id,
                 g.treasurer,
                 g.procurement,
+                g.kebele,
 
                 -- NGO: only populated when project_type = 'NGO'
                 g.project_ID     AS ngo_id,
+
                 pn.pname         AS ngo_name,
+
 
                 CONCAT_WS(' ', leader.first_name,  leader.father_name,  leader.last_name) AS teamleader_name,
                 CONCAT_WS(' ', vleader.first_name, vleader.father_name, vleader.last_name) AS vice_teamleader_name,
@@ -479,7 +484,9 @@ public function updateTeamFormation(string $teamUuid, array $payload): array
                     vice_teamleader_id    = :vice_teamleader_id,
                     treasurer             = :treasurer,
                     procurement           = :procurement,
-                    project_ID            = :project_ID
+                    project_ID            = :project_ID,
+                    kebele                = :kebele,
+                    updated_by            = :updated_by
                 WHERE branch_id = :branch_id AND id = :team_uuid AND is_enterprise = 0
                 LIMIT 1";
 
@@ -494,7 +501,9 @@ public function updateTeamFormation(string $teamUuid, array $payload): array
         $stmt->bindValue(':treasurer', $payload['treasurer'], PDO::PARAM_INT);
         $stmt->bindValue(':procurement', $payload['procurement'], PDO::PARAM_INT);
         $stmt->bindValue(':project_ID', $payload['ngo_id']);
-         $stmt->bindValue(':branch_id', $payload['branch_id'], PDO::PARAM_INT);
+        $stmt->bindValue(':kebele', $payload['kebele']);
+        $stmt->bindValue(':updated_by', $payload['updated_by']);
+        $stmt->bindValue(':branch_id', $payload['branch_id'], PDO::PARAM_INT);
         $stmt->bindValue(':team_uuid', $teamUuid);
 
         $stmt->execute();

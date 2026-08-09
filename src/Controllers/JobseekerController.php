@@ -1173,10 +1173,15 @@ $sectors  = $sectorModel->getSectors();
         
         $projectModel = new ProjectNgoModel($this->db);
 $projects  = $projectModel->getAllProjectNgos();
+
+$jobSeekerModel = new JobSeekerModel($this->db);
+$listofKebeles = $jobSeekerModel->listKebelesOfBranchWithKey($branchId);
+ 
         $data = [
             'title' => 'JCIMS - የሰራተኛ መመዝገቢያ',
             'sectors' => $sectors,
-            'projects' => $projects
+            'projects' => $projects,
+            'listofKebeles' => $listofKebeles
         ];
 
         $this->render('setting-up-team', $data);
