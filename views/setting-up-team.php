@@ -169,6 +169,28 @@ $is_jobseeker_team_page = true;
       </div>
       <div class="modal-body">
         <div class="row">
+          
+        
+               <?php
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4 = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput = $isKetemaAstedader || $isLevel4;
+?>
+<?php if (!$useTextInput): ?>
+    <div class="col-md-6">
+      <div class="form-group mb-2">
+        <label class="mb-1" for="kebele"><small class="font-weight-bold">ቀበሌ <span class="text-danger">*</span></small></label>
+
+        <select class="form-control form-control-sm" id="kebele" name="kebele" data-validate="general-safe" required>
+          <option value="" selected="selected" disabled>&larr; ይምረጡ &rarr;</option>
+          <?php foreach ($listofKebeles as $kebele): ?>
+            <option value="<?= htmlspecialchars($kebele['kebele']) ?>"><?= htmlspecialchars($kebele['kebele']) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <div class="invalid-feedback">እባክዎ ይምረጡ!</div>
+      </div>
+    </div>
+  <?php endif; ?>
           <div class="col-md-6">
             <div class="form-group mb-2">
               <label class="mb-1" for="place"><small class="font-weight-bold">የሚደራጁበት አካባቢ</small></label>
@@ -187,9 +209,7 @@ $is_jobseeker_team_page = true;
               <div class="invalid-feedback">እባክዎ ያስገቡ!</div>
             </div>
           </div>
-        </div>
 
-        <div class="row">
           <div class="col-md-6">
             <div class="form-group mb-2">
               <label class="mb-1" for="leaderid"><small class="font-weight-bold">ሊቀመንበር</small></label>
@@ -208,9 +228,7 @@ $is_jobseeker_team_page = true;
               <div class="invalid-feedback">እባክዎ ይምረጡ!</div>
             </div>
           </div>
-        </div>
-
-        <div class="row">
+       
           <div class="col-md-6">
             <div class="form-group mb-2">
               <label class="mb-1" for="finance_name"><small class="font-weight-bold">ገንዘብ ያዥ</small></label>
@@ -229,9 +247,7 @@ $is_jobseeker_team_page = true;
               <div class="invalid-feedback">እባክዎ ይምረጡ!</div>
             </div>
           </div>
-        </div>
-
-        <div class="row">
+     
           <div class="col-md-6">
             <div class="form-group mb-2">
               <label class="mb-1" for="manager_phone"><small class="font-weight-bold">የስራ አስኪያጅ ስልክ ቁጥር</small></label>

@@ -19,6 +19,9 @@ function populateEditTeamModal(team, sectors, subsectorsBySector, members, ngos)
 
     $('#edit_team_id').val(team.uuid);
     $('#edit_association_name').val(team.association_name);
+   if ($('#edit_kebele').length) {   // true only if the element exists (length === 1)
+    setSelectValueTrimmed('#edit_kebele', team.kebele);
+}
    setSelectValueTrimmed('#edit_yetederajubet_akababi', team.yetederajubet_akababi);
     $('#edit_manager_phone').val(team.manager_phone);
     $('#edit_yesra_mesk').val(team.yesra_mesk);
@@ -130,10 +133,12 @@ $('#edit_sector').on('change', function () {
 $('#editTeamForm').on('submit', function (e) {
     e.preventDefault();
     $('#editTeamError').addClass('d-none').text('');
+    const $editKebele = $('#edit_kebele');
 
     const payload = {
         team_id:                $('#edit_team_id').val(),
         association_name:       $('#edit_association_name').val(),
+        kebele:                 $editKebele.length ? $editKebele.val() : null,
         yetederajubet_akababi:  $('#edit_yetederajubet_akababi').val(),
         project_type:           $('#edit_project_type').val(),
         manager_phone:          $('#edit_manager_phone').val(),
@@ -175,7 +180,16 @@ $('#editTeamForm').on('submit', function (e) {
             return;
         }
     }
-
+ // kebele required ONLY when the field exists (non-text-input users)
+    if ($editKebele.length && !payload.kebele) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'እባክዎ ያረጋግጡ',
+            text: 'እባክዎ "ቀበሌ" መስክን ይሙሉ',
+            confirmButtonText: 'እሺ'
+        });
+        return;
+    }
     // NGO required ONLY when project_type is NGO
     if (payload.project_type === 'NGO' && !payload.ngo) {
         Swal.fire({

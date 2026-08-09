@@ -50,6 +50,7 @@ $(function () {
                                 .data('id', item.id)
                                 .data('label', item.label)
                                 .data('project-type', item.project_type || '')
+                                .data('kebele', item.kebele || null)  // Add kebele data
                                 .appendTo($list);
                         });
                     }
@@ -71,6 +72,26 @@ $(function () {
 
         const label = $result.data('label');
         const projectType = $result.data('project-type') || '';
+        const $submitBtn = $modal.find('button[type="submit"], input[type="submit"]');
+        const kebele = $result.data('kebele');
+if (!window.useTextInput && !kebele) {
+        const isIndividual = $modal.attr('id') === 'individualEnterpriseModal';
+        const message = isIndividual
+            ? 'የመረጡት ስራ ፈላጊ ቀበሌ የለውም። እባክዎ የስራ ፈላጊውን ቀበሌ ያስተካክሉ።'
+            : 'የተመረጠው ቡድን ቀበሌ የለውም። እባክዎ አደረጃጀት ላይ ቀበሌውን ያስተካክሉ።';
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'እባክዎ ያረጋግጡ',
+            text: message,
+            confirmButtonText: 'እሺ'
+        });
+        $submitBtn.prop('disabled', true);
+        $group.find('.linked-entity-id').val('');
+        return;
+    }
+
+    $submitBtn.prop('disabled', false); // re-enable in case a previous invalid selection had disabled it
 
         // Fill common fields
         $group.find('.linked-entity-search').val(label);

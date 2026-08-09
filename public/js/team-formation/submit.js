@@ -115,6 +115,8 @@ if (orgType) {
 
     document.getElementById('btn-confirm-team')?.addEventListener('click', function () {
         const requiredFields = ['place', 'asso_name', 'leaderid', 'co_name', 'finance_name', 'procurement_name', 'manager_phone'];
+        const kebeleField = document.getElementById('kebele');
+        if (kebeleField) requiredFields.push('kebele');
         const missing = requiredFields.filter(id => !document.getElementById(id).value.trim());
 
         if (missing.length > 0) {
@@ -152,6 +154,9 @@ if (orgType) {
         }
     });
         formData.append('place', document.getElementById('place').value);
+        if (kebeleField) {
+            formData.append('kebele', kebeleField.value.trim());
+        }
         formData.append('asso_name', document.getElementById('asso_name').value.trim());
         formData.append('leader_id', document.getElementById('leaderid').value);
         formData.append('co_id', document.getElementById('co_name').value);
