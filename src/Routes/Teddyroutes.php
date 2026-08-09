@@ -44,6 +44,10 @@ return [
     'informal-trade-list' => ['InformalEnterpreseControrer', 'showInformalTradeList', true],
     'informal-trade-delete-process' => ['InformalEnterpreseControrer', 'deleteInformalTrader', true],
     'get-enterprise-list' =>['JobCreationRegController', 'getEnterpriseList', true],
+    'register-kebele' => ['KebeleController', 'showRegisterForm', true],
+    'register-kebele-process' => ['KebeleController', 'handleRegistration', true],
+    'edit-kebele-process' => ['KebeleController', 'handleEditKebele', true],
+    'delete-kebele-process' => ['KebeleController', 'delete', true],
    
     
 ];

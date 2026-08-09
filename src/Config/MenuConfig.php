@@ -6,6 +6,25 @@ class MenuConfig
 {
     public static function getTree(): array
     {
+ // ከሴሽን የሚመጣውን መረጃ በጥንቃቄ እንቀበላለን
+$level = $_SESSION['user']['level'] ?? null; 
+
+// እንደ level ደረጃው አመላካቹን መወሰን
+switch ($level) {
+    case 1:
+        $branchnameindicator = "ዞን መመዝገብ";
+        break;
+    case 2:
+        $branchnameindicator = "ወረዳ(ክ/ከተማ) መመዝገብ";
+        break;
+    case 3:
+        $branchnameindicator = "ማዕከል መመዝገብ";
+        break;
+    default:
+        $branchnameindicator = "ቅርንጫፍ መመዝገብ"; // ለጥንቃቄ የተቀመጠ default ስም
+        break;
+}
+
         return [
 
             [
@@ -49,11 +68,17 @@ class MenuConfig
 
 
                     [
-                        'label' => 'ቅርንጫፍ',
+                        'label' => $branchnameindicator,
                         'url'   => '/register-branch',
                         'roles' => ['org_admin']
                     ],
+     [
+                        'label' => 'ቀበሌ',
+                        'url'   => '/register-kebele',
+                        'roles' => ['org_admin'],
+                        'levels' => [3]
 
+                    ],
                     [
                         'label' => 'ተቆጣጣሪ',
                         'url'   => '/register-user',
