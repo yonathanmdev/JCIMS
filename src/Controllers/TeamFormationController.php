@@ -25,7 +25,7 @@ class TeamFormationController extends BaseController {
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
             return;
         }
-
+$jobSeekerModel = new JobSeekerModel($this->db);
        
         // 2. Input Sanitization
         $sector_id   = trim($_POST['sector_id'] ?? '');
@@ -41,6 +41,30 @@ class TeamFormationController extends BaseController {
         $phone       = trim($_POST['manager_phone'] ?? '');
         $ngoId       = trim($_POST['ngo_id'] ?? '');
         $selected    = $_POST['selected_jobseekers'] ?? [];
+      $kebele = trim($_POST['kebele'] ?? '');
+
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4          = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput       = $isKetemaAstedader || $isLevel4;
+
+$myBranchId = (int) ($_SESSION['user']['branch_id'] ?? 0);
+
+if ($useTextInput) {
+    // These users must NOT submit a kebele — force it to null regardless
+    // of whatever the client sent, rather than trusting an empty check alone.
+    $kebele = null;
+} else {
+    if ($kebele === '') {
+        echo json_encode(['success' => false, 'message' => 'ቀበሌ ያስፈልጋል።'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    if (!$jobSeekerModel->kebeleExistsInBranch($myBranchId, $kebele)) {
+        echo json_encode(['success' => false, 'message' => 'የተመረጠው ቀበሌ ትክክል አይደለም። እባከዎ በርስዎ መዋቅር ስር የሚገኝ ቀበሌ ይምረጡ'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+}
+// else: text-input case — free text, only the empty-check above applies.
  if ($orgType === 'family') {
             $orgType = 'የቤተሰብ';
         } elseif ($orgType === 'self_interest') {
@@ -95,7 +119,7 @@ class TeamFormationController extends BaseController {
             $ids = $sectorModel->getSubsectorBigIntIds($sub_sector_name);
             if (!$ids) throw new Exception("የተመረጠው ሙያ መረጃ አልተገኘም።");
 
-            $jobSeekerModel = new JobSeekerModel($this->db);
+            
             $allUuids = array_filter(array_unique(array_merge($roleValues, $selected)));
             $idMap = $jobSeekerModel->getJobSeekerIds($allUuids, $_SESSION['user']['branch_id']);
             // Add this temporarily
@@ -117,7 +141,8 @@ class TeamFormationController extends BaseController {
                 'sub_sector'      => $ids['sub_sectorid'],
                 'registered_by'   => $registered_by,
                 'branch_id'       => $_SESSION['user']['branch_id'],
-                'level'           => $_SESSION['user']['level']
+                'level'           => $_SESSION['user']['level'],
+                'kebele'          => $kebele, // Add kebele to payload
             ];
 
             $teamFormationModel = new TeamFormationModel($this->db);
@@ -168,6 +193,7 @@ public function listGroups()
 public function retrieveTeamMembers(array $params = []): void
 {
     $teamId = $params['uuid'] ?? $_GET['id'] ?? '';
+    $branchId = $_SESSION['user']['branch_id'] ?? null;
  
     if ($teamId === '') {
         $_SESSION['error'] = 'የቡድን መታወቂያ አልተገኘም።';
@@ -184,9 +210,12 @@ public function retrieveTeamMembers(array $params = []): void
         header('Location: ' . $_ENV['BASE_URL'] . '/team-lists');
         exit();
     }
- 
+    $jobSeekerModel = new JobSeekerModel($this->db);
+ $listofKebeles = $jobSeekerModel->listKebelesOfBranchWithKey($branchId);
+
     $this->render('team-members-view', [
         'team' => $team,
+        'listofKebeles' => $listofKebeles,
     ]);
 }
  
@@ -297,6 +326,7 @@ $projects  = $projectModel->getAllProjectNgos();
                 'treasurer_name'        => $team['treasurer_name'],
                 'procurement'           => $team['procurement'],
                 'procurement_name'      => $team['procurement_name'],
+                'kebele'                => $team['kebele'],
             ],
             'members'            => $team['members'], // [{id, job_seeker_id, first_name, father_name, last_name, gender, phone_number}, ...]
             'sectors'            => $sectorData['sectors'],
@@ -353,6 +383,28 @@ public function updateTeamFormation()
     $financeId     = trim($_POST['treasurer'] ?? '');          // job_seeker UUID
     $procId        = trim($_POST['procurement'] ?? '');        // job_seeker UUID
 
+     $kebele = trim($_POST['kebele'] ?? '');
+
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4          = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput       = $isKetemaAstedader || $isLevel4;
+
+
+if ($useTextInput) {
+    // These users must NOT submit a kebele — force it to null regardless
+    // of whatever the client sent, rather than trusting an empty check alone.
+    $kebele = null;
+} else {
+    if ($kebele === '') {
+        echo json_encode(['success' => false, 'message' => 'ቀበሌ ያስፈልጋል።'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+ $jobSeekerModel = new JobSeekerModel($this->db);
+    if (!$jobSeekerModel->kebeleExistsInBranch($branchId, $kebele)) {
+        echo json_encode(['success' => false, 'message' => 'የተመረጠው ቀበሌ ትክክል አይደለም። እባከዎ በርስዎ መዋቅር ስር የሚገኝ ቀበሌ ይምረጡ'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+}
    // 3. project_type / place allow-lists
     $allowedOrgTypes = ['NGO', 'የመንግስት', 'በራስ ፍላጎት', 'የቤተሰብ', 'በልዩ ሁኔታ'];
     if (!in_array($orgType, $allowedOrgTypes, true)) {
@@ -450,6 +502,8 @@ public function updateTeamFormation()
             'procurement'           => $resolvedProcId,
             'ngo_id'                => $teamData['ngo_id'],
             'branch_id'             => $_SESSION['user']['branch_id'],
+            'updated_by'            => $_SESSION['user']['id'] ?? null,
+            'kebele'                => $kebele, // Add kebele to payload
         ];
 
         $result = $teamFormationModel->updateTeamFormation($teamId, $payload);

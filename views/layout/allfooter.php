@@ -205,6 +205,14 @@ function myAsset($path) {
       <?php if (isset($is_enterprise_registration_page) && $is_enterprise_registration_page === true): ?>
     <script src="plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="plugins/jquery-validation/additional-methods.min.js"></script>
+   <?php
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4 = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput = $isKetemaAstedader || $isLevel4;
+?>
+<script nonce="<?php echo $GLOBALS['nonce']; ?>">
+  window.useTextInput = <?= json_encode($useTextInput) ?>;
+</script>
     <script src="<?= myAsset('js/sector-cascade.js') ?>"></script>
     <script src="<?= myAsset('js/ethiopian-calendar.js') ?>"></script>
     <script src="<?= myAsset('js/enterprise/enterprise-registration.js') ?>"></script>

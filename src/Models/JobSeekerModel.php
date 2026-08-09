@@ -1577,4 +1577,12 @@ public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
     $stmt->execute(['bid' => $branchId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC); // returns [['kebele' => '...'], ...]
 }
+public function kebeleExistsInBranch(int $branchId, string $kebele): bool
+{
+    $stmt = $this->db->prepare(
+        "SELECT 1 FROM allKebeles WHERE branch_id = :bid AND kebele = :kebele AND status = 'active' LIMIT 1"
+    );
+    $stmt->execute(['bid' => $branchId, 'kebele' => $kebele]);
+    return (bool) $stmt->fetchColumn();
+}
 }

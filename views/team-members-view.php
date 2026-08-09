@@ -32,6 +32,19 @@ $members = $team['members'] ?? [];
 
       <div class="card-body">
         <div class="row">
+           <?php
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4 = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput = $isKetemaAstedader || $isLevel4;
+?>
+<?php if (!$useTextInput): ?>
+    <div class="col-md-4 mb-3">
+            <strong>የተደራጁበት አካባቢ</strong>
+            <div><?= htmlspecialchars($team['kebele'] ?? '—') ?></div>
+          </div>
+  <?php endif; ?>
+
+  
           <div class="col-md-4 mb-3">
             <strong>የተደራጁበት አካባቢ</strong>
             <div><?= htmlspecialchars($team['yetederajubet_akababi'] ?? '—') ?></div>

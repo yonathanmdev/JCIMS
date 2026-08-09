@@ -4,7 +4,7 @@ namespace App\Controllers;
 use App\Helpers\AuthHelper;
 use App\Models\SectorModel;
 use App\Models\InformalTradeModel;
-
+ 
 class InformalEnterpreseControrer extends BaseController {
 
     /**

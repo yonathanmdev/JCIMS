@@ -46,7 +46,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_users) ?> Total
               </span>
               <i class="fas fa-users-cog fa-2x text-info mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">ጠቅላላ ተጠቃሚዎች</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">Users</h6>
             </div>
           </div>
         </div>
@@ -58,7 +58,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($active_users) ?> Active
               </span>
               <i class="fas fa-user-check fa-2x text-success mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">እየተጠቀሙ ያሉ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">Users</h6>
             </div>
           </div>
         </div>
@@ -155,7 +155,7 @@ $role = $_SESSION['user']['role'] ?? '';
                 <?= number_format($total_user) ?> User
               </span>
               <i class="fas fa-users-cog fa-2x text-warning mb-3 mt-2"></i>
-              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">የተጠቃሚዎች ሁኔታ</h6>
+              <h6 class="font-weight-bold mb-1" style="color: #1a365d; font-size: 15px;">Users</h6>
             </div>
           </div>
         </div>

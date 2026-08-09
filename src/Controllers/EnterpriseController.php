@@ -65,9 +65,10 @@ $data = array_map(fn($r) => [
     'id'         => $r['id'],
     'label'      => $r['label'],
     'project_type' => $r['project_type'],
+    'kebele'     => $r['kebele'] ?? null,
 ], $rows);    } else {
         $rows = $groupModel->searchJobSeekersForIndividualEnterprise($branchId, $query);
-        $data = array_map(fn($r) => ['id' => $r['id'], 'label' => $r['label']], $rows);
+        $data = array_map(fn($r) => ['id' => $r['id'], 'label' => $r['label'], 'kebele' => $r['kebele'] ?? null], $rows);
     }
 
     echo json_encode(['data' => $data]);
@@ -108,9 +109,12 @@ public function registerEnterprise(): void
     $establishedDateRaw      = trim($_POST['established_date'] ?? '');
     $ngoId                   = trim($_POST['ngo_id'] ?? '');
     $linkedEntityProjectType = trim($_POST['linked_entity_project_type'] ?? '');
-
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4          = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput       = $isKetemaAstedader || $isLevel4;
     // 2. Server-Side Validation checks matching frontend rules & visibility logic
     $errors = [];
+
 
     if (empty($linkedEntityId)) {
         $errors[] = 'እባክዎ ከዝርዝር ውስጥ አባል/ቡድን ይምረጡ።';
@@ -240,6 +244,7 @@ public function registerEnterprise(): void
         'starting_capital_in_kind'   => $startingCapitalInKind,
         'fiscal_year'                => AuthHelper::checkFiscalYear(),
         'established_date'           => $establishedDate,
+        'useTextInput'                 => $useTextInput,
     ];
 
     try {
@@ -409,7 +414,9 @@ private function getFiscalMinMax(): array
                 $orgTypeSupport = $incomingOrgSupport;
             }
         }
-
+$isKetemaAstedader = ($_SESSION['user']['ketema_astedader'] ?? null) === 'on';
+$isLevel4          = (int) ($_SESSION['user']['level'] ?? 0) === 4;
+$useTextInput       = $isKetemaAstedader || $isLevel4;
         $modelData = [
             'branch_id'                => $branchId,
             'user_id'                  => $userId,
@@ -436,6 +443,7 @@ private function getFiscalMinMax(): array
             'established_date'         => trim($data['established_date'] ?? ''),
             'fiscal_year'              => date('Y'),
             'enterpriseId'             => \Ramsey\Uuid\Uuid::uuid4()->toString(),
+            'useTextInput'             => $useTextInput,
         ];
 
         try {
