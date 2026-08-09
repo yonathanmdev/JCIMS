@@ -948,39 +948,43 @@ public function getJobSeekersByHierarchyRenewal(string $myBranchId, int $limit, 
         return [];
     }
 
-    // job_seeker_id is a numeric column — only pure digits should route here
+    // job_seeker_id and phone_number are both pure-digit columns — check both
+    // together rather than guessing which one the user meant.
     $looksLikeId = (bool) preg_match('/^\d+$/', $query);
 
     if ($looksLikeId) {
-        return $this->searchById((int) $query, $myBranchId, $limit);
+        return $this->searchById($query, $myBranchId, $limit);
     }
 
     return $this->searchByName($query, $myBranchId, $limit);
 }
 
-private function searchById(int $jobSeekerId, int $myBranchId, int $limit): array
+private function searchById(string $query, int $myBranchId, int $limit): array
 {
-    // Exact match, since job_seeker_id is an int — no meaningful "prefix" search
-    // on a numeric ID unless you specifically want range-based prefix matching.
+    // Exact match on either column. job_seeker_id is numeric; phone_number is
+    // CHAR(10). Casting job_seeker_id comparison via bound param keeps both
+    // sargable against their own indexes — this is NOT a LIKE/OR-across-many
+    // columns case like the archive search, just two cheap exact lookups.
     $sql = "SELECT js.id, js.job_seeker_id, js.first_name, js.father_name, js.last_name,
                    js.gender, js.phone_number, b.name AS branch_name
             FROM job_seekers js
             INNER JOIN branches b ON js.branch_id = b.internal_id
             INNER JOIN branches root ON root.internal_id = :my_branch
             WHERE b.path LIKE CONCAT(root.path, '%')
-              AND js.job_seeker_id = :job_seeker_id
+              AND (js.job_seeker_id = :job_seeker_id OR js.phone_number = :phone_number)
             LIMIT :limit";
 
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
-        $stmt->bindValue(':job_seeker_id', $jobSeekerId, PDO::PARAM_INT);
+        $stmt->bindValue(':job_seeker_id', (int) $query, PDO::PARAM_INT);
+        $stmt->bindValue(':phone_number', $query, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (\PDOException $e) {
-        error_log("Job seeker search by ID error: " . $e->getMessage());
+        error_log("Job seeker search by ID/phone error: " . $e->getMessage());
         return [];
     }
 }
@@ -1021,11 +1025,11 @@ private function searchById(int $jobSeekerId, int $myBranchId, int $limit): arra
     }
 }
 
-   public function searchArchiveSystemWide(string $query, int $fiscal_year, int $limit = 20): array
+public function searchArchiveSystemWide(string $query, int $fiscal_year, int $limit = 20): array
 {
     $isNumeric = ctype_digit($query);
 
-    $sql = "SELECT jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name, jsa.employment_status,
+    $sql = "SELECT jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name, jsa.phone_number, jsa.employment_status,
                    b.name
             FROM job_seekers_archive jsa
             LEFT JOIN branches b ON b.internal_id = jsa.branch_id
@@ -1033,6 +1037,7 @@ private function searchById(int $jobSeekerId, int $myBranchId, int $limit): arra
                 jsa.job_seeker_id = :exactId
                 OR jsa.full_name_normalized LIKE :namePrefix
                 OR jsa.FAN LIKE :fanPrefix
+                OR jsa.phone_number = :phoneExact
             )
             AND jsa.renewal_year != :fiscal_year
             LIMIT :limit";
@@ -1041,6 +1046,7 @@ private function searchById(int $jobSeekerId, int $myBranchId, int $limit): arra
     $stmt->bindValue(':exactId', $isNumeric ? $query : '0', PDO::PARAM_STR);
     $stmt->bindValue(':namePrefix', AmharicNormalizer::normalize($query) . '%', PDO::PARAM_STR);
     $stmt->bindValue(':fanPrefix', $query . '%', PDO::PARAM_STR);
+    $stmt->bindValue(':phoneExact', $query, PDO::PARAM_STR);
     $stmt->bindValue(':fiscal_year', $fiscal_year, PDO::PARAM_INT);
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
@@ -1057,27 +1063,28 @@ public function searchArchive(string $query, int $myBranchId, int $fiscal_year, 
     $looksLikeId = (bool) preg_match('/^\d+$/', $query);
 
     if ($looksLikeId) {
-        return $this->searchArchiveById((int) $query, $myBranchId, $fiscal_year, $limit);
+        return $this->searchArchiveById($query, $myBranchId, $fiscal_year, $limit);
     }
 
     return $this->searchArchiveByName($query, $myBranchId, $fiscal_year, $limit);
 }
 
-private function searchArchiveById(int $jobSeekerId, int $myBranchId, int $fiscal_year, int $limit): array
+private function searchArchiveById(string $query, int $myBranchId, int $fiscal_year, int $limit): array
 {
     $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name,
                    jsa.gender, jsa.phone_number, b.name AS branch_name
             FROM job_seekers_archive jsa
             INNER JOIN branches b ON jsa.branch_id = b.internal_id
             WHERE jsa.branch_id = :my_branch
-              AND jsa.job_seeker_id = :job_seeker_id
+            AND (jsa.job_seeker_id = :job_seeker_id OR jsa.phone_number = :phone_number)
               AND jsa.renewal_year != :fiscal_year
             LIMIT :limit";
 
     try {
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
-        $stmt->bindValue(':job_seeker_id', $jobSeekerId, PDO::PARAM_INT);
+        $stmt->bindValue(':job_seeker_id', (int)$query, PDO::PARAM_INT);
+        $stmt->bindValue(':phone_number', $query, PDO::PARAM_STR);
         $stmt->bindValue(':fiscal_year', $fiscal_year, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
@@ -1566,7 +1573,7 @@ public function searchJobSeekerjobcreation($term, $branchId,$fiscal_year) {
 
    public function listKebelesOfBranchWithKey(int $branchId): array
 {
-    $stmt = $this->db->prepare("SELECT DISTINCT kebele FROM allKebeles WHERE branch_id = :bid ORDER BY kebele ASC");
+    $stmt = $this->db->prepare("SELECT DISTINCT kebele FROM allKebeles WHERE branch_id = :bid  AND status='active' ORDER BY kebele ASC");
     $stmt->execute(['bid' => $branchId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC); // returns [['kebele' => '...'], ...]
 }
