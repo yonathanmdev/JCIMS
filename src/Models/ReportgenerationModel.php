@@ -74,129 +74,234 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
     return isset($result['total']) ? (int)$result['total'] : 0;
 }
 
-public function getDashboardChartsDataen($branchId)
-{
-    // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
-    if (empty($branchId)) {
-        return [
-            'yetederajubet_akababi' => ['ከተማ' => 0, 'ገጠር' => 0],
-            'project_type'          => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0],
-            'enterprise_by_sector'  => [],
-            'yehabtu_mnch'          => [],
-            'enterprise_type'       => []
-        ];
-    }
-
-    // 1. የጠየቁትን ትክክለኛ ኪውሪ በመጠቀም መረጃውን ማምጣት
-    $sql = "WITH RECURSIVE SubBranches AS (
+/**
+     * 1. የተደራጁበት አካባቢ (residence_status) ቻርት
+     */
+    public function getResidenceStatusData($branchId): array
+    {
+        $sql = "
+            WITH RECURSIVE SubBranches AS (
                 SELECT b.internal_id
                 FROM branches b
                 INNER JOIN branches root ON root.internal_id = :my_branch
                 WHERE b.path LIKE CONCAT(root.path, '%')
             )
-            SELECT fe.residence_status, 
-                   fe.project_type_or_aderejajet, 
-                   fe.sector_name, 
-                   fe.yehabtu_mnch, 
-                   fe.enterprise_type, 
-                   fe.tine_number 
+            SELECT 
+                SUM(CASE WHEN fe.residence_status IN ('1', 'ከተማ') THEN 1 ELSE 0 END) AS city_count,
+                SUM(CASE WHEN fe.residence_status IN ('2', 'ገጠር') THEN 1 ELSE 0 END) AS rural_count
             FROM full_enterprise_and_job_seekerdata fe
             INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
             WHERE fe.is_enterprise = '1'
               AND fe.tine_number IS NOT NULL 
               AND TRIM(fe.tine_number) != '' 
               AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'";
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+        ";
 
-    $stmt = $this->db->prepare($sql);
-    $stmt->execute(['my_branch' => $branchId]);
-    $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['my_branch' => $branchId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // ነባሪ መዋቅር ማዘጋጀት
-    $akababiCounts = ['ከተማ' => 0, 'ገጠር' => 0];
-    $projectTypes  = [
-        'የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0
-    ];
-    $sectorCounts = [];
-    $wealthSources = [];
-    $enterpriseTypes = [];
-
-    $processedTins = [];
-
-    foreach ($res as $row) {
-        $tineNumber = trim((string)$row['tine_number']);
-        
-        // ድግግሞሽን በቲን ቁጥር መከላከል
-        if (in_array($tineNumber, $processedTins)) {
-            continue;
-        }
-        $processedTins[] = $tineNumber;
-
-        // 1. የተደራጁበት አካባቢ (Doughnut Chart) - residence_status
-        $valAkababi = isset($row['residence_status']) ? trim((string)$row['residence_status']) : '';
-        if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
-            $akababiCounts['ከተማ']++;
-        } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
-            $akababiCounts['ገጠር']++;
-        }
-
-        // 2. የአደረጃጀቱ ዓይነት / Project Type (Vertical Bar Chart) - project_type_or_aderejajet
-        $reason = isset($row['project_type_or_aderejajet']) ? trim((string)$row['project_type_or_aderejajet']) : '';
-        if (!empty($reason)) {
-            if (array_key_exists($reason, $projectTypes)) {
-                $projectTypes[$reason]++;
-            } else {
-                $projectTypes[$reason] = 1;
-            }
-        }
-
-        // 3. የኢንተርፕራይዝ ምስረታ በሴክተር - sector_name
-        $sectorName = isset($row['sector_name']) ? trim((string)$row['sector_name']) : '';
-        if (!empty($sectorName)) {
-            if (!isset($sectorCounts[$sectorName])) {
-                $sectorCounts[$sectorName] = 0;
-            }
-            $sectorCounts[$sectorName]++;
-        }
-
-        // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
-        $wealthSourceRaw = isset($row['yehabtu_mnch']) ? trim((string)$row['yehabtu_mnch']) : '';
-        if ($wealthSourceRaw !== '') {
-            $wealthSource = $wealthSourceRaw;
-            if ($wealthSourceRaw === '0') {
-                $wealthSource = 'ከራስ ተቀማጭ';
-            } else if ($wealthSourceRaw === '1') {
-                $wealthSource = 'ከቤተሰብ';
-            } else if ($wealthSourceRaw === '2') {
-                $wealthSource = 'ከመንግስት';
-            } else if ($wealthSourceRaw === '3') {
-                $wealthSource = 'ከብደር';
-            }
-
-            if (!isset($wealthSources[$wealthSource])) {
-                $wealthSources[$wealthSource] = 0;
-            }
-            $wealthSources[$wealthSource]++;
-        }
-
-        // 5. የኢንተርፕራይዙ ዓይነት - enterprise_type
-        $entType = isset($row['enterprise_type']) ? trim((string)$row['enterprise_type']) : '';
-        if (!empty($entType)) {
-            if (!isset($enterpriseTypes[$entType])) {
-                $enterpriseTypes[$entType] = 0;
-            }
-            $enterpriseTypes[$entType]++;
-        }
+        return [
+            'ከተማ' => (int)($row['city_count'] ?? 0),
+            'ገጠር' => (int)($row['rural_count'] ?? 0)
+        ];
     }
 
-    return [
-        'yetederajubet_akababi' => $akababiCounts,
-        'project_type'          => $projectTypes,
-        'enterprise_by_sector'  => $sectorCounts,
-        'yehabtu_mnch'          => $wealthSources,
-        'enterprise_type'       => $enterpriseTypes
-    ];
-}
+    /**
+     * 2. የአደረጃጀቱ ዓይነት / Project Type (project_type_or_aderejajet) ቻርት
+     */
+    public function getProjectTypeData($branchId): array
+    {
+        $sql = "
+            WITH RECURSIVE SubBranches AS (
+                SELECT b.internal_id
+                FROM branches b
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+            )
+            SELECT 
+                TRIM(fe.project_type_or_aderejajet) AS project_type,
+                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
+            FROM full_enterprise_and_job_seekerdata fe
+            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+            WHERE fe.is_enterprise = '1'
+              AND fe.tine_number IS NOT NULL 
+              AND TRIM(fe.tine_number) != '' 
+              AND LOWER(TRIM(fe.tine_number)) != 'null'
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+              AND fe.project_type_or_aderejajet IS NOT NULL
+              AND TRIM(fe.project_type_or_aderejajet) != ''
+            GROUP BY TRIM(fe.project_type_or_aderejajet)
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['my_branch' => $branchId]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $projectTypes = [
+            'የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0
+        ];
+
+        foreach ($results as $row) {
+            $type = $row['project_type'];
+            $total = (int)$row['total'];
+            $projectTypes[$type] = $total;
+        }
+
+        return $projectTypes;
+    }
+
+    /**
+     * 3. የኢንተርፕራይዝ ምስረታ በሴክተር (sector_name) ቻርት
+     */
+    public function getEnterpriseBySectorData($branchId): array
+    {
+        $sql = "
+            WITH RECURSIVE SubBranches AS (
+                SELECT b.internal_id
+                FROM branches b
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+            )
+            SELECT 
+                TRIM(fe.sector_name) AS sector_name,
+                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
+            FROM full_enterprise_and_job_seekerdata fe
+            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+            WHERE fe.is_enterprise = '1'
+              AND fe.tine_number IS NOT NULL 
+              AND TRIM(fe.tine_number) != '' 
+              AND LOWER(TRIM(fe.tine_number)) != 'null'
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+              AND fe.sector_name IS NOT NULL
+              AND TRIM(fe.sector_name) != ''
+            GROUP BY TRIM(fe.sector_name)
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['my_branch' => $branchId]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $sectorCounts = [];
+        foreach ($results as $row) {
+            $sectorCounts[$row['sector_name']] = (int)$row['total'];
+        }
+
+        return $sectorCounts;
+    }
+
+    /**
+     * 4. የኢንተርፕራይዝ የሀብት ምንጭ (yehabtu_mnch) ቻርት
+     */
+    public function getWealthSourceData($branchId): array
+    {
+        $sql = "
+            WITH RECURSIVE SubBranches AS (
+                SELECT b.internal_id
+                FROM branches b
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+            )
+            SELECT 
+                CASE 
+                    TRIM(fe.yehabtu_mnch)
+                    WHEN '0' THEN 'ከራስ ተቀማጭ'
+                    WHEN '1' THEN 'ከቤተሰብ'
+                    WHEN '2' THEN 'ከመንግስት'
+                    WHEN '3' THEN 'ከብደር'
+                    ELSE TRIM(fe.yehabtu_mnch)
+                END AS wealth_source,
+                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
+            FROM full_enterprise_and_job_seekerdata fe
+            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+            WHERE fe.is_enterprise = '1'
+              AND fe.tine_number IS NOT NULL 
+              AND TRIM(fe.tine_number) != '' 
+              AND LOWER(TRIM(fe.tine_number)) != 'null'
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+              AND fe.yehabtu_mnch IS NOT NULL
+              AND TRIM(fe.yehabtu_mnch) != ''
+            GROUP BY wealth_source
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['my_branch' => $branchId]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $wealthSources = [];
+        foreach ($results as $row) {
+            if (!empty($row['wealth_source'])) {
+                $wealthSources[$row['wealth_source']] = (int)$row['total'];
+            }
+        }
+
+        return $wealthSources;
+    }
+
+    /**
+     * 5. የኢንተርፕራይዙ ዓይነት (enterprise_type) ቻርት
+     */
+    public function getEnterpriseTypeData($branchId): array
+    {
+        $sql = "
+            WITH RECURSIVE SubBranches AS (
+                SELECT b.internal_id
+                FROM branches b
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+            )
+            SELECT 
+                TRIM(fe.enterprise_type) AS enterprise_type,
+                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
+            FROM full_enterprise_and_job_seekerdata fe
+            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+            WHERE fe.is_enterprise = '1'
+              AND fe.tine_number IS NOT NULL 
+              AND TRIM(fe.tine_number) != '' 
+              AND LOWER(TRIM(fe.tine_number)) != 'null'
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+              AND fe.enterprise_type IS NOT NULL
+              AND TRIM(fe.enterprise_type) != ''
+            GROUP BY TRIM(fe.enterprise_type)
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['my_branch' => $branchId]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $enterpriseTypes = [];
+        foreach ($results as $row) {
+            $enterpriseTypes[$row['enterprise_type']] = (int)$row['total'];
+        }
+
+        return $enterpriseTypes;
+    }
+
+    /**
+     * ዋናው መጥሪያ (Master) ፋንክሽን
+     */
+    public function getDashboardChartsDataen($branchId): array
+    {
+        if (empty($branchId)) {
+            return [
+                'yetederajubet_akababi' => ['ከተማ' => 0, 'ገጠር' => 0],
+                'project_type'          => ['የቤተሰብ' => 0, 'የመንግስት' => 0, 'በራስ ፍላጎት' => 0, 'በልዩ ሁኔታ' => 0, 'NGO' => 0],
+                'enterprise_by_sector'  => [],
+                'yehabtu_mnch'          => [],
+                'enterprise_type'       => []
+            ];
+        }
+
+        return [
+            'yetederajubet_akababi' => $this->getResidenceStatusData($branchId),
+            'project_type'          => $this->getProjectTypeData($branchId),
+            'enterprise_by_sector'  => $this->getEnterpriseBySectorData($branchId),
+            'yehabtu_mnch'          => $this->getWealthSourceData($branchId),
+            'enterprise_type'       => $this->getEnterpriseTypeData($branchId)
+        ];
+    }
+
 
 
 
