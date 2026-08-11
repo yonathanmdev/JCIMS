@@ -16,7 +16,7 @@
     const TEXT_WITH_SPACES_PATTERN = /^[\p{L}]+(\s[\p{L}]+)*$/u; // multiple words, single spaces between, no leading/trailing/double spaces
     const NUMERIC_PATTERN = /^\d*$/;
     const NUMERIC_DASH_SLASH_SPACE_PATTERN = /^[\d\-\/\s]*$/;
-    const GENERAL_SAFE_PATTERN = /^[\p{L}\d\-\/\s፣]*$/u;
+    const GENERAL_SAFE_PATTERN = /^[\p{L}\d\-\/\s፣()]*$/u;
     const DECIMAL_PATTERN = /^\d+(\.\d+)?$/;
     const ALPHANUMERIC_PATTERN = /^[\p{L}\d]*$/u;
 
@@ -152,14 +152,12 @@ if (requiredLength && value.length !== parseInt(requiredLength, 10)) {
             if (cleaned !== input.value) input.value = cleaned;
 
         } else if (type === 'general-safe') {
-            let cleaned = input.value
-                .replace(/[^\p{L}\d\-\/\s፣]/gu, '')  // allow letters, digits, dash, slash, space, and Ethiopic comma
-                .replace(/\s{2,}/g, ' ')             // FIX: collapse multiple spaces into one (was collapsing to '')
-                .replace(/^\s+/, '');                // FIX: strip leading space, consistent with other types
-
-            // Length check removed for this type
-            if (cleaned !== input.value) input.value = cleaned;
-        }
+    let cleaned = input.value
+        .replace(/[^\p{L}\d\-\/\s፣()]/gu, '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/^\s+/, '');
+    if (cleaned !== input.value) input.value = cleaned;
+}
         else if (type === 'alphanumeric') {
     let cleaned = input.value.replace(/[^\p{L}\d]/gu, ''); // strip anything that isn't a letter or digit
 
