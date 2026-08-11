@@ -315,7 +315,7 @@ if (!$sectorId || !$subSectorId) {
 private function validateTeamForEnterprise(int $branchId, string $teamId, bool $useTextInput): array
 {
     $stmt = $this->db->prepare("
-        SELECT table_id, association_name, project_type, sub_sector, yesra_mesk, project_ID, kebele
+        SELECT table_id, branch_id, association_name, project_type, sub_sector, yesra_mesk, project_ID, kebele
         FROM group_table
         WHERE branch_id = :branchId AND id = :teamId
         LIMIT 1

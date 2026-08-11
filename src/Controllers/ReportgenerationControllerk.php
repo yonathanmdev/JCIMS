@@ -782,13 +782,7 @@ public function report2Show()
     $myBranchId = $sessionBranchId;
     // 3. ከ POST (ፎርም ሲላክ) ወይም ከ GET (ሊንክ ሲጫን) የመጣውን የቀበሌ ስም ወይም ID መያዝ
     $kebele = $_POST['kebele'] ?? null; // ከ POST የመጣው ዋጋ
-    $enterpriseKebele = $dbEnterpriseKebele ?? null;
-    // የያዘውን ዋጋ ለማየት
-echo "<pre style='background:#eee; padding:10px;'>";
-echo "የ `$enterpriseKebele` ዋጋ፦ ";
-var_dump($enterpriseKebele); 
-echo "</pre>";
-// ማሳሰቢያ፦ ይህንን ካዩ በኋላ ኮዱን ማጥፋት ወይም ಕಾሜንት ማድረግዎን አይርሱ
+    $enterpriseKebele = $_POST['enterpriseKebele'] ?? $kebele;
 
     $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
 
@@ -840,9 +834,6 @@ echo "</pre>";
     $reports = $reportModel->getJobSeekers02ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, $kebele, $enterpriseKebele);
 
     // 7. Render Printable View with Extracted Parameters
-echo "<div style='background: #f8d7da; color: #721c24; padding: 10px; margin: 10px; border: 1px solid #f5c6cb;'>";
-    echo "<b>Debug Check - Enterprise Kebele:</b> " . (!empty($enterpriseKebele) ? htmlspecialchars($enterpriseKebele) : "<span style='color:red;'>ባዶ ነው (Null/Empty)</span>");
-    echo "</div>";
     return $this->renderPrintable('kreport-2', [
         'reports'            => $reports,
         'reportData'         => $reports,
