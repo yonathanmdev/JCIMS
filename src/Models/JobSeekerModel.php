@@ -1133,7 +1133,7 @@ private function searchArchiveByName(string $query, int $myBranchId, int $fiscal
 }
 public function findExistingForRenewal(int $jobSeekerId, int $myBranchId, int $fiscal_year): ?array
 {
-    $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.first_name, jsa.father_name, jsa.last_name,
+    $sql = "SELECT jsa.id, jsa.job_seeker_id, jsa.branch_id, jsa.first_name, jsa.father_name, jsa.last_name,
                    jsa.gender, jsa.phone_number, jsa.employment_status, b.name AS branch_name
             FROM job_seekers_archive jsa
             INNER JOIN branches b ON jsa.branch_id = b.internal_id

@@ -4,6 +4,7 @@
     <div class="modal-content">
       <form  id="jobseekerForm" action="<?= rtrim($_ENV['BASE_URL'], '/') ?>/jobseeker-registration-process" method="POST" enctype="multipart/form-data" id="jobseekerForm">
         <!-- Modal Header -->
+         
            <input type="hidden" name="mode" id="formMode" value="create">
            <input type="hidden" name="jobseeker_id" id="jobseekerIdField" value="">
         <div class="modal-header">

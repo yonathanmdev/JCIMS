@@ -18,8 +18,8 @@ class TeamFormationModel
         // 2. Insert into group_table
         $sqlGroup = "INSERT INTO group_table (id, branch_id, yetederajubet_akababi, association_name, 
         sub_sector, yesra_mesk, project_type, user_level, teamleader_id, manager_phone,
-        vice_teamleader_id, treasurer, procurement, registered_by, project_ID, kebele
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        vice_teamleader_id, treasurer, procurement, registered_by, project_ID, kebele,fiscal_year
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmtGroup = $this->db->prepare($sqlGroup);
         $stmtGroup->execute([
@@ -38,7 +38,8 @@ class TeamFormationModel
             $payload['procurement_id'],
             $payload['registered_by'],  
             $payload['ngo_id'],      
-            $payload['kebele']
+            $payload['kebele'],
+            $payload['fiscal_year']
         ]);
 
         $lastId = $this->db->lastInsertId();
@@ -476,7 +477,7 @@ public function updateTeamFormation(string $teamUuid, array $payload): array
     try {
         $sql = "UPDATE group_table
                 SET association_name      = :association_name,
-                    yetederajubet_akababi = :yetederajubet_akababi,
+                    yetederajubet_akabafiscal_yearbi = :yetederajubet_akababi,
                     manager_phone         = :manager_phone,
                     sub_sector            = :sub_sector,
                     yesra_mesk            = :yesra_mesk,

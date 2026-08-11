@@ -555,7 +555,12 @@ private function validateJobseekerData(array $post): array
     if (!preg_match('/^[\p{L}\s]+$/u', $get('last_name'))) {
         $errors[] = "የአያት ስም ቁጥር ወይም ልዩ ምልክት መያዝ የለበትም።";
     }
-
+$age = $get('age') ?? '';
+if ($age !== '') {
+    if (!preg_match('/^\d+$/', $age) || (int)$age < 15 || (int)$age > 65) {
+        $errors[] = "እድሜ ከ15 እስከ 65 መካከል መሆን አለበት።";
+    }
+}
     // ═══════════════════════════════════════════════════════════════
     // CATEGORY 3: FAN VALIDATION (16-digit national ID, if provided)
     // ═══════════════════════════════════════════════════════════════
