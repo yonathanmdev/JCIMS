@@ -1682,9 +1682,10 @@ public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate
 }
 }
 
-public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, $kebele): array
+public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, $kebele, $enterpriseKebele): array
 {
     echo "የደረሰው ቀበሌ ዋጋ (Kebele Value): " . htmlspecialchars($kebele) . "<br>";
+    echo "የኢንተርፕራይዝ ቀበሌ ዋጋ (Enterprise Kebele Value): " . htmlspecialchars($enterpriseKebele) . "<br>";
     $sql = "
         WITH RECURSIVE SubBranches AS (
             SELECT b.internal_id
@@ -1705,7 +1706,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             INNER JOIN SubBranches sb ON CAST(f.job_seeker_branch_id AS CHAR) = CAST(sb.internal_id AS CHAR) 
             WHERE (:residence_status IS NULL OR f.residence_status = :residence_status_check)
               AND f.established_date BETWEEN :start_date AND :end_date
-              AND f.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' and f.kebele = :kebele
+              AND f.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' and f.jskebele = :kebele
         ),
         -- እያንዳንዱ ኢንተርፕራይዝ በንዑስ ዘርፍ እና በ TIN Number ልክ አንዴ ብቻ እንዲታወቅ ማድረግ
         DistinctEnterprises AS (
@@ -1720,7 +1721,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
                 MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%' THEN 1 ELSE 0 END) AS is_family_ind,
                 MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%' THEN 1 ELSE 0 END) AS is_family_serv
             FROM BaseData
-            WHERE tine_number IS NOT NULL AND tine_number != ''
+            WHERE tine_number IS NOT NULL AND tine_number != '' and (:enterpriseKebele IS NULL OR f.enterprise_kebele = :enterpriseKebele)
             GROUP BY sub_sector_name, sector_name, tine_number
         )
         -- 1. መደበኛ የንዑስ ዘርፎች መረጃ (ኢንተርፕራይዝ ከ DistinctEnterprises ተጠቃለ ቤዝ ቆጠራ ይደረጋል፣ ሥራ ዕድል ከ BaseData ይመጣል)
@@ -1750,7 +1751,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family = 1
+        WHERE is_family = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
 
         UNION ALL
 
@@ -1765,7 +1766,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family_agri = 1
+        WHERE is_family_agri = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
 
         UNION ALL
 
@@ -1780,7 +1781,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family_ind = 1
+        WHERE is_family_ind = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
 
         UNION ALL
 
@@ -1795,12 +1796,14 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family_serv = 1
+        WHERE is_family_serv = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
     ";
 
     try {
     // ቀበሌው የያዘውን ዋጋ ከዚህ በታች በ echo ማየት ይችላሉ
     echo "የደረሰው ቀበሌ ዋጋ (Kebele Value): " . htmlspecialchars($kebele) . "<br>";
+    echo "የኢንተርፕራይዝ ቀበሌ ዋጋ (Enterprise Kebele Value): " . htmlspecialchars($enterpriseKebele) . "<br>";
+
     // ከዚህ በታች ያለው exit() ኮዱ ከዚህ በላይ እንዳይቀጥል እና ዋጋው ታይቶ እንዲቆም ያደርጋል
     // ኪውሪው በትክክል መሮጡን ማረጋገጥ ከፈለጉ exit() የሚለውን ማጥፋት ይችላሉ
     // exit(); 
@@ -1820,7 +1823,8 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
     $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
     $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
     $stmt->bindValue(':kebele', $kebele, \PDO::PARAM_STR);
-    
+    $stmt->bindValue(':enterpriseKebele', $enterpriseKebele, \PDO::PARAM_STR);
+
     $stmt->execute();
     
     return $stmt->fetchAll(\PDO::FETCH_CLASS);

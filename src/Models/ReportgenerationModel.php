@@ -87,30 +87,30 @@ public function getDashboardChartsDataen($branchId)
         ];
     }
 
-    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ - RECURSIVE SubBranches)
-    $sqlBranches = "WITH RECURSIVE SubBranches AS (
-                        SELECT b.internal_id FROM branches b
-                        INNER JOIN branches root ON root.internal_id = :my_branch
-                        WHERE b.path LIKE CONCAT(root.path, '%')
-                    ) SELECT internal_id FROM SubBranches";
-                    
-    $stmtB = $this->db->prepare($sqlBranches);
-    $stmtB->execute(['my_branch' => $branchId]);
-    $branchIds = array_filter($stmtB->fetchAll(PDO::FETCH_COLUMN));
+    // 1. የጠየቁትን ትክክለኛ ኪውሪ በመጠቀም መረጃውን ማምጣት
+    $sql = "WITH RECURSIVE SubBranches AS (
+                SELECT b.internal_id
+                FROM branches b
+                INNER JOIN branches root ON root.internal_id = :my_branch
+                WHERE b.path LIKE CONCAT(root.path, '%')
+            )
+            SELECT fe.residence_status, 
+                   fe.project_type_or_aderejajet, 
+                   fe.sector_name, 
+                   fe.yehabtu_mnch, 
+                   fe.enterprise_type, 
+                   fe.tine_number 
+            FROM full_enterprise_and_job_seekerdata fe
+            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+            WHERE fe.is_enterprise = '1'
+              AND fe.tine_number IS NOT NULL 
+              AND TRIM(fe.tine_number) != '' 
+              AND LOWER(TRIM(fe.tine_number)) != 'null'
+              AND LOWER(TRIM(fe.tine_number)) != 'n/a'";
 
-    if (empty($branchIds)) {
-        $branchIds = [$branchId];
-    }
-
-    // ቅርንጫፎቹን ለ SQL IN ክላውስ ማዘጋጀት (job_seeker_branch_id ን በመጠቀም)
-    $inClause = implode(',', array_map('intval', $branchIds));
-
-    // 2. የተጠየቁትን አምዶች ብቻ ከ full_enterprise_and_job_seekerdata ማምጣት (is_enterprise='1' እና በቅርንጫፍ ሂራርኪ ልክ)
-    $sqlData = "SELECT residence_status, project_type_or_aderejajet, sector_name, yehabtu_mnch, enterprise_type, tine_number 
-                FROM full_enterprise_and_job_seekerdata 
-                WHERE job_seeker_branch_id IN ($inClause) AND is_enterprise = '1'";
-                
-    $res = $this->db->query($sqlData)->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['my_branch' => $branchId]);
+    $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // ነባሪ መዋቅር ማዘጋጀት
     $akababiCounts = ['ከተማ' => 0, 'ገጠር' => 0];
@@ -121,37 +121,28 @@ public function getDashboardChartsDataen($branchId)
     $wealthSources = [];
     $enterpriseTypes = [];
 
-    // ኢንተርፕራይዞች በTIN Number አንዴ ብቻ እንዲቆጠሩ የተደረገበት (Distinct Enterprise Tracking)
     $processedTins = [];
 
     foreach ($res as $row) {
-        $tineNumber = isset($row['tine_number']) ? trim((string)$row['tine_number']) : '';
-        $isUniqueEnterprise = false;
-
-        // TIN Number ካለው እና ገና ያልተቆጠረ ከሆነ እንደ አንድ ኢንተርፕራይዝ እንወስደዋለን
-        if (!empty($tineNumber)) {
-            if (!in_array($tineNumber, $processedTins)) {
-                $processedTins[] = $tineNumber;
-                $isUniqueEnterprise = true;
-            }
-        } else {
-            // TIN Number ከሌለው እያንዳንዱን ረድፍ እንደየብቻው እንቆጥረዋለን
-            $isUniqueEnterprise = true;
+        $tineNumber = trim((string)$row['tine_number']);
+        
+        // ድግግሞሽን በቲን ቁጥር መከላከል
+        if (in_array($tineNumber, $processedTins)) {
+            continue;
         }
+        $processedTins[] = $tineNumber;
 
         // 1. የተደራጁበት አካባቢ (Doughnut Chart) - residence_status
         $valAkababi = isset($row['residence_status']) ? trim((string)$row['residence_status']) : '';
-        if ($isUniqueEnterprise) {
-            if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
-                $akababiCounts['ከተማ']++;
-            } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
-                $akababiCounts['ገጠር']++;
-            }
+        if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
+            $akababiCounts['ከተማ']++;
+        } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
+            $akababiCounts['ገጠር']++;
         }
 
         // 2. የአደረጃጀቱ ዓይነት / Project Type (Vertical Bar Chart) - project_type_or_aderejajet
         $reason = isset($row['project_type_or_aderejajet']) ? trim((string)$row['project_type_or_aderejajet']) : '';
-        if (!empty($reason) && $isUniqueEnterprise) {
+        if (!empty($reason)) {
             if (array_key_exists($reason, $projectTypes)) {
                 $projectTypes[$reason]++;
             } else {
@@ -161,16 +152,16 @@ public function getDashboardChartsDataen($branchId)
 
         // 3. የኢንተርፕራይዝ ምስረታ በሴክተር - sector_name
         $sectorName = isset($row['sector_name']) ? trim((string)$row['sector_name']) : '';
-        if (!empty($sectorName) && $isUniqueEnterprise) {
+        if (!empty($sectorName)) {
             if (!isset($sectorCounts[$sectorName])) {
                 $sectorCounts[$sectorName] = 0;
             }
             $sectorCounts[$sectorName]++;
         }
 
-       // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
+        // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
         $wealthSourceRaw = isset($row['yehabtu_mnch']) ? trim((string)$row['yehabtu_mnch']) : '';
-        if ($isUniqueEnterprise && $wealthSourceRaw !== '') {
+        if ($wealthSourceRaw !== '') {
             $wealthSource = $wealthSourceRaw;
             if ($wealthSourceRaw === '0') {
                 $wealthSource = 'ከራስ ተቀማጭ';
@@ -187,9 +178,10 @@ public function getDashboardChartsDataen($branchId)
             }
             $wealthSources[$wealthSource]++;
         }
+
         // 5. የኢንተርፕራይዙ ዓይነት - enterprise_type
         $entType = isset($row['enterprise_type']) ? trim((string)$row['enterprise_type']) : '';
-        if (!empty($entType) && $isUniqueEnterprise) {
+        if (!empty($entType)) {
             if (!isset($enterpriseTypes[$entType])) {
                 $enterpriseTypes[$entType] = 0;
             }
@@ -2228,7 +2220,7 @@ public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
 public function getExpertLevelReport($currentUserId, $accountLevel = null, $userBranchId = null, $requestedBranchId = null)
 {
     set_time_limit(300);
-    ini_set('memory_limit', '512M');
+    ini_set('memory_limit', '200M');
 
     $params = [];
     $activeBranchId = !empty($requestedBranchId) ? $requestedBranchId : $userBranchId;

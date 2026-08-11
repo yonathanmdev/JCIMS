@@ -2,7 +2,7 @@
 namespace App\Controllers;
 
 use App\Helpers\AuthHelper;
-use App\Models\ReportgenerationModel;
+//use App\Models\ReportgenerationModel;
 use App\Models\Branch;
 use App\Models\ReportgenerationModelk;
 
@@ -782,6 +782,7 @@ public function report2Show()
     $myBranchId = $sessionBranchId;
     // 3. ከ POST (ፎርም ሲላክ) ወይም ከ GET (ሊንክ ሲጫን) የመጣውን የቀበሌ ስም ወይም ID መያዝ
     $kebele = $_POST['kebele'] ?? null; // ከ POST የመጣው ዋጋ
+    $enterpriseKebele = $_POST['enterprisekebele'] ??  null; // የኢንተርፕራይዝ ቀበሌን መቀበል
 
     $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
 
@@ -818,7 +819,7 @@ public function report2Show()
 
     if ($startdate < $firstchoice || $startdate > $today || $enddate > $today || $startdate > $enddate) {
         $_SESSION['error'] = 'የተሳሳተ የሪፖርት ቀን መርጠዋል።';
-        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/report-registration");
+        header("Location: " . rtrim($_ENV['BASE_URL'], '/') . "/kreport-registration");
         exit();
     }
 
@@ -830,9 +831,12 @@ public function report2Show()
     $branchName  = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
 
     // ለReport-2 የተዘጋጀውን ሞዴል ሜቶድ መጥራት
-    $reports = $reportModel->getJobSeekers02ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, $kebele);
+    $reports = $reportModel->getJobSeekers02ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, $kebele, $enterpriseKebele);
 
     // 7. Render Printable View with Extracted Parameters
+echo "<div style='background: #f8d7da; color: #721c24; padding: 10px; margin: 10px; border: 1px solid #f5c6cb;'>";
+    echo "<b>Debug Check - Enterprise Kebele:</b> " . (!empty($enterpriseKebele) ? htmlspecialchars($enterpriseKebele) : "<span style='color:red;'>ባዶ ነው (Null/Empty)</span>");
+    echo "</div>";
     return $this->renderPrintable('kreport-2', [
         'reports'            => $reports,
         'reportData'         => $reports,
@@ -840,7 +844,8 @@ public function report2Show()
         'startdate'          => $startdate,
         'enddate'            => $enddate,
         'residenceStatus'    => $residenceStatus,
-        'kebele'             => $kebele
+        'kebele'             => $kebele,
+        'enterpriseKebele'   => $enterpriseKebele
     ]);   
 }
 }
