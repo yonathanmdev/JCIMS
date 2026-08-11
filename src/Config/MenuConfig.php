@@ -289,6 +289,12 @@ switch ($level) {
             'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
             'roles' => ['team_leader', 'officer']
         ],
+        [
+            'label' => 'የቀበሌ ሪፖርት ማየት',
+            'url'   => '/kreport-registration',
+            'roles' => ['team_leader','officer'],
+            'levels' => [3]
+                    ],
 
     ]
     

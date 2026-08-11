@@ -3,7 +3,7 @@ namespace App\Models;
 
 use PDO;
 
-class ReportgenerationModel 
+class ReportgenerationModelk 
 {
     private $db;
 
@@ -87,30 +87,30 @@ public function getDashboardChartsDataen($branchId)
         ];
     }
 
-    // 1. የጠየቁትን ትክክለኛ ኪውሪ በመጠቀም መረጃውን ማምጣት
-    $sql = "WITH RECURSIVE SubBranches AS (
-                SELECT b.internal_id
-                FROM branches b
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-            )
-            SELECT fe.residence_status, 
-                   fe.project_type_or_aderejajet, 
-                   fe.sector_name, 
-                   fe.yehabtu_mnch, 
-                   fe.enterprise_type, 
-                   fe.tine_number 
-            FROM full_enterprise_and_job_seekerdata fe
-            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
-            WHERE fe.is_enterprise = '1'
-              AND fe.tine_number IS NOT NULL 
-              AND TRIM(fe.tine_number) != '' 
-              AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'";
+    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ - RECURSIVE SubBranches)
+    $sqlBranches = "WITH RECURSIVE SubBranches AS (
+                        SELECT b.internal_id FROM branches b
+                        INNER JOIN branches root ON root.internal_id = :my_branch
+                        WHERE b.path LIKE CONCAT(root.path, '%')
+                    ) SELECT internal_id FROM SubBranches";
+                    
+    $stmtB = $this->db->prepare($sqlBranches);
+    $stmtB->execute(['my_branch' => $branchId]);
+    $branchIds = array_filter($stmtB->fetchAll(PDO::FETCH_COLUMN));
 
-    $stmt = $this->db->prepare($sql);
-    $stmt->execute(['my_branch' => $branchId]);
-    $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (empty($branchIds)) {
+        $branchIds = [$branchId];
+    }
+
+    // ቅርንጫፎቹን ለ SQL IN ክላውስ ማዘጋጀት (job_seeker_branch_id ን በመጠቀም)
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    // 2. የተጠየቁትን አምዶች ብቻ ከ full_enterprise_and_job_seekerdata ማምጣት (is_enterprise='1' እና በቅርንጫፍ ሂራርኪ ልክ)
+    $sqlData = "SELECT residence_status, project_type_or_aderejajet, sector_name, yehabtu_mnch, enterprise_type, tine_number 
+                FROM full_enterprise_and_job_seekerdata 
+                WHERE job_seeker_branch_id IN ($inClause) AND is_enterprise = '1'";
+                
+    $res = $this->db->query($sqlData)->fetchAll(PDO::FETCH_ASSOC);
 
     // ነባሪ መዋቅር ማዘጋጀት
     $akababiCounts = ['ከተማ' => 0, 'ገጠር' => 0];
@@ -121,28 +121,37 @@ public function getDashboardChartsDataen($branchId)
     $wealthSources = [];
     $enterpriseTypes = [];
 
+    // ኢንተርፕራይዞች በTIN Number አንዴ ብቻ እንዲቆጠሩ የተደረገበት (Distinct Enterprise Tracking)
     $processedTins = [];
 
     foreach ($res as $row) {
-        $tineNumber = trim((string)$row['tine_number']);
-        
-        // ድግግሞሽን በቲን ቁጥር መከላከል
-        if (in_array($tineNumber, $processedTins)) {
-            continue;
+        $tineNumber = isset($row['tine_number']) ? trim((string)$row['tine_number']) : '';
+        $isUniqueEnterprise = false;
+
+        // TIN Number ካለው እና ገና ያልተቆጠረ ከሆነ እንደ አንድ ኢንተርፕራይዝ እንወስደዋለን
+        if (!empty($tineNumber)) {
+            if (!in_array($tineNumber, $processedTins)) {
+                $processedTins[] = $tineNumber;
+                $isUniqueEnterprise = true;
+            }
+        } else {
+            // TIN Number ከሌለው እያንዳንዱን ረድፍ እንደየብቻው እንቆጥረዋለን
+            $isUniqueEnterprise = true;
         }
-        $processedTins[] = $tineNumber;
 
         // 1. የተደራጁበት አካባቢ (Doughnut Chart) - residence_status
         $valAkababi = isset($row['residence_status']) ? trim((string)$row['residence_status']) : '';
-        if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
-            $akababiCounts['ከተማ']++;
-        } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
-            $akababiCounts['ገጠር']++;
+        if ($isUniqueEnterprise) {
+            if ($valAkababi === '1' || $valAkababi === 'ከተማ') {
+                $akababiCounts['ከተማ']++;
+            } else if ($valAkababi === '2' || $valAkababi === 'ገጠር') {
+                $akababiCounts['ገጠር']++;
+            }
         }
 
         // 2. የአደረጃጀቱ ዓይነት / Project Type (Vertical Bar Chart) - project_type_or_aderejajet
         $reason = isset($row['project_type_or_aderejajet']) ? trim((string)$row['project_type_or_aderejajet']) : '';
-        if (!empty($reason)) {
+        if (!empty($reason) && $isUniqueEnterprise) {
             if (array_key_exists($reason, $projectTypes)) {
                 $projectTypes[$reason]++;
             } else {
@@ -152,16 +161,16 @@ public function getDashboardChartsDataen($branchId)
 
         // 3. የኢንተርፕራይዝ ምስረታ በሴክተር - sector_name
         $sectorName = isset($row['sector_name']) ? trim((string)$row['sector_name']) : '';
-        if (!empty($sectorName)) {
+        if (!empty($sectorName) && $isUniqueEnterprise) {
             if (!isset($sectorCounts[$sectorName])) {
                 $sectorCounts[$sectorName] = 0;
             }
             $sectorCounts[$sectorName]++;
         }
 
-        // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
+       // 4. የኢንተርፕራይዝ የሀብት ምንጫቸው - yehabtu_mnch
         $wealthSourceRaw = isset($row['yehabtu_mnch']) ? trim((string)$row['yehabtu_mnch']) : '';
-        if ($wealthSourceRaw !== '') {
+        if ($isUniqueEnterprise && $wealthSourceRaw !== '') {
             $wealthSource = $wealthSourceRaw;
             if ($wealthSourceRaw === '0') {
                 $wealthSource = 'ከራስ ተቀማጭ';
@@ -178,10 +187,9 @@ public function getDashboardChartsDataen($branchId)
             }
             $wealthSources[$wealthSource]++;
         }
-
         // 5. የኢንተርፕራይዙ ዓይነት - enterprise_type
         $entType = isset($row['enterprise_type']) ? trim((string)$row['enterprise_type']) : '';
-        if (!empty($entType)) {
+        if (!empty($entType) && $isUniqueEnterprise) {
             if (!isset($enterpriseTypes[$entType])) {
                 $enterpriseTypes[$entType] = 0;
             }
@@ -962,8 +970,9 @@ private function normalizeReportRow(array|false $row): array
  * 2. ለስራ ፈላጊዎች የምክርና የመረጃ አገልግሎት እንዲሁም የዕድሜ ስብጥር ሪፖርት (ከ job_seekers ቴብል ብቻ)
  * ኢንዴክስ ቅደም-ተከተል፦ gender ➡️ residence_status ➡️ age
  */
-public function getJobSeekersAdviceByHierarchy(string $myBranchId, $startdate, $enddate): array
+public function getJobSeekersAdviceByHierarchy(string $myBranchId, $startdate, $enddate,$kebele): array
 {
+   // $kebele="ወርቄን";
     $sql = "
         WITH RECURSIVE SubBranches AS (
             -- 1. መጀመሪያ ቅርንጫፉንና ከሥሩ ያሉትን ንዑስ ቅርንጫፎች በፓዝ ይለያል
@@ -985,7 +994,7 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId, $startdate, $
                 js.awareness,
                 js.employment_status
             FROM job_seekers js
-            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id WHERE js.reg_date BETWEEN :start_date AND :end_date
+            INNER JOIN SubBranches sb ON js.branch_id = sb.internal_id WHERE js.kebele=:kebele and ( js.reg_date BETWEEN :start_date AND :end_date )
         )
         SELECT
             -- ምድብ 1 እና መጨረሻው ፦ የምክርና መረጃ አገልግሎት
@@ -1193,6 +1202,7 @@ public function getJobSeekersAdviceByHierarchy(string $myBranchId, $startdate, $
         $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
         $stmt->bindValue(':start_date', $startdate, PDO::PARAM_STR);
         $stmt->bindValue(':end_date', $enddate, PDO::PARAM_STR);
+        $stmt->bindValue(':kebele', $kebele, PDO::PARAM_STR);
         $stmt->execute();
 
         return $this->normalizeAdviceRow($stmt->fetch(PDO::FETCH_ASSOC));
@@ -1448,7 +1458,7 @@ public function getReportTenByHierarchy(string $myBranchId, string $startdate, s
 
 
 
-public function getJobSeekers04ByHierarchy(string $myBranchId, $startdate, $enddate, $residenceStatus, string $sectorName): array
+public function getJobSeekers04ByHierarchy($myBranchId, $startdate, $enddate, $residenceStatus, string $sectorName, $kebele): array
 {
     $sql = "
         WITH RECURSIVE SubBranches AS (
@@ -1465,7 +1475,7 @@ public function getJobSeekers04ByHierarchy(string $myBranchId, $startdate, $endd
             FROM code003sraedl c
             INNER JOIN job_seekers js ON c.jobseeker_id = js.job_seeker_id
             INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
-            WHERE js.residence_status = :residence_status
+            WHERE js.residence_status = :residence_status and js.kebele=:kebele
         )
         SELECT 
             sub.subsector AS sub_sector_name,
@@ -1485,6 +1495,7 @@ public function getJobSeekers04ByHierarchy(string $myBranchId, $startdate, $endd
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
         $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+        $stmt->bindValue(':kebele', $kebele, PDO::PARAM_STR);
         $stmt->execute();
         
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -1495,7 +1506,7 @@ public function getJobSeekers04ByHierarchy(string $myBranchId, $startdate, $endd
 }
 
 
-public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, string $sectorName): array
+public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, string $sectorName, string $kebele): array
 {
     $sql = "
         WITH RECURSIVE SubBranches AS (
@@ -1515,7 +1526,7 @@ public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate
             INNER JOIN SubBranches sb ON CAST(c.branchid AS CHAR) = CAST(sb.internal_id AS CHAR) 
             INNER JOIN sub_sector sub_filter ON c.subsector = sub_filter.sub_sectorid
             INNER JOIN sector_table sec_filter ON sub_filter.sectorid = sec_filter.sectorid
-            WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check)
+            WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check) and js.kebele = :kebele
               AND sec_filter.sector = :sector_name
               AND c.created_at BETWEEN :start_date AND :end_date
         )
@@ -1594,7 +1605,7 @@ public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate
         $stmt->bindValue(':sector_name', $sectorName, \PDO::PARAM_STR);
         $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
         $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
-        
+        $stmt->bindValue(':kebele', $kebele, \PDO::PARAM_STR);        
         $stmt->execute();
         
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -1606,7 +1617,7 @@ public function getJobSeekers06ByHierarchy(string $myBranchId, string $startdate
 
 
 
-public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus): array
+public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, ?string $kebele): array
 {
     $sql = "
         WITH RECURSIVE SubBranches AS (
@@ -1617,8 +1628,8 @@ public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate
         )
         SELECT 
             TRIM(c.job_creation_reason) AS job_reason,
-            sec.sector AS sector_name,
-            
+            sec.sector AS sector_name, 
+
             -- ቋሚ (Employment Type = 1)
             SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ወንድ' THEN 1 ELSE 0 END) AS perm_m,
             SUM(CASE WHEN TRIM(c.employment_type) = '1' AND TRIM(js.gender) = 'ሴት' THEN 1 ELSE 0 END) AS perm_f,
@@ -1634,36 +1645,47 @@ public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate
         INNER JOIN sector_table sec ON sub.sectorid = sec.sectorid
         WHERE (:residence_status IS NULL OR js.residence_status = :residence_status_check)
           AND c.created_at BETWEEN :start_date AND :end_date
+          AND js.kebele = :kebele
         GROUP BY TRIM(c.job_creation_reason), sec.sector
     ";
 
-    try {
-        $stmt = $this->db->prepare($sql);
-        
-        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
-        
-        if ($residenceStatus === null) {
-            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
-            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
-            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
-        }
-        
-        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
-        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
-        
-        $stmt->execute();
-        
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+   try {
+    // kebele መምጣቱን ለማየት (Debug ለማድረግ)
+    echo "የደረሰው ቀበሌ (Kebele): " . htmlspecialchars($kebele) . "<br>";
+    // ኮዱ እዚህ ላይ ቆሞ የkebele ዋጋ ብቻ እንዲታይ ከፈለጉ ከታች ያለውን የ exit ትዕዛዝ ማንሳት (Uncomment ማድረግ) ይችላሉ
+    // exit();
 
-    } catch (\PDOException $e) {
-        return [];
+    $stmt = $this->db->prepare($sql);
+    
+    $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+    
+    if ($residenceStatus === null) {
+        $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+        $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+    } else {
+        $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+        $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
     }
+    
+    $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+    $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+    
+    // የቀበሌ ማሰሪያ (Binding) - ከዚህ በታች መኖሩን ያረጋግጡ
+    $stmt->bindValue(':kebele', $kebele, \PDO::PARAM_STR);
+    
+    $stmt->execute();
+    
+    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+} catch (\PDOException $e) {
+    return [];
+}
 }
 
-public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus): array
+public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, $kebele, $enterpriseKebele): array
 {
+    echo "የደረሰው ቀበሌ ዋጋ (Kebele Value): " . htmlspecialchars($kebele) . "<br>";
+    echo "የኢንተርፕራይዝ ቀበሌ ዋጋ (Enterprise Kebele Value): " . htmlspecialchars($enterpriseKebele) . "<br>";
     $sql = "
         WITH RECURSIVE SubBranches AS (
             SELECT b.internal_id
@@ -1684,7 +1706,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             INNER JOIN SubBranches sb ON CAST(f.job_seeker_branch_id AS CHAR) = CAST(sb.internal_id AS CHAR) 
             WHERE (:residence_status IS NULL OR f.residence_status = :residence_status_check)
               AND f.established_date BETWEEN :start_date AND :end_date
-              AND f.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ'
+              AND f.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' and f.jskebele = :kebele
         ),
         -- እያንዳንዱ ኢንተርፕራይዝ በንዑስ ዘርፍ እና በ TIN Number ልክ አንዴ ብቻ እንዲታወቅ ማድረግ
         DistinctEnterprises AS (
@@ -1699,7 +1721,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
                 MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%' THEN 1 ELSE 0 END) AS is_family_ind,
                 MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%' THEN 1 ELSE 0 END) AS is_family_serv
             FROM BaseData
-            WHERE tine_number IS NOT NULL AND tine_number != ''
+            WHERE tine_number IS NOT NULL AND tine_number != '' and (:enterpriseKebele IS NULL OR f.enterprise_kebele = :enterpriseKebele)
             GROUP BY sub_sector_name, sector_name, tine_number
         )
         -- 1. መደበኛ የንዑስ ዘርፎች መረጃ (ኢንተርፕራይዝ ከ DistinctEnterprises ተጠቃለ ቤዝ ቆጠራ ይደረጋል፣ ሥራ ዕድል ከ BaseData ይመጣል)
@@ -1729,7 +1751,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family = 1
+        WHERE is_family = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
 
         UNION ALL
 
@@ -1744,7 +1766,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family_agri = 1
+        WHERE is_family_agri = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
 
         UNION ALL
 
@@ -1759,7 +1781,7 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family_ind = 1
+        WHERE is_family_ind = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
 
         UNION ALL
 
@@ -1774,32 +1796,42 @@ public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_m,
             (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_f
         FROM DistinctEnterprises
-        WHERE is_family_serv = 1
+        WHERE is_family_serv = 1 and (:enterpriseKebele IS NULL OR enterprise_kebele = :enterpriseKebele)
     ";
 
     try {
-        $stmt = $this->db->prepare($sql);
-        
-        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
-        
-        if ($residenceStatus === null) {
-            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
-            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
-            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
-        }
-        
-        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
-        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
-        
-        $stmt->execute();
-        
-        return $stmt->fetchAll(\PDO::FETCH_CLASS);
+    // ቀበሌው የያዘውን ዋጋ ከዚህ በታች በ echo ማየት ይችላሉ
+    echo "የደረሰው ቀበሌ ዋጋ (Kebele Value): " . htmlspecialchars($kebele) . "<br>";
+    echo "የኢንተርፕራይዝ ቀበሌ ዋጋ (Enterprise Kebele Value): " . htmlspecialchars($enterpriseKebele) . "<br>";
 
-    } catch (\PDOException $e) {
-        return [];
+    // ከዚህ በታች ያለው exit() ኮዱ ከዚህ በላይ እንዳይቀጥል እና ዋጋው ታይቶ እንዲቆም ያደርጋል
+    // ኪውሪው በትክክል መሮጡን ማረጋገጥ ከፈለጉ exit() የሚለውን ማጥፋት ይችላሉ
+    // exit(); 
+
+    $stmt = $this->db->prepare($sql);
+    
+    $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+    
+    if ($residenceStatus === null) {
+        $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+        $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+    } else {
+        $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+        $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
     }
+    
+    $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+    $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+    $stmt->bindValue(':kebele', $kebele, \PDO::PARAM_STR);
+    $stmt->bindValue(':enterpriseKebele', $enterpriseKebele, \PDO::PARAM_STR);
+
+    $stmt->execute();
+    
+    return $stmt->fetchAll(\PDO::FETCH_CLASS);
+
+} catch (\PDOException $e) {
+    return [];
+}
 }
 
 
@@ -2220,7 +2252,7 @@ public function getJobCreationReport($parentBranchId, $isKetemaAstedader)
 public function getExpertLevelReport($currentUserId, $accountLevel = null, $userBranchId = null, $requestedBranchId = null)
 {
     set_time_limit(300);
-    ini_set('memory_limit', '200M');
+    ini_set('memory_limit', '512M');
 
     $params = [];
     $activeBranchId = !empty($requestedBranchId) ? $requestedBranchId : $userBranchId;
@@ -2228,7 +2260,10 @@ public function getExpertLevelReport($currentUserId, $accountLevel = null, $user
     $whereClause = "WHERE u.status = 'active' AND u.account_level IN ('kebele_officer', 'wereda_officer')";
     $ctePrefix = "";
 
+    // የክልል መለያ (1) ካልሆነ እና ዞን/ወረዳ ከተመረጠ (ለምሳሌ activeBranchId = 10)
     if (!empty($activeBranchId) && $activeBranchId != 1 && $activeBranchId != '1') {
+        
+        // internal_id እና parent_id በመጠቀም የቅርንጫፎችን ተዋረድ መፈለጊያ CTE
         $ctePrefix = "WITH RECURSIVE SubBranches AS (
                         SELECT CAST(internal_id AS CHAR) AS branch_key 
                         FROM branches 
@@ -2254,12 +2289,6 @@ public function getExpertLevelReport($currentUserId, $accountLevel = null, $user
                     CONCAT_WS(' ', u.first_name, u.father_name, u.grand_father_name) AS expert_name,
                     u.branch_id,
                     COALESCE(b.name, 'ያልተገለጸ') AS branch_name,
-                    
-                    -- የቅርንጫፍ መዋቅር መለያዎች (ለየደረጃው ማወዳደሪያ)
-                    b.parent_id AS zone_id,
-                    b.internal_id AS center_id,
-                    u.branch_id AS woreda_id,
-                    
                     COALESCE(js_stat.reg_job_seekers, 0) AS reg_job_seekers,
                     COALESCE(js_stat.awareness_created, 0) AS awareness_created,
                     COALESCE(js_stat.jobs_created, 0) AS jobs_created,
@@ -2289,29 +2318,11 @@ public function getExpertLevelReport($currentUserId, $accountLevel = null, $user
                 ent_created,
                 total_work_avg,
 
-                -- 1. የክልል ደረጃ (ውጤቱ ከ 0 በላይ ከሆነ ብቻ)
-                CASE 
-                    WHEN total_work_avg > 0 THEN DENSE_RANK() OVER (ORDER BY total_work_avg DESC) 
-                    ELSE NULL 
-                END AS region_rank,
-                
-                -- 2. የዞን ደረጃ (በዞን zone_id ተከፍሎ - ውጤቱ ከ 0 በላይ ከሆነ)
-                CASE 
-                    WHEN total_work_avg > 0 THEN DENSE_RANK() OVER (PARTITION BY zone_id ORDER BY total_work_avg DESC) 
-                    ELSE NULL 
-                END AS zone_rank,
-                
-                -- 3. የወረዳ ደረጃ (በወረዳ woreda_id ተከፍሎ - ውጤቱ ከ 0 በላይ ከሆነ)
-                CASE 
-                    WHEN total_work_avg > 0 THEN DENSE_RANK() OVER (PARTITION BY woreda_id ORDER BY total_work_avg DESC) 
-                    ELSE NULL 
-                END AS woreda_rank,
-                
-                -- 4. የማዕከል ደረጃ (በማዕከል center_id ተከፍሎ - ውጤቱ ከ 0 በላይ ከሆነ)
-                CASE 
-                    WHEN total_work_avg > 0 THEN DENSE_RANK() OVER (PARTITION BY center_id ORDER BY total_work_avg DESC) 
-                    ELSE NULL 
-                END AS center_rank
+                -- Ranks (ደረጃዎች)
+                DENSE_RANK() OVER (ORDER BY total_work_avg DESC) AS region_rank,
+                DENSE_RANK() OVER (PARTITION BY branch_id ORDER BY total_work_avg DESC) AS zone_rank,
+                DENSE_RANK() OVER (PARTITION BY branch_id ORDER BY total_work_avg DESC) AS woreda_rank,
+                DENSE_RANK() OVER (PARTITION BY branch_id ORDER BY total_work_avg DESC) AS center_rank
 
             FROM ExpertData
             ORDER BY total_work_avg DESC";

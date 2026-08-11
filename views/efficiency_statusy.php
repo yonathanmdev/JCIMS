@@ -12,7 +12,7 @@
                     <option value="">-- እባክዎ የአፈጻጸም ሁኔታ ይምረጡ --</option>
                     <option value="ምዝገባና ግንዛቤ">ምዝገባና ግንዛቤ</option>
                     <option value="የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ">የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ</option>
-                    <option value="የባለሙያዎች የአፈጻጸም ሁኔታ">የባለሙያዎች የአፈጻጸም ሁኔታ</option>
+                    <!-- <option value="የባለሙያዎች የአፈጻጸም ሁኔታ">የባለሙያዎች የአፈጻጸም ሁኔታ</option> -->
                 </select>
             </div>
 
@@ -39,14 +39,14 @@
         }
         
         let targetUrl = '';
-        
-        if (selectedValue === 'ምዝገባና ግንዛቤ') {
-            targetUrl = 'performance_view';
-        } else if (selectedValue === 'የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ') {
-            targetUrl = 'performance_job_creation_view';
-        } else if (selectedValue === 'የባለሙያዎች የአፈጻጸም ሁኔታ') {
-            targetUrl = 'expert_level_view';
-        }
+
+if (selectedValue === 'ምዝገባና ግንዛቤ') {
+    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/performance_view';
+} else if (selectedValue === 'የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ') {
+    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/performance_job_creation_view';
+} else if (selectedValue === 'የባለሙያዎች የአፈጻጸም ሁኔታ') {
+    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/expert_level_view';
+}
         
         let finalUrl = targetUrl + '?efficiency_status=' + encodeURIComponent(selectedValue);
         
