@@ -782,7 +782,13 @@ public function report2Show()
     $myBranchId = $sessionBranchId;
     // 3. ከ POST (ፎርም ሲላክ) ወይም ከ GET (ሊንክ ሲጫን) የመጣውን የቀበሌ ስም ወይም ID መያዝ
     $kebele = $_POST['kebele'] ?? null; // ከ POST የመጣው ዋጋ
-    $enterpriseKebele = $_POST['enterprisekebele'] ??  null; // የኢንተርፕራይዝ ቀበሌን መቀበል
+    $enterpriseKebele = $dbEnterpriseKebele ?? null;
+    // የያዘውን ዋጋ ለማየት
+echo "<pre style='background:#eee; padding:10px;'>";
+echo "የ `$enterpriseKebele` ዋጋ፦ ";
+var_dump($enterpriseKebele); 
+echo "</pre>";
+// ማሳሰቢያ፦ ይህንን ካዩ በኋላ ኮዱን ማጥፋት ወይም ಕಾሜንት ማድረግዎን አይርሱ
 
     $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
 
