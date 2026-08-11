@@ -21,7 +21,7 @@ class FaydaController extends BaseController
   private const NAME_ONLY_PATTERN         = '/^\p{L}*$/u';
     private const TEXT_WITH_SPACES_PATTERN  = '/^[\p{L}]+(\s[\p{L}]+)*$/u';
     private const NUMERIC_PATTERN           = '/^\d*$/';
-    private const GENERAL_SAFE_PATTERN      = '/^[\p{L}\d\-\/\s፣]*$/u';
+    private const GENERAL_SAFE_PATTERN = '/^[\p{L}\d\-\/\s፣()]*$/u';
     private const DECIMAL_PATTERN           = '/^\d+(\.\d+)?$/';
 
     private const AGRI_LABEL = 'ግብርና';
@@ -318,6 +318,12 @@ $sectors  = $sectorModel->getSectors();
         header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/fayda-confirm');
         exit;
     }
+$age = $faydaData['age'] ?? '';
+if ($age !== '') {
+    if (!preg_match('/^\d+$/', $age) || (int)$age < 15 || (int)$age > 65) {
+       $_SESSION['error'] = "እድሜ ከ15 እስከ 65 መካከል መሆን አለበት።";
+    }
+}
   $fan = $faydaData['FAN'] ?? '';
 if (!preg_match('/^\d{16}$/', $fan)) {
     $_SESSION['error'] = "FAN በትክክል 16 ቁጥር ማካተት አለበት።";

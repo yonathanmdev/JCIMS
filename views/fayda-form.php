@@ -774,7 +774,7 @@ $useTextInput = $isKetemaAstedader || $isLevel4;
     const NAME_ONLY_PATTERN = /^\p{L}*$/u;
     const TEXT_WITH_SPACES_PATTERN = /^[\p{L}]+(\s[\p{L}]+)*$/u;
     const NUMERIC_PATTERN = /^\d*$/;
-    const GENERAL_SAFE_PATTERN = /^[\p{L}\d\-\/\s፣]*$/u;
+    const GENERAL_SAFE_PATTERN = /^[\p{L}\d\-\/\s፣()]*$/u;
     const DECIMAL_PATTERN = /^\d+(\.\d+)?$/;
 
     const validators = {
@@ -871,12 +871,12 @@ $useTextInput = $isKetemaAstedader || $isLevel4;
             if (cleaned !== input.value) input.value = cleaned;
 
         } else if (type === 'general-safe') {
-            let cleaned = input.value
-                .replace(/[^\p{L}\d\-\/\s፣]/gu, '')
-                .replace(/\s{2,}/g, ' ')
-                .replace(/^\s+/, '');
-            if (cleaned !== input.value) input.value = cleaned;
-        }
+    let cleaned = input.value
+        .replace(/[^\p{L}\d\-\/\s፣()]/gu, '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/^\s+/, '');
+    if (cleaned !== input.value) input.value = cleaned;
+}
     }
 
     function validateChildrenUnderFive() {

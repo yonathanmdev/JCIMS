@@ -143,6 +143,7 @@ if ($useTextInput) {
                 'branch_id'       => $_SESSION['user']['branch_id'],
                 'level'           => $_SESSION['user']['level'],
                 'kebele'          => $kebele, // Add kebele to payload
+                'fiscal_year'                      => AuthHelper::checkFiscalYear(),
             ];
 
             $teamFormationModel = new TeamFormationModel($this->db);
