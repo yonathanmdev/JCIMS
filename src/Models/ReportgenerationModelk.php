@@ -1682,8 +1682,33 @@ public function getJobSeekers08ByHierarchy(string $myBranchId, string $startdate
 }
 }
 
-public function getJobSeekers02ByHierarchy(string $myBranchId, string $startdate, string $enddate, ?string $residenceStatus, $kebele, $enterpriseKebele): array
+
+public function getEnterpriseDetailsFromDb($branchId) {
+    // 1. ሁለቱንም ከዳታቤዝ መምረጥ
+    $stmt = $this->db->prepare("SELECT enterprise_type, enterpresekebele FROM full_enterprise_and_job_seekerdata WHERE job_seeker_branch_id = :branch_id LIMIT 1");
+    $stmt->execute([':branch_id' => $branchId]);
+    $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+    
+    // 2. ሙሉውን Result (Array) መመለስ (ወይም ባዶ አርሬ)
+    return $result ?: ['enterprise_type' => null, 'enterpresekebele' => null];
+}
+
+
+public function getJobSeekers02ByHierarchy($myBranchId, string $startdate, string $enddate, ?string $residenceStatus, ?string $targetKebele, ?string $enterprise_type): array
 {
+    /*ኪዩሪው ከመሰራቱ በፊት የተላለፉትን መለኪያዎች (Parameters) ማየት ከፈለጉ
+echo "<pre>";
+print_r([
+    'my_branch'       => $myBranchId,
+    'start_date'      => $startdate,
+    'end_date'        => $enddate,
+    'residence_status'=> $residenceStatus,
+    'target_kebele'   => $targetKebele,
+    'enterprise_type' => $enterprise_type
+]);
+echo "</pre>";
+// ክትትሉን ጨርሰው እንዲቀጥል ከፈለጉ ከታች ያለውን የ exit ትዕዛዝ መጠቀም ይችላሉ
+// exit;*/
 $sql = "
     WITH RECURSIVE SubBranches AS (
         SELECT b.internal_id
@@ -1691,7 +1716,7 @@ $sql = "
         INNER JOIN branches root ON root.internal_id = :my_branch
         WHERE b.path LIKE CONCAT(root.path, '%')
     ),
-BaseData AS (
+    BaseData AS (
         SELECT 
             TRIM(f.sub_sector_name) AS sub_sector_name,
             TRIM(f.sector_name) AS sector_name,
@@ -1700,29 +1725,30 @@ BaseData AS (
             TRIM(f.gender) AS gender,
             TRIM(f.project_type_or_aderejajet) AS project_type_or_aderejajet,
             TRIM(f.tine_number) AS tine_number,
-            TRIM(f.enterpresekebele) AS enterprisekebele
+            TRIM(f.jskebele) AS jskebele,
+            TRIM(f.enterpresekebele) AS enterpresekebele
         FROM full_enterprise_and_job_seekerdata f
         INNER JOIN SubBranches sb ON CAST(f.job_seeker_branch_id AS CHAR) = CAST(sb.internal_id AS CHAR) 
         WHERE (:residence_status IS NULL OR f.residence_status = :residence_status_check)
           AND f.established_date BETWEEN :start_date AND :end_date
-          AND f.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' AND f.jskebele = :kebele
+          AND f.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' 
+          AND f.jskebele = :target_kebele
     ),
     DistinctEnterprises AS (
         SELECT 
             sub_sector_name,
             sector_name,
             tine_number,
-            MAX(enterprisekebele) AS enterprisekebele,
-            MAX(CASE WHEN enterprise_type = 'የማህበር' THEN 1 ELSE 0 END) AS is_mahber,
-            MAX(CASE WHEN enterprise_type = 'የግል' THEN 1 ELSE 0 END) AS is_private,
+            enterprise_type,
+            MAX(CASE WHEN enterprise_type = 'የማህበር' AND enterpresekebele = :target_kebele THEN 1 ELSE 0 END) AS is_mahber,
+            MAX(CASE WHEN enterprise_type = 'የግል' AND jskebele = :target_kebele THEN 1 ELSE 0 END) AS is_private,
             MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' THEN 1 ELSE 0 END) AS is_family,
             MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%' THEN 1 ELSE 0 END) AS is_family_agri,
             MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%' THEN 1 ELSE 0 END) AS is_family_ind,
             MAX(CASE WHEN project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%' THEN 1 ELSE 0 END) AS is_family_serv
         FROM BaseData
-        WHERE tine_number IS NOT NULL AND tine_number != '' 
-          AND (:enterpriseKebele IS NULL OR enterprisekebele = :enterpriseKebele)
-        GROUP BY sub_sector_name, sector_name, tine_number
+        WHERE tine_number IS NOT NULL AND tine_number != ''
+        GROUP BY sub_sector_name, sector_name, tine_number, enterprise_type
     )
     -- 1. መደበኛ የንዑስ ዘርፎች መረጃ
     SELECT 
@@ -1744,14 +1770,14 @@ BaseData AS (
     SELECT 
         'family_total' AS sub_sector_name,
         'family_total' AS sector_name,
-        SUM(de.is_mahber) AS biz_mahber,
-        SUM(de.is_private) AS biz_private,
+        SUM(is_mahber) AS biz_mahber,
+        SUM(is_private) AS biz_private,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS perm_m,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS perm_f,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_m,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ') AS temp_f
-    FROM DistinctEnterprises de
-    WHERE de.is_family = 1 AND (:enterpriseKebele IS NULL OR de.enterprisekebele = :enterpriseKebele)
+    FROM DistinctEnterprises
+    WHERE is_family = 1
 
     UNION ALL
 
@@ -1759,14 +1785,14 @@ BaseData AS (
     SELECT 
         'family_agri' AS sub_sector_name,
         'ግብርና' AS sector_name,
-        SUM(de.is_mahber) AS biz_mahber,
-        SUM(de.is_private) AS biz_private,
+        SUM(is_mahber) AS biz_mahber,
+        SUM(is_private) AS biz_private,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS perm_m,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS perm_f,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_m,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ግብርና%') AS temp_f
-    FROM DistinctEnterprises de
-    WHERE de.is_family_agri = 1 AND (:enterpriseKebele IS NULL OR de.enterprisekebele = :enterpriseKebele)
+    FROM DistinctEnterprises
+    WHERE is_family_agri = 1
 
     UNION ALL
 
@@ -1774,14 +1800,14 @@ BaseData AS (
     SELECT 
         'family_ind' AS sub_sector_name,
         'ኢንዱስትሪ' AS sector_name,
-        SUM(de.is_mahber) AS biz_mahber,
-        SUM(de.is_private) AS biz_private,
+        SUM(is_mahber) AS biz_mahber,
+        SUM(is_private) AS biz_private,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS perm_m,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS perm_f,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_m,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%ኢንዱስትሪ%') AS temp_f
-    FROM DistinctEnterprises de
-    WHERE de.is_family_ind = 1 AND (:enterpriseKebele IS NULL OR de.enterprisekebele = :enterpriseKebele)
+    FROM DistinctEnterprises
+    WHERE is_family_ind = 1
 
     UNION ALL
 
@@ -1789,48 +1815,45 @@ BaseData AS (
     SELECT 
         'family_serv' AS sub_sector_name,
         'አገልግሎት' AS sector_name,
-        SUM(de.is_mahber) AS biz_mahber,
-        SUM(de.is_private) AS biz_private,
+        SUM(is_mahber) AS biz_mahber,
+        SUM(is_private) AS biz_private,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS perm_m,
         (SELECT SUM(CASE WHEN employment_type = '1' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS perm_f,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ወንድ' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_m,
         (SELECT SUM(CASE WHEN employment_type = '2' AND gender = 'ሴት' THEN 1 ELSE 0 END) FROM BaseData WHERE project_type_or_aderejajet = 'የቤተሰብ' AND sector_name LIKE '%አገልግሎት%') AS temp_f
-    FROM DistinctEnterprises de
-    WHERE de.is_family_serv = 1 AND (:enterpriseKebele IS NULL OR de.enterprisekebele = :enterpriseKebele)
+    FROM DistinctEnterprises
+    WHERE is_family_serv = 1
 ";
 
-try {
-    $stmt = $this->db->prepare($sql);
-    
-    $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
-    
-    if ($residenceStatus === null) {
-        $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
-        $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
-    } else {
-        $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
-        $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+    try {
+        $stmt = $this->db->prepare($sql);
+        
+        // 1. መዋቅራዊ እና ማጣሪያ መለኪያዎችን ማያያዝ (Binding Parameters)
+        $stmt->bindValue(':my_branch', $myBranchId, \PDO::PARAM_STR);
+        
+        if ($residenceStatus === null) {
+            $stmt->bindValue(':residence_status', null, \PDO::PARAM_NULL);
+            $stmt->bindValue(':residence_status_check', null, \PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':residence_status', $residenceStatus, \PDO::PARAM_STR);
+            $stmt->bindValue(':residence_status_check', $residenceStatus, \PDO::PARAM_STR);
+        }
+        
+        $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
+        $stmt->bindValue(':target_kebele', $targetKebele, \PDO::PARAM_STR);
+        $stmt->bindValue(':enterprise_type', $enterprise_type, \PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_CLASS);
+
+    } catch (\PDOException $e) {
+        return [];
     }
-    
-    $stmt->bindValue(':start_date', $startdate, \PDO::PARAM_STR);
-    $stmt->bindValue(':end_date', $enddate, \PDO::PARAM_STR);
-    $stmt->bindValue(':kebele', $kebele, \PDO::PARAM_STR);
-    $stmt->bindValue(':enterpriseKebele', $enterpriseKebele, \PDO::PARAM_STR);
-
-    $stmt->execute();
-    
-    // የተገኘውን ዳታ ወደ ተጠራበት ቦታ መመለስ
-    $result = $stmt->fetchAll(\PDO::FETCH_CLASS);
-    
-    return $result;
-
-} catch (\PDOException $e) {
-    // በስራ ሰዓት ስህተት ካጋጠመ በሎግ መያዝ ወይም ባዶ array መመለስ ይቻላል
-    // echo "<b style='color:red;'>SQL Error: </b> " . $e->getMessage();
-    
-    return [];
 }
-}
+
+
 
 
 /**
