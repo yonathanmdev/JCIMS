@@ -711,7 +711,7 @@ public function report8Show()
 {
     AuthHelper::checkRole(['team_leader', 'officer']);
     
-   // 2. በሴሽን (Session) ውስጥ ያለውን ነባሪ የብራንች ID መያዝ
+   // 2. በሴሽን (Session) ውስጥ ያለውን  የብራንች ID መያዝ
     $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
     $myBranchId = $sessionBranchId;
     // 3. ከ POST (ፎርም ሲላክ) ወይም ከ GET (ሊንክ ሲጫን) የመጣውን የቀበሌ ስም ወይም ID መያዝ
