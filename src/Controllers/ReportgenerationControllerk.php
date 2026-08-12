@@ -760,7 +760,7 @@ public function report8Show()
     $reportModel = new ReportgenerationModelk($this->db);
     $branchName = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
 
-    $reportData = $reportModel->getJobSeekers08ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, $kebele);
+    $reportData = $reportModelk->getJobSeekers08ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, $kebele);
 
     return $this->renderPrintable('kreport-8', [
         'reportData'         => $reportData,
@@ -774,18 +774,41 @@ public function report8Show()
 
 public function report2Show()
 {
-    // 1. Role Authorization
     AuthHelper::checkRole(['team_leader', 'officer']);
     
     // 2. Branch Resolution
     $sessionBranchId = $_SESSION['user']['branch_id'] ?? null;
-    $myBranchId = $sessionBranchId;
-    // 3. ከ POST (ፎርም ሲላክ) ወይም ከ GET (ሊንክ ሲጫን) የመጣውን የቀበሌ ስም ወይም ID መያዝ
-    $kebele = $_POST['kebele'] ?? null; // ከ POST የመጣው ዋጋ
-    $enterpriseKebele = $_POST['enterpriseKebele'] ?? $kebele;
+    $postedBranchId  = $_POST['branch_id'] ?? ($_GET['branch_id'] ?? null);
+    
+    // ማስታወሻ: $myBranchId እዚህ ጋር ከ postedBranchId ወይም sessionBranchId መያዝ አለበት
+    $myBranchId = $postedBranchId ?? $sessionBranchId;
+     $kebele = $_POST['kebele'] ?? null; // ከ POST የመጣው ዋጋ
+    $report_type = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
 
-    $report_type     = $_POST['report_type'] ?? ($_GET['report_type'] ?? null);
+    // 3. መረጃዎችን ከፎርም መቀበል
+    $enterprise_type_post = $_POST['enterprise_type'] ?? null; 
+    $kebeleFromPost       = $_POST['kebele'] ?? null; // ከፎርም የመጣው ቀበሌ (ለግል የሚያገለግል)
 
+    // 4. ሞዴሉን በትክክለኛው ስም ማስጀመር
+    $reportModel = new ReportgenerationModelk($this->db);
+    
+    // 5. ከዳታቤዝ የኢንተርፕራይዝ መረጃዎችን ማምጣት (ትክክለኛው $reportModel ተጠቅሟል)
+    $enterpriseDetails = $reportModel->getEnterpriseDetailsFromDb($myBranchId);
+
+    // 6. እሴቶቹን ለየብቻ መውሰድ
+    $enterprise_type = $enterpriseDetails['enterprise_type'] ?? $enterprise_type_post;
+    $dbKebele        = $enterpriseDetails['enterprisekebele'] ?? null;
+
+    // 7. ሎጂኩን መስራት (የማህበር ከሆነ የዳታቤዙን ቀበሌ፣ የግል ከሆነ የፎርሙን ቀበሌ መጠቀም)
+    $targetKebele = null;
+
+    if ($enterprise_type == "የማህበር") {
+        $targetKebele = $dbKebele; // ከዳታቤዝ የመጣው enterprisekebele
+    } elseif ($enterprise_type == "የግል") {
+        $targetKebele = $kebeleFromPost; // ከፎርም የመጣው
+    } else {
+        $targetKebele = $kebeleFromPost;
+    }
     // 3. Residence Status Filter Resolution (ከተማ / ገጠር)
     $residenceStatus = null;
     if ($report_type == "ሠ2") {
@@ -831,7 +854,7 @@ public function report2Show()
     $branchName  = $branchData['name'] ?? 'የተመረጠው ቅርንጫፍ';
 
     // ለReport-2 የተዘጋጀውን ሞዴል ሜቶድ መጥራት
-    $reports = $reportModel->getJobSeekers02ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, $kebele, $enterpriseKebele);
+    $reports = $reportModel->getJobSeekers02ByHierarchy($myBranchId, $startDateTime, $endDateTime, $residenceStatus, $kebele, $enterprise_type);
 
     // 7. Render Printable View with Extracted Parameters
     return $this->renderPrintable('kreport-2', [
@@ -842,7 +865,7 @@ public function report2Show()
         'enddate'            => $enddate,
         'residenceStatus'    => $residenceStatus,
         'kebele'             => $kebele,
-        'enterpriseKebele'   => $enterpriseKebele
+        'enterprise_type'    => $enterprise_type,
     ]);   
 }
 }

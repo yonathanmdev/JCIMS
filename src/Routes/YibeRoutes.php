@@ -52,13 +52,13 @@ return [
     'awareness-analytics' => ['ReportgenerationController', 'awarnessAnalyticsShow', true],
 
     // የስራ እድል ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
-    //'jcreation-analytics' => ['ReportgenerationController', 'jcreationAnalyticsShow', true],
+    'jcreation-analytics' => ['ReportgenerationController', 'jcreationAnalyticsShow', true],
 
     // የአደረጃጀት ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
     'orgteam-analytics' => ['ReportgenerationController', 'orgteamAnalyticsShow', true],
 
     // የኢንተርፐራይዝ ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
-    //'enterprise-analytics' => ['ReportgenerationController', 'enterpriseAnalyticsShow', true],
+    'enterprise-analytics' => ['ReportgenerationController', 'enterpriseAnalyticsShow', true],
 
 
 ];

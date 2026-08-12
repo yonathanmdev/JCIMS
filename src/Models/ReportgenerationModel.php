@@ -53,19 +53,21 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
 
     // በፓዝ (path) ተዋረድ ላይ የተመሰረተ እና full_enterprise_and_job_seekerdata ቴብልን በመጠቀም 
     // ባዶ እና ትርጉም የለሽ የቲን ቁጥሮችን በማስወገድ በ Distinct የሚቆጥር ኩየሪ
-    $sql = "WITH RECURSIVE SubBranches AS (
-                SELECT b.internal_id
-                FROM branches b
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-            )
-            SELECT COUNT(DISTINCT fe.tine_number) as total 
-            FROM full_enterprise_and_job_seekerdata fe
-            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
-            WHERE fe.tine_number IS NOT NULL 
-              AND TRIM(fe.tine_number) != '' 
-              AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'";
+    $sql = "
+    WITH RECURSIVE SubBranches AS (
+        SELECT b.internal_id
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :my_branch
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    )
+    SELECT COUNT(DISTINCT fe.tine_number) AS total 
+    FROM full_enterprise_and_job_seekerdata fe
+    INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+    WHERE  fe.tine_number IS NOT NULL 
+      AND TRIM(fe.tine_number) != '' 
+      AND LOWER(TRIM(fe.tine_number)) != 'null'
+      AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+";
 
     $stmt = $this->db->prepare($sql);
     $stmt->execute(['my_branch' => $branchId]);
@@ -80,23 +82,30 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
     public function getResidenceStatusData($branchId): array
     {
         $sql = "
-            WITH RECURSIVE SubBranches AS (
-                SELECT b.internal_id
-                FROM branches b
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-            )
-            SELECT 
-                SUM(CASE WHEN fe.residence_status IN ('1', 'ከተማ') THEN 1 ELSE 0 END) AS city_count,
-                SUM(CASE WHEN fe.residence_status IN ('2', 'ገጠር') THEN 1 ELSE 0 END) AS rural_count
-            FROM full_enterprise_and_job_seekerdata fe
-            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
-            WHERE fe.is_enterprise = '1'
-              AND fe.tine_number IS NOT NULL 
-              AND TRIM(fe.tine_number) != '' 
-              AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
-        ";
+    WITH RECURSIVE SubBranches AS (
+        SELECT b.internal_id
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :my_branch
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    ),
+    DistinctEnterprises AS (
+        SELECT 
+            fe.tine_number,
+            MAX(fe.residence_status) AS residence_status
+        FROM full_enterprise_and_job_seekerdata fe
+        INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+        WHERE fe.tine_number IS NOT NULL 
+          AND TRIM(fe.tine_number) != '' 
+          AND LOWER(TRIM(fe.tine_number)) != 'null'
+          AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+        GROUP BY fe.tine_number
+    )
+    SELECT 
+        COUNT(tine_number) AS total,
+        SUM(CASE WHEN residence_status IN ('1', 'ከተማ') THEN 1 ELSE 0 END) AS city_count,
+        SUM(CASE WHEN residence_status IN ('2', 'ገጠር') THEN 1 ELSE 0 END) AS rural_count
+    FROM DistinctEnterprises
+";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['my_branch' => $branchId]);
@@ -114,26 +123,32 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
     public function getProjectTypeData($branchId): array
     {
         $sql = "
-            WITH RECURSIVE SubBranches AS (
-                SELECT b.internal_id
-                FROM branches b
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-            )
-            SELECT 
-                TRIM(fe.project_type_or_aderejajet) AS project_type,
-                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
-            FROM full_enterprise_and_job_seekerdata fe
-            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
-            WHERE fe.is_enterprise = '1'
-              AND fe.tine_number IS NOT NULL 
-              AND TRIM(fe.tine_number) != '' 
-              AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
-              AND fe.project_type_or_aderejajet IS NOT NULL
-              AND TRIM(fe.project_type_or_aderejajet) != ''
-            GROUP BY TRIM(fe.project_type_or_aderejajet)
-        ";
+    WITH RECURSIVE SubBranches AS (
+        SELECT b.internal_id
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :my_branch
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    ),
+    DistinctEnterprises AS (
+        SELECT 
+            TRIM(fe.project_type_or_aderejajet) AS project_type,
+            fe.tine_number
+        FROM full_enterprise_and_job_seekerdata fe
+        INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+        WHERE  fe.tine_number IS NOT NULL 
+          AND TRIM(fe.tine_number) != '' 
+          AND LOWER(TRIM(fe.tine_number)) != 'null'
+          AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+          AND fe.project_type_or_aderejajet IS NOT NULL
+          AND TRIM(fe.project_type_or_aderejajet) != ''
+        GROUP BY TRIM(fe.project_type_or_aderejajet), fe.tine_number
+    )
+    SELECT 
+        project_type,
+        COUNT(tine_number) AS total
+    FROM DistinctEnterprises
+    GROUP BY project_type
+";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['my_branch' => $branchId]);
@@ -158,26 +173,32 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
     public function getEnterpriseBySectorData($branchId): array
     {
         $sql = "
-            WITH RECURSIVE SubBranches AS (
-                SELECT b.internal_id
-                FROM branches b
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-            )
-            SELECT 
-                TRIM(fe.sector_name) AS sector_name,
-                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
-            FROM full_enterprise_and_job_seekerdata fe
-            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
-            WHERE fe.is_enterprise = '1'
-              AND fe.tine_number IS NOT NULL 
-              AND TRIM(fe.tine_number) != '' 
-              AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
-              AND fe.sector_name IS NOT NULL
-              AND TRIM(fe.sector_name) != ''
-            GROUP BY TRIM(fe.sector_name)
-        ";
+    WITH RECURSIVE SubBranches AS (
+        SELECT b.internal_id
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :my_branch
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    ),
+    DistinctEnterprises AS (
+        SELECT 
+            TRIM(fe.sector_name) AS sector_name,
+            fe.tine_number
+        FROM full_enterprise_and_job_seekerdata fe
+        INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+        WHERE  fe.tine_number IS NOT NULL 
+          AND TRIM(fe.tine_number) != '' 
+          AND LOWER(TRIM(fe.tine_number)) != 'null'
+          AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+          AND fe.sector_name IS NOT NULL
+          AND TRIM(fe.sector_name) != ''
+        GROUP BY TRIM(fe.sector_name), fe.tine_number
+    )
+    SELECT 
+        sector_name,
+        COUNT(tine_number) AS total
+    FROM DistinctEnterprises
+    GROUP BY sector_name
+";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['my_branch' => $branchId]);
@@ -196,34 +217,40 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
      */
     public function getWealthSourceData($branchId): array
     {
-        $sql = "
-            WITH RECURSIVE SubBranches AS (
-                SELECT b.internal_id
-                FROM branches b
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-            )
-            SELECT 
-                CASE 
-                    TRIM(fe.yehabtu_mnch)
-                    WHEN '0' THEN 'ከራስ ተቀማጭ'
-                    WHEN '1' THEN 'ከቤተሰብ'
-                    WHEN '2' THEN 'ከመንግስት'
-                    WHEN '3' THEN 'ከብደር'
-                    ELSE TRIM(fe.yehabtu_mnch)
-                END AS wealth_source,
-                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
-            FROM full_enterprise_and_job_seekerdata fe
-            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
-            WHERE fe.is_enterprise = '1'
-              AND fe.tine_number IS NOT NULL 
-              AND TRIM(fe.tine_number) != '' 
-              AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
-              AND fe.yehabtu_mnch IS NOT NULL
-              AND TRIM(fe.yehabtu_mnch) != ''
-            GROUP BY wealth_source
-        ";
+       $sql = "
+    WITH RECURSIVE SubBranches AS (
+        SELECT b.internal_id
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :my_branch
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    ),
+    DistinctEnterprises AS (
+        SELECT 
+            CASE 
+                TRIM(fe.yehabtu_mnch)
+                WHEN '0' THEN 'ከራስ ተቀማጭ'
+                WHEN '1' THEN 'ከቤተሰብ'
+                WHEN '2' THEN 'ከመንግስት'
+                WHEN '3' THEN 'ከብደር'
+                ELSE TRIM(fe.yehabtu_mnch)
+            END AS wealth_source,
+            fe.tine_number
+        FROM full_enterprise_and_job_seekerdata fe
+        INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+        WHERE  fe.tine_number IS NOT NULL 
+          AND TRIM(fe.tine_number) != '' 
+          AND LOWER(TRIM(fe.tine_number)) != 'null'
+          AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+          AND fe.yehabtu_mnch IS NOT NULL
+          AND TRIM(fe.yehabtu_mnch) != ''
+        GROUP BY wealth_source, fe.tine_number
+    )
+    SELECT 
+        wealth_source,
+        COUNT(tine_number) AS total
+    FROM DistinctEnterprises
+    GROUP BY wealth_source
+";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['my_branch' => $branchId]);
@@ -244,27 +271,33 @@ public function getTotalEnterpriseCountByHierarchy($branchId)
      */
     public function getEnterpriseTypeData($branchId): array
     {
-        $sql = "
-            WITH RECURSIVE SubBranches AS (
-                SELECT b.internal_id
-                FROM branches b
-                INNER JOIN branches root ON root.internal_id = :my_branch
-                WHERE b.path LIKE CONCAT(root.path, '%')
-            )
-            SELECT 
-                TRIM(fe.enterprise_type) AS enterprise_type,
-                COUNT(DISTINCT TRIM(fe.tine_number)) AS total
-            FROM full_enterprise_and_job_seekerdata fe
-            INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
-            WHERE fe.is_enterprise = '1'
-              AND fe.tine_number IS NOT NULL 
-              AND TRIM(fe.tine_number) != '' 
-              AND LOWER(TRIM(fe.tine_number)) != 'null'
-              AND LOWER(TRIM(fe.tine_number)) != 'n/a'
-              AND fe.enterprise_type IS NOT NULL
-              AND TRIM(fe.enterprise_type) != ''
-            GROUP BY TRIM(fe.enterprise_type)
-        ";
+       $sql = "
+    WITH RECURSIVE SubBranches AS (
+        SELECT b.internal_id
+        FROM branches b
+        INNER JOIN branches root ON root.internal_id = :my_branch
+        WHERE b.path LIKE CONCAT(root.path, '%')
+    ),
+    DistinctEnterprises AS (
+        SELECT 
+            TRIM(fe.enterprise_type) AS enterprise_type,
+            fe.tine_number
+        FROM full_enterprise_and_job_seekerdata fe
+        INNER JOIN SubBranches sb ON fe.code003_branch_id = sb.internal_id 
+        WHERE  fe.tine_number IS NOT NULL 
+          AND TRIM(fe.tine_number) != '' 
+          AND LOWER(TRIM(fe.tine_number)) != 'null'
+          AND LOWER(TRIM(fe.tine_number)) != 'n/a'
+          AND fe.enterprise_type IS NOT NULL
+          AND TRIM(fe.enterprise_type) != ''
+        GROUP BY TRIM(fe.enterprise_type), fe.tine_number
+    )
+    SELECT 
+        enterprise_type,
+        COUNT(tine_number) AS total
+    FROM DistinctEnterprises
+    GROUP BY enterprise_type
+";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['my_branch' => $branchId]);
@@ -372,7 +405,7 @@ public function getDashboardChartsDataot($branchId)
 
 
 
-public function getDashboardChartsDatajc($branchId)
+public function getDashboardChartsDatajc($branchId): array
 {
     // የቅርንጫፍ መታወቂያው ባዶ ከሆነ ነባሪ (Default) ባዶ ዳታ መመለስ
     if (empty($branchId)) {
@@ -394,7 +427,18 @@ public function getDashboardChartsDatajc($branchId)
         ];
     }
 
-    // 1. መዋቅሩን በፓዝ መለየት (ንዑስ ቅርንጫፎችን መፈለጊያ)
+    return [
+        'employmentstatus'  => $this->getEmploymentStatusData($branchId),
+        'jobcreationreason' => $this->getJobCreationReasonData($branchId),
+        'physical'          => $this->getPhysicalData($branchId),
+        'persector'         => $this->getPerSectorData($branchId),
+        'gender'            => $this->getGenderData($branchId)
+    ];
+}
+
+// የተለመደውን የቅርንጫፍ መዋቅር (SubBranches) ለማግኘት የሚያስችል ረዳት ፈንክሽን
+private function getBranchIds($branchId): array
+{
     $sqlBranches = "WITH RECURSIVE SubBranches AS (
                         SELECT b.internal_id FROM branches b
                         INNER JOIN branches root ON root.internal_id = :my_branch
@@ -409,15 +453,46 @@ public function getDashboardChartsDatajc($branchId)
         $branchIds = [$branchId];
     }
 
+    return $branchIds;
+}
+
+// 1. የቅጥር ሁኔታ (employmentstatus)
+private function getEmploymentStatusData($branchId): array
+{
+    $branchIds = $this->getBranchIds($branchId);
     $inClause = implode(',', array_map('intval', $branchIds));
 
-    // 2. የስራ እድል ፈጠራ ዳታዎችን ከዳታቤዝ መሳብ
-    $res = $this->db->query("SELECT employment_type, job_creation_reason, sector 
-                             FROM code003sraedl 
-                             WHERE branchid IN ($inClause)")->fetchAll(PDO::FETCH_ASSOC);
+    $res = $this->db->query("SELECT employment_status 
+                             FROM job_seekers 
+                             WHERE branch_id IN ($inClause) GROUP BY job_seeker_id")->fetchAll(PDO::FETCH_ASSOC);
 
-    // ነባሪ መዋቅር ማዘጋጀት
     $employmentstatus = ['ቋሚ' => 0, 'ጊዜያዊ' => 0];
+
+    foreach ($res as $row) {
+        $empStatus = isset($row['employment_status']) ? trim((string)$row['employment_status']) : '';
+        if ($empStatus === '1' || $empStatus === 'ቋሚ') {
+            $employmentstatus['ቋሚ']++;
+        } else if ($empStatus === '2' || $empStatus === 'ጊዜያዊ') {
+            $employmentstatus['ጊዜያዊ']++;
+        }
+    }
+
+    return $employmentstatus;
+}
+
+// 2. የሥራ እድል መፍጠሪያ አማራጮች (jobcreationreason)
+private function getJobCreationReasonData($branchId): array
+{
+    $branchIds = $this->getBranchIds($branchId);
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    $res = $this->db->query("SELECT jobseeker_id, MAX(job_creation_reason) AS job_creation_reason
+        FROM code003sraedl 
+        WHERE branchid IN ($inClause)
+          AND jobseeker_id IS NOT NULL 
+          AND TRIM(jobseeker_id) != ''
+        GROUP BY jobseeker_id")->fetchAll(PDO::FETCH_ASSOC);
+
     $jobcreationreason = [
         'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' => 0,
         'ነባር ኢንተርፕራይዞችን በማስፋፋት የተቀጠሩ' => 0,
@@ -428,18 +503,8 @@ public function getDashboardChartsDatajc($branchId)
         'በመንግስት መ/ቤቶች የተቀጠሩ' => 0,
         'የውጭ አገር ሥራ ስምሪት' => 0
     ];
-    $persector = ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0];
 
     foreach ($res as $row) {
-        // 1. የቅጥር ሁኔታ (1 = ቋሚ, 2 = ጊዜያዊ)
-        $empStatus = isset($row['employment_type']) ? trim((string)$row['employment_type']) : '';
-        if ($empStatus === '1' || $empStatus === 'ቋሚ') {
-            $employmentstatus['ቋሚ']++;
-        } else if ($empStatus === '2' || $empStatus === 'ጊዜያዊ') {
-            $employmentstatus['ጊዜያዊ']++;
-        }
-
-        // 2. የሥራ እድል መፍጠሪያ አማራጮች
         $reason = isset($row['job_creation_reason']) ? trim((string)$row['job_creation_reason']) : '';
         if (!empty($reason)) {
             if (array_key_exists($reason, $jobcreationreason)) {
@@ -448,8 +513,31 @@ public function getDashboardChartsDatajc($branchId)
                 $jobcreationreason[$reason] = 1;
             }
         }
+    }
 
-        // 3. በዋና ዋና ዘርፎች (1 = ኢንዱስትሪ, 2 = ግብርና, 3 = አገልግሎት)
+    return $jobcreationreason;
+}
+
+// 3. አካላዊ ሁኔታ/አካል ጉዳተኛ (physical) - *የሚሞላበትን ኮልም እንደ አስፈላጊነቱ ማስተካከል ይቻላል*
+private function getPhysicalData($branchId): array
+{
+    // ማሳሰቢያ፡ በሰጡት ኪዩሪ ውስጥ የ physical/disability ኮልም ስም ካለ እዚህ ጋር ማስተካከል ይቻላል
+    return ['መደበኛ' => 0, 'አካል ጉዳተኛ' => 0];
+}
+
+// 4. በዋና ዋና ዘርፎች (persector)
+private function getPerSectorData($branchId): array
+{
+    $branchIds = $this->getBranchIds($branchId);
+    $inClause = implode(',', array_map('intval', $branchIds));
+
+    $res = $this->db->query("SELECT sector 
+                             FROM code003sraedl 
+                             WHERE branchid IN ($inClause) GROUP BY jobseeker_id")->fetchAll(PDO::FETCH_ASSOC);
+
+    $persector = ['ግብርና' => 0, 'ኢንዱስትሪ' => 0, 'አገልግሎት' => 0];
+
+    foreach ($res as $row) {
         $sec = isset($row['sector']) ? trim((string)$row['sector']) : '';
         if ($sec === '2' || $sec === 'ግብርና') {
             $persector['ግብርና']++;
@@ -460,11 +548,14 @@ public function getDashboardChartsDatajc($branchId)
         }
     }
 
-    return [
-        'employmentstatus'  => $employmentstatus,
-        'jobcreationreason' => $jobcreationreason,
-        'persector'         => $persector
-    ];
+    return $persector;
+}
+
+// 5. ጾታ (gender) - *የሚሞላበትን ኮልም እንደ አስፈላጊነቱ ማስተካከል ይቻላል*
+private function getGenderData($branchId): array
+{
+    // ማሳሰቢያ፡ በሰጡት ኪዩሪ ውስጥ የ gender ኮልም ስም ካለ እዚህ ጋር ማስተካከል ይቻላል
+    return ['ወንድ' => 0, 'ሴት' => 0];
 }
     
 public function getTotalOrgteamCountByHierarchy($branchId)
@@ -2335,20 +2426,14 @@ public function getExpertLevelReport($currentUserId, $accountLevel = null, $user
 
     if (!empty($activeBranchId) && $activeBranchId != 1 && $activeBranchId != '1') {
         $ctePrefix = "WITH RECURSIVE SubBranches AS (
-                        SELECT CAST(internal_id AS CHAR) AS branch_key 
-                        FROM branches 
-                        WHERE CAST(internal_id AS CHAR) = :user_branch_id
-                           OR CAST(parent_id AS CHAR) = :user_branch_id
-                        
-                        UNION DISTINCT
-                        
-                        SELECT CAST(b.internal_id AS CHAR) AS branch_key 
-                        FROM branches b 
-                        INNER JOIN SubBranches sb ON CAST(b.parent_id AS CHAR) = sb.branch_key
-                    ),";
+            SELECT b.internal_id
+            FROM branches b
+            INNER JOIN branches root ON root.internal_id = :user_branch_id
+            WHERE b.path LIKE CONCAT(root.path, '%')
+        ),";
         
-        $whereClause .= " AND CAST(u.branch_id AS CHAR) IN (SELECT branch_key FROM SubBranches)";
-        $params[':user_branch_id'] = (string)$activeBranchId;
+        $whereClause .= " AND u.branch_id IN (SELECT internal_id FROM SubBranches)";
+        $params[':user_branch_id'] = $activeBranchId;
     } else {
         $ctePrefix = "WITH ";
     }
@@ -2372,17 +2457,17 @@ public function getExpertLevelReport($currentUserId, $accountLevel = null, $user
                     (COALESCE(js_stat.reg_job_seekers, 0) + COALESCE(js_stat.awareness_created, 0) + COALESCE(js_stat.jobs_created, 0)) AS total_work_avg
 
                 FROM users u
-                LEFT JOIN branches b ON CAST(b.internal_id AS CHAR) = CAST(u.branch_id AS CHAR)
+                LEFT JOIN branches b ON b.internal_id = u.branch_id
                 LEFT JOIN (
                     SELECT 
-                        CAST(registered_by AS CHAR) AS reg_by,
+                        registered_by AS reg_by,
                         COUNT(id) AS reg_job_seekers,
                         COUNT(CASE WHEN awareness = 1 OR awareness = '1' THEN 1 END) AS awareness_created,
                         COUNT(CASE WHEN employment_status IN (1, 2, '1', '2') THEN 1 END) AS jobs_created
                     FROM job_seekers
                     WHERE registered_by IS NOT NULL AND registered_by != ''
-                    GROUP BY CAST(registered_by AS CHAR)
-                ) js_stat ON js_stat.reg_by = CAST(u.user_id AS CHAR)
+                    GROUP BY registered_by
+                ) js_stat ON js_stat.reg_by = u.user_id
                 {$whereClause}
             )
             SELECT 
