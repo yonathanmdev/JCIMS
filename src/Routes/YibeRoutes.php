@@ -60,5 +60,6 @@ return [
     // የኢንተርፐራይዝ ሁኔታ ሲነካ የሚከፈተው የቻርት ገጽ ራውት
     'enterprise-analytics' => ['ReportgenerationController', 'enterpriseAnalyticsShow', true],
 
-
+    // የሁሉም ቀበሌዎች ሪፖርት ማየት ገጽ ራውት
+    'all-kebele-report' => ['KebeleReportcontroller', 'allKebeleReport', true],
 ];

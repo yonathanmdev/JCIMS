@@ -295,6 +295,13 @@ switch ($level) {
             'roles' => ['team_leader','officer'],
             'levels' => [3]
                     ],
+        
+        [
+            'label' => 'ሁሉንም ቀበሌ ማየት',
+            'url'   => '/all-kebele-report',
+            'roles' => ['team_leader','officer'],
+            'levels' => [3]
+                    ],
 
     ]
     
