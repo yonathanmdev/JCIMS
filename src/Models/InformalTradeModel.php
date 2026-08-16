@@ -183,4 +183,88 @@ class InformalTradeModel {
             return false;
         }
     }
+    public function getTradeById($id) {
+        $sql = "SELECT `id`, `branch_id`, `full_name`, `gender`, `age`, `resbranch_id`, `reszone`, `resworeda`, `res_kebele`, `phone`, `trade_area_type`, `has_kebele_id`, `kebele_id_number`, `start_year`, `sub_sector`, `job_position`, `work_branch_id`, `nearby_center_name`, `created_at`, `regby`, `updated_at` 
+                FROM `informal_trade_registry` 
+                WHERE `id` = :id";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    public function saveTradeData($data) {
+        try {
+            if (!empty($data['id'])) {
+                // መረጃውን ማሻሻል (Update)
+                
+                // አዲስ መረጃ መመዝገብ (Insert)
+                $sql = "INSERT INTO informal_trade_conversions 
+                        (informalid, bugetamet, regby ,nid, trade_area_type, sector, sub_sector, job_position, start_year, has_support, financial_amount, loan_amount, machinery_unit, land_unit, shed_unit, market_amount, other_unit, support_types_json) 
+                        VALUES 
+                        (:informalid, :bugetamet, :regby, :nid, :trade_area_type, :sector, :sub_sector, :job_position, :start_year, :has_support, :financial_amount, :loan_amount, :machinery_unit, :land_unit, :shed_unit, :market_amount, :other_unit, :support_types_json)";
+
+                $stmt = $this->db->prepare($sql);
+                return $stmt->execute([
+                    'informalid'       => $data['id'],
+                    ':bugetamet'        => $data['bugetamet'],
+                    ':regby'            => $data['regby'],
+                    ':nid'              => $data['nid'],
+                    ':trade_area_type'  => $data['trade_area_type'],
+                    ':sector'           => $data['sector'],
+                    ':sub_sector'       => $data['sub_sector'],
+                    ':job_position'     => $data['job_position'],
+                    ':start_year'       => $data['start_year'],
+                    ':has_support'      => $data['has_support'],
+                    ':financial_amount' => $data['financial_amount'],
+                    ':loan_amount'      => $data['loan_amount'],
+                    ':machinery_unit'   => $data['machinery_unit'],
+                    ':land_unit'        => $data['land_unit'],
+                    ':shed_unit'        => $data['shed_unit'],
+                    ':market_amount'    => $data['market_amount'],
+                    ':other_unit'       => $data['other_unit'],
+                    ':support_types_json' => $data['support_types_json']
+                ]);
+            }
+        } catch (\PDOException $e) {
+            // የስህተት መዝገብ (Log error if needed)
+            return false;
+        }
+    }
+    public function getAllTradeDetails($myBranchId) {
+    try {
+        // ቅርንጫፍ (Branch) መሠረት አድርጎ መረጃውን ለማጣራት WHERE ክላውስ ተጨምሯል
+        $query = "SELECT * FROM vw_informal_trade_complete_details WHERE registry_branch_id = :branch_id ORDER BY conversion_created_at DESC";
+        
+        $stmt = $this->db->prepare($query);
+        
+        // SQL Injection ጥቃትን ለመከላከል ቫርያብሉን በደህንነት ማሰር (Binding)
+        $stmt->bindParam(':branch_id', $myBranchId, \PDO::PARAM_INT); // እንደ ዳታቤዝዎ ዓይነት PARAM_STR ሊሆን ይችላል
+        $stmt->execute();
+        
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // መረጃው ባዶ ከሆነ ባዶ አርሬ (Array) መመለሱን ማረጋገጥ
+        return is_array($result) ? $result : [];
+        
+    } catch (\PDOException $e) {
+        // የሰለቸውን የውሂብ ማከማቻ ስህተት መዝገብ (Log) ማድረግ
+       // error_log("Database Error: " . $e->getMessage());
+        return [];
+    }
+}
+public function getTradeDetailById($conversionId) {
+        try {
+            $query = "SELECT * FROM vw_informal_trade_complete_details WHERE conversion_id = :conversion_id LIMIT 1";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':conversion_id', $conversionId, \PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return is_array($result) ? $result : [];
+            
+        } catch (\PDOException $e) {
+            error_log("Database Error: " . $e->getMessage());
+            return [];
+        }
+    }
 }

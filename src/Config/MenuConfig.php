@@ -244,7 +244,7 @@ switch ($level) {
                 'label' => 'ኢ-መደበኛ ኢ/ዝ',
                 'icon'  => 'fas fa-users',
                 'roles' => ['officer'],
-                'levels' => [33, 44],
+                'levels' => [3, 4],
                 'children' => [
                     [
                         'label' => 'ኢ-መደበኛ ኢ/ዝ መመዝገብ',
@@ -256,6 +256,13 @@ switch ($level) {
                         'label' => 'ኢ-መደበኛ ኢ/ዝ ዝርዝር',
                         'url'   => '/informal-trade-list',
                         'roles' => ['team_leader', 'officer']
+                    ]
+                    ,
+                    [
+                        'label' => 'ወደ መደበኛ ኢ/ዝ የተሻገረ ዝርዝር',
+                        'url'   => '/formal-trade-list',
+                        'roles' => ['team_leader', 'officer'],
+                        'target' => '_blank',
                     ]
                 ]
             ],
