@@ -8,7 +8,7 @@
                 <label for="efficiency_status" class="form-label fw-bold text-dark mb-1" style="font-size: 0.85rem;">
                     የሚያዩት የአፈጻጸም ሁኔታ ይምረጡ፦
                 </label>
-                <select name="efficiency_status" id="efficiency_status" class="form-select form-select-sm" required>
+                <select name="efficiency_status" id="efficiency_status" class="form-control form-control-sm" required>
                     <option value="">-- እባክዎ የአፈጻጸም ሁኔታ ይምረጡ --</option>
                     <option value="ምዝገባና ግንዛቤ">ምዝገባና ግንዛቤ</option>
                     <option value="የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ">የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ</option>
@@ -19,7 +19,7 @@
             <!-- አዝራር (Button) - ከሳጥኑ ጋር ተጠግቶ እንዲቀመጥ -->
             <div class="col-md-3">
                 <button type="button" id="searchBtn" class="btn btn-primary btn-sm px-4 shadow-sm py-1" style="height: 31px;">
-                    <i class="fa-solid fa-filter me-1"></i> አሳይ / ፈልግ
+                     አሳይ / ፈልግ
                 </button>
             </div>
         </form>

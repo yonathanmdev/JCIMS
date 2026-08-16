@@ -62,4 +62,8 @@ return [
 
     // የሁሉም ቀበሌዎች ሪፖርት ማየት ገጽ ራውት
     'all-kebele-report' => ['KebeleReportcontroller', 'allKebeleReport', true],
+    //Code 003
+    
+    'code003selectform' => ['code003enterprisecontroller', 'code003Report', true],
+    'code003' => ['code003enterprisecontroller', 'displayCode003', true],
 ];
