@@ -5,7 +5,7 @@ class Code003EnterpriseModel
 {
     private $db;
 
-    // የምንጠቀመው ዋና የዳታቤዝ ቴብል
+    // የምንጠቀ የዳታቤዝ ቴብል
     protected $table = 'full_enterprise_and_job_seekerdata';
 
     public function __construct($db) 
