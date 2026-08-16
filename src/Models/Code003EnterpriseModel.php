@@ -13,7 +13,7 @@ class Code003EnterpriseModel
         $this->db = $db;
     }
 
-    // Recursive ሎጂክን እና DISTINCT tine_number በመጠቀም መረጃዎችን ከቴብሉ ለማምጣት የሚያስችል ፈንክሽን
+    // Recursive ሎጂክን እና DISTINCT tine_number በመጠቀም መረጃዎችን ከቴብሉ ለማምጣት  ፈንክሽን
    public function getEnterpriseReports($branchId = null, $limit = 25, $offset = 0)
     {
         if (!empty($branchId)) {

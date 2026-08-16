@@ -3,7 +3,7 @@
     <div class="card-body p-0">
         <form id="efficiencyForm" class="row g-2 align-items-end">
             
-            <!-- የሚያዩት የአፈጻጸም ሁኔታ (efficiency_status) -->
+            <!-- የሚያዩት የአፈጻጸም  (efficiency_status) -->
             <div class="col-md-6">
                 <label for="efficiency_status" class="form-label fw-bold text-dark mb-1" style="font-size: 0.85rem;">
                     የኮድ 003 ዝርዝር ለማየት፦
