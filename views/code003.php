@@ -43,7 +43,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
@@ -93,7 +92,6 @@
     overflow-x: auto;
     overflow-y: auto;
     max-height: 78vh;
-    -webkit-overflow-scrolling: touch;
   }
 
   table#myTable {
@@ -109,11 +107,9 @@
   #myTable td {
     border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
-    padding: 6px 8px;
+    padding: 8px 6px;
     text-align: center;
     vertical-align: middle;
-    white-space: normal;
-    word-break: break-word;
   }
 
   #myTable thead th {
@@ -130,41 +126,40 @@
   #myTable thead tr:nth-child(3) th { background: var(--header-bg); }
   #myTable thead tr:nth-child(4) th { background: var(--header-bg-alt); }
 
-  /* Sticky first two columns (row number + enterprise name) */
-  #myTable th:first-child,
-  #myTable td:first-child {
+  /* 1ኛ ዓምድ: ተራ ቁጥር (ስፋት: 50px, left: 0px) */
+  #myTable th:nth-child(1),
+  #myTable td:nth-child(1) {
     position: sticky;
-    left: 0;
-    z-index: 2;
+    left: 0 !important;
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    z-index: 5;
     background: #fff;
     box-shadow: var(--sticky-shadow);
     width: 45px;
   }
 
+  /* 2ኛ ዓምድ: የኢንተርፕራይዙ ስም (ስፋት: 180px, left: 50px) */
   #myTable th:nth-child(2),
   #myTable td:nth-child(2) {
     position: sticky;
     left: 45px;
     z-index: 2;
     background: #fff;
-    box-shadow: var(--sticky-shadow);
     text-align: right;
     width: 180px;
   }
 
-  #myTable thead th:first-child,
+  #myTable thead th:nth-child(1),
   #myTable thead th:nth-child(2) {
-    z-index: 4;
+    z-index: 10;
     background: var(--header-bg);
   }
 
-  #myTable tbody tr:nth-child(even) td:not(:first-child):not(:nth-child(2)) {
-    background: var(--row-alt);
-  }
-
-  #myTable tbody tr:nth-child(even) td:first-child,
+  #myTable tbody tr:nth-child(even) td:nth-child(1),
   #myTable tbody tr:nth-child(even) td:nth-child(2) {
-    background: #fbfcfd;
+    background: #f7f9fb;
   }
 
   #myTable tbody tr:hover td {
@@ -232,7 +227,7 @@
   </div>
 
   <div class="table-scroll">
-    <table border="1" id="myTable">
+    <table id="myTable">
       <thead>
         <tr>
           <th rowspan="3">ተራ ቁጥር</th>
@@ -270,7 +265,7 @@
           <th colspan="3">ቋሚ</th>
           <th colspan="3">ጊዚያዊ</th>
           <th rowspan="2">የምርቱ ዓይነት</th>
-          <th rowspan="2">የሚቀርብበት ገበያ /ለሃገር ወይስ ለውጭ</th>
+          <th rowspan="2">የሚቀርብበት ገበያ</th>
         </tr>
         <tr>
           <th>ወ</th>
