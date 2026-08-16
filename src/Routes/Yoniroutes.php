@@ -74,7 +74,7 @@ return [
 
    
    'enterprise-purge'                        => ['EnterpriseController', 'purge', true],
-   'code003' => ['EnterpriseController', 'displayCode003', true],
+   
     'serve-file' => ['FileController', 'serveFile', true], // true = auth required
 
     

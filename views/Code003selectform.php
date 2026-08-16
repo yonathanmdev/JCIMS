@@ -6,20 +6,19 @@
             <!-- የሚያዩት የአፈጻጸም ሁኔታ (efficiency_status) -->
             <div class="col-md-6">
                 <label for="efficiency_status" class="form-label fw-bold text-dark mb-1" style="font-size: 0.85rem;">
-                    የሚያዩት የአፈጻጸም ሁኔታ ይምረጡ፦
+                    የኮድ 003 ዝርዝር ለማየት፦
                 </label>
-                <select name="efficiency_status" id="efficiency_status" class="form-control form-control-sm" required>
-                    <option value="">-- እባክዎ የአፈጻጸም ሁኔታ ይምረጡ --</option>
-                    <option value="ምዝገባና ግንዛቤ">ምዝገባና ግንዛቤ</option>
-                    <option value="የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ">የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ</option>
-                     <!--<option value="የባለሙያዎች የአፈጻጸም ሁኔታ">የባለሙያዎች የአፈጻጸም ሁኔታ</option> -->
+                <select name="efficiency_status" id="efficiency_status"  class="form-control form-control-sm" required>
+                    <option value="">-- የሚፈልጉትን ይምረጡ --</option>
+                    <option value="ኮድ003አዲስ">አዲስ</option>
+                    <!-- <option value="ኮድ003ነባር">ነባር</option> -->
                 </select>
             </div>
 
             <!-- አዝራር (Button) - ከሳጥኑ ጋር ተጠግቶ እንዲቀመጥ -->
             <div class="col-md-3">
                 <button type="button" id="searchBtn" class="btn btn-primary btn-sm px-4 shadow-sm py-1" style="height: 31px;">
-                     አሳይ / ፈልግ
+                      አሳይ / ፈልግ
                 </button>
             </div>
         </form>
@@ -34,19 +33,17 @@
         const selectedValue = document.getElementById('efficiency_status').value;
         
         if (!selectedValue) {
-            alert('እባክዎ የሚያዩትን የአፈጻጸም ሁኔታ ይምረጡ!');
+            alert('እባክዎ የሚያዩትን ኮድ 003 ይምረጡ!');
             return;
         }
         
         let targetUrl = '';
 
-if (selectedValue === 'ምዝገባና ግንዛቤ') {
-    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/performance_view';
-} else if (selectedValue === 'የስራ እድል ፈጠራና ኢንተርፕራይዝ ምስረታ') {
-    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/performance_job_creation_view';
-} else if (selectedValue === 'የባለሙያዎች የአፈጻጸም ሁኔታ') {
-    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/expert_level_view';
-}
+if (selectedValue === 'ኮድ003አዲስ') {
+    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/code003';
+} else if (selectedValue === 'ኮድ003ነባር') {
+    targetUrl = '<?= rtrim($_ENV['BASE_URL'], '/') ?>/pcode003_old';
+} 
         
         let finalUrl = targetUrl + '?efficiency_status=' + encodeURIComponent(selectedValue);
         
