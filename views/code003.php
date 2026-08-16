@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>የኢንተርፕራይዝ ሪፖርት ሰንጠረዥ</title>
+<title>የኢንተርፕራይዝ ሪፖርት ሠንጠረዥ</title>
 <style>
   :root {
     --border: #d7dce3;
