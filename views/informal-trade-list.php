@@ -16,11 +16,11 @@ if (!isset($traders)) { $traders = []; }
             <div class="col-md-8">
               <h1 class="h3 mb-0 text-gray-800"><?= htmlspecialchars($title) ?></h1>
             </div>
-            <div class="col-md-4 text-md-right mt-2 mt-md-0">
+          <!--  <div class="col-md-4 text-md-right mt-2 mt-md-0">
               <a href="informal-entrerprise-regstration" class="btn btn-primary btn-sm shadow-sm">
                 <i class="fas fa-plus-circle mr-1"></i> አዲስ መዝግብ
               </a>
-            </div>
+            </div> -->
           </div>
 
           <!-- የውጤት መልዕክቶች ማሳያ -->
@@ -80,6 +80,11 @@ if (!isset($traders)) { $traders = []; }
 <button type="button" class="btn btn-danger btn-xs ml-1" data-toggle="modal" data-target="#deleteModal<?= $row['id'] ?>">
   <i class="fas fa-trash"></i> ሰርዝ
 </button>
+<form action="transfertoformalintrprese" method="POST">
+  <input type="hidden" name="id" value="<?= $row['id'] ?>">
+  <button type="submit" class="btn btn-success btn-xs ml-1">
+    <i class="fas fa-exchange-alt"></i> ወደ መደበኛ ኢ/ዝ ይቀይሩ
+</form>
                     </td>
                   </tr>
 <!-- ================= የማጥፊያ ማረጋገጫ ሞዳል (Delete Confirmation Modal) ================= -->

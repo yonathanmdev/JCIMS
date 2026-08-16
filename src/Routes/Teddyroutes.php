@@ -48,6 +48,9 @@ return [
     'register-kebele-process' => ['KebeleController', 'handleRegistration', true],
     'edit-kebele-process' => ['KebeleController', 'handleEditKebele', true],
     'delete-kebele-process' => ['KebeleController', 'delete', true],
-   
+    'transfertoformalintrprese' => ['InformalEnterpreseControrer', 'showtoformalinterpriseRegisterForm', true],
+    'informal-trade-update-process' => ['InformalEnterpreseControrer', 'storeOrUpdate', true],
+    'formal-trade-list'=> ['InformalEnterpreseControrer', 'showFormalTradeList', true],
+    'details'=> ['InformalEnterpreseControrer', 'showDetails', true],
     
 ];
