@@ -5,7 +5,7 @@ class Code003EnterpriseModel
 {
     private $db;
 
-    //  የዳታቤዝ 
+    //  የዳታ ቤዝ 
     protected $table = 'full_enterprise_and_job_seekerdata';
 
     public function __construct($db) 
