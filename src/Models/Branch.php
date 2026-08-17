@@ -652,4 +652,40 @@ public function getActiveBranches(): array
         return [];
     }
 }
+
+
+/**
+     * ከተጠቃሚው branch_id ጋር የሚዛመዱ ቀበሌዎችን ከ allKebeles ሠንጠረዥ ያመጣል
+     */
+    public function getAllowedKebeles($myBranchId): array
+    {
+        // በ database ውስጥ ያሉት አምዶች id, kebele, branch_id መሆናቸውን ከምስሉ ስለአየን 
+        // ጃቫስክሪፕቱ የሚፈልጋቸውን internal_id እና name ብለን እንቀይራቸዋለን
+        $sql = "
+            SELECT branch_id, kebele AS name
+            FROM allKebeles 
+            WHERE branch_id = :my_branch and status='active'
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':my_branch', $myBranchId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log(__METHOD__ . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ይህ ፋንክሽን በ Branch ሞዴል ውስጥ ይሁን
+public function getBranchIdByName($name): array
+{
+    $sql = "SELECT name FROM allKebeles WHERE kebele = :name LIMIT 1";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([':name' => $name]);
+    $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+    
+    return $result ? (int)$result['id'] : null;
+}
 }

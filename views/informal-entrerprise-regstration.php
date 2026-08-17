@@ -119,7 +119,7 @@
 
                   <div class="row mt-2">
                     <div class="col-md-4 form-group">
-                      <label>የሥራ መደብ *</label>
+                      <label>የሥራ መስክ *</label>
                       <input type="text" name="job_position" class="form-control" placeholder="ምሳሌ፡ የመንገድ ዳር ቸርቻሪ" required>
                     </div>
                     <div class="col-md-4 form-group">

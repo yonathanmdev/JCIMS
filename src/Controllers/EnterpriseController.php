@@ -4,6 +4,8 @@ use App\Helpers\AuthHelper;
 use App\Models\EnterpriseModel;
 use App\Models\SectorModel;
 use App\Models\ProjectNgoModel;
+// EnterpriseReportModel may not exist; use EnterpriseModel for report data
+use App\Models\EnterpriseModel as EnterpriseReportModel;
 use Ramsey\Uuid\Uuid;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -832,4 +834,35 @@ public function exportEnterpriseReportToExcel(array $rows): void
     $writer->save('php://output');
     exit;
 }
+public function index() {
+        // 1. የደህንነት ማረጋገጫ (Authorization Check): 
+        // ተጠቃሚው ይህንን ሪፖርት ለማየት የሚያስችል ትክክለኛ ሚና (Role) እንዳለው ማረጋገጥ።
+        if (!AuthHelper::hasRole(['team_leader', 'officer'], [1, 2, 3, 4])) {
+            $_SESSION['error'] = "ይህንን የሪፖርት ገጽ ለመጎብኘት ፍቃድ የለዎትም።";
+            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/unauthorized');
+            exit;
+        }
+
+        try {
+            // 2. ሞዴሉን በመጥራት መረጃዎችን ከዳታቤዝ/ቪው ማምጣት
+            // Use enterprise model to fetch enterprises for the report
+            $reportModel = new EnterpriseReportModel($this->db);
+            $enterprises = $reportModel->getAllEnterprises();
+
+            // 3. መረጃውን ወደ ሪፖርት ቪው (View) ማስተላለፍ
+            // (ማስታወሻ: 'enterprise-report-view' የሚለው የቪው ፋይል ስም እንደ ፕሮጀክቱ አቃፊ ሊቀየር ይችላል)
+            $this->render('code003', [
+                'enterprises' => $enterprises,
+                'pageTitle'   => 'የኢንተርፕራይዝ ሪፖርት ሰንጠረዥ'
+            ]);
+
+        } catch (\Exception $e) {
+            // 4. የደህንነት ጥንቃቄ፡ የስርዓቱን ትክክለኛ ስህተት ለተጠቃሚው ሳያሳዩ በሰርቨር ሎግ መያዝ
+            error_log("Controller Error in EnterpriseReportController@index: " . $e->getMessage());
+            
+            $_SESSION['error'] = "ሪፖርቱን በሚያመጣበት ጊዜ ያልተጠበቀ ስህተት ተፈጥሯል።";
+            header('Location: ' . rtrim($_ENV['BASE_URL'], '/') . '/error');
+            exit;
+        }
+    }
 }

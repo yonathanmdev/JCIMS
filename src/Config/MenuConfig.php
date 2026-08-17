@@ -212,7 +212,7 @@ switch ($level) {
                     ],
                     [
                         'label' => 'Code003',
-                        'url'   => '/code003',
+                        'url'   => '/code003selectform',
                         'roles' => ['team_leader', 'officer'],
                          'target' => '_blank',
                         
@@ -244,7 +244,7 @@ switch ($level) {
                 'label' => 'ኢ-መደበኛ ኢ/ዝ',
                 'icon'  => 'fas fa-users',
                 'roles' => ['officer'],
-                'levels' => [33, 44],
+                'levels' => [3, 4],
                 'children' => [
                     [
                         'label' => 'ኢ-መደበኛ ኢ/ዝ መመዝገብ',
@@ -256,6 +256,13 @@ switch ($level) {
                         'label' => 'ኢ-መደበኛ ኢ/ዝ ዝርዝር',
                         'url'   => '/informal-trade-list',
                         'roles' => ['team_leader', 'officer']
+                    ]
+                    ,
+                    [
+                        'label' => 'ወደ መደበኛ ኢ/ዝ የተሻገረ ዝርዝር',
+                        'url'   => '/formal-trade-list',
+                        'roles' => ['team_leader', 'officer'],
+                        'target' => '_blank',
                     ]
                 ]
             ],
@@ -289,6 +296,19 @@ switch ($level) {
             'url'   => '/report-registration', // 👈 ሙሉ በሙሉ ተስተካክሏል
             'roles' => ['team_leader', 'officer']
         ],
+        [
+            'label' => 'የቀበሌ ሪፖርት ማየት',
+            'url'   => '/kreport-registration',
+            'roles' => ['team_leader','officer'],
+            'levels' => [3]
+                    ],
+        
+        [
+            'label' => 'ሁሉንም ቀበሌ ማየት',
+            'url'   => '/all-kebele-report',
+            'roles' => ['team_leader','officer'],
+            'levels' => [3]
+                    ],
 
     ]
     
