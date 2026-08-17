@@ -26,6 +26,8 @@ class Code003EnterpriseModel
                     SELECT 
                         e.tine_number,
                         MAX(e.enterprisename) AS enterprisename,
+                        MAX(zone.name)   AS zone_name,
+                        MAX(woreda.name) AS woreda_name,
                         MAX(e.jskebele) AS jskebele,
                         MAX(e.manager_phone) AS manager_phone,
                         MAX(e.established_date) AS established_date,
@@ -66,6 +68,9 @@ class Code003EnterpriseModel
                         SUM(CASE WHEN e.employment_type = '2' and e.job_creation_reason = 'አዳዲስ ኢንተርፕራይዞች በማቋቋም የተፈጠረ ሥራ' and e.jcsource!=1 THEN 1 ELSE 0 END) AS temporary_total
                     FROM " . $this->table . " e
                     INNER JOIN SubBranches sb ON e.code003_branch_id = sb.internal_id
+                    INNER JOIN branches leaf   ON leaf.internal_id = e.code003_branch_id
+                    LEFT JOIN branches zone    ON leaf.path LIKE CONCAT(zone.path, '%')   AND zone.level = 2
+                    LEFT JOIN branches woreda  ON leaf.path LIKE CONCAT(woreda.path, '%') AND woreda.level = 3
                     GROUP BY e.tine_number
                     LIMIT :lim OFFSET :offs";
             

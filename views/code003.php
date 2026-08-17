@@ -297,8 +297,8 @@
               <td><?= $index + 1 ?></td>
               <td><?= htmlspecialchars($row->enterprisename ?? '') ?></td>
               <!-- አድራሻ (አስፈላጊውን ከቴብሉ ማስተካከል ይቻላል) -->
-              <td>-</td>
-              <td>-</td>
+              <td><?= htmlspecialchars($row->zone_name ?? '') ?></td>
+              <td><?= htmlspecialchars($row->woreda_name ?? '') ?></td>
               <td>-</td>
               <td><?= htmlspecialchars($row->jskebele ?? '') ?></td>
               <td>-</td>
